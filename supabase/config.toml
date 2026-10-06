@@ -1,0 +1,12 @@
+# Supabase CLI settings for Stoop. Only the parts that differ from the defaults.
+project_id = "stoop"
+
+[api]
+schemas = ["public", "graphql_public", "rentals"]
+
+# Apify calls ingest without a Supabase login; it checks x-webhook-secret instead.
+[functions.ingest]
+verify_jwt = false
+
+[functions.rescore]
+verify_jwt = true

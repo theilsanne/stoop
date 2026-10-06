@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+!.env.example

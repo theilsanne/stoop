@@ -1,0 +1,9 @@
+{
+  "name": "stoop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings --test test/scoring.test.ts"
+  },
+  "engines": { "node": ">=22.6" }
+}
