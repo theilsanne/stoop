@@ -1,0 +1,17 @@
+{
+  "name": "stoop-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.58.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0"
+  }
+}

@@ -1,8 +1,9 @@
 # stoop
 
-A private rental-search tool for two people hunting in Brooklyn. It pulls new
-StreetEasy listings on a schedule, scores each one against both people's
-preferences, and (soon) pushes the good ones to both phones.
+A private rental-search tool for two people hunting in Brooklyn. It pulls
+StreetEasy listings through Apify, scores each one against both people's
+preferences, and shows them in an installable web app at
+**https://theilsanne.github.io/stoop/**.
 
 ## What's here
 
@@ -13,9 +14,22 @@ preferences, and (soon) pushes the good ones to both phones.
 | `supabase/functions/rescore` | Called by the app after either person saves criteria. Re-scores every active listing. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
+| `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`. |
 | `test/` | Tests for scoring and field mapping. Run `npm test` (Node 22.6+). |
 
-The app itself (a PWA on GitHub Pages) comes next.
+## The app
+
+| Screen | What it does |
+| --- | --- |
+| Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. |
+| Listing | Photos, rent and concessions, amenities, why it scores what it does for each of you, both verdicts and notes, stage, price history. |
+| Criteria | Your own dealbreakers and wants. Shows how many listings would pass before you save; saving re-scores everything. Change history for both of you. |
+| Compare | Your list next to your partner's, where you differ, and the listings you'd split on. |
+| Pipeline | Shortlisted → tour requested → toured → applied → won. |
+
+Add `?demo` to the URL to try it on built-in sample listings without signing in.
+
+**Run it locally:** `cd app && npm install && npm run dev`, with `app/.env.local` holding `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `app/.env.example`), or `VITE_DEMO=1` for sample data.
 
 ## How scoring works
 
@@ -64,8 +78,10 @@ supabase login
 supabase link --project-ref <your-project-ref>
 supabase secrets set APIFY_TOKEN=<token> WEBHOOK_SECRET=<a long random string>
 supabase functions deploy ingest --no-verify-jwt
-supabase functions deploy rescore
+supabase functions deploy rescore --no-verify-jwt
 ```
+
+Both functions do their own checks: `ingest` requires the webhook secret, `rescore` requires a signed-in user. (Supabase's gateway check is turned off because it doesn't accept the newer publishable keys.)
 
 `openssl rand -hex 32` makes a good webhook secret. Don't commit secrets; `.env` files are ignored.
 
@@ -88,6 +104,16 @@ Start the task once by hand. When it finishes, the webhook response (in Apify's 
 
 Then open **Table Editor → rentals.listings** and spot-check a few rows against StreetEasy: price, net effective rent, neighborhood, beds, available date, no-fee. The full scraped item is kept in the `raw` column; if a field is empty, find its name there and add it to the matching list in `normalize.ts`.
 
+### 6. Publish the app
+
+1. **GitHub → stoop → Settings → Pages:** set **Source** to **GitHub Actions**.
+2. **GitHub → stoop → Settings → Secrets and variables → Actions → Variables tab → New repository variable**, twice:
+   - `SUPABASE_URL` = `https://<your-project-ref>.supabase.co`
+   - `SUPABASE_ANON_KEY` = the publishable (or legacy anon) key from **Supabase → Project Settings → API Keys**
+   Both are meant to be public; row-level security and sign-in protect the data.
+3. **Actions tab → Deploy app to GitHub Pages → Run workflow** (later pushes deploy automatically).
+4. Open `https://theilsanne.github.io/stoop/`, sign in with your email, and on Android choose **Add to Home screen** from Chrome's menu.
+
 ## Testing ingest by hand
 
 You can also send items straight to ingest, skipping Apify:
@@ -100,6 +126,5 @@ curl -X POST https://<ref>.supabase.co/functions/v1/ingest \
 
 ## Not built yet
 
-- The PWA (feed, criteria editor, compare, pipeline) on GitHub Pages
 - Web push alerts (ingest already works out who would get one)
 - Commute times and NYC Open Data building records (scoring already uses them once filled)

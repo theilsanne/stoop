@@ -1,0 +1,55 @@
+import { S, myId, partner, partnerId, partnerName, verdictOf, viewOf } from "../state.ts";
+import { STAGES } from "../types.ts";
+import { esc, money } from "../util.ts";
+import { verdictText } from "./feed.ts";
+
+export function renderPipeline() {
+  const order = STAGES.map(([k]) => k);
+  return `<p class="hint">Move listings along as you tour and apply. To add one, open it from the feed and set its stage.</p>
+  <div class="board">${STAGES.slice(1).map(([k, t]) => {
+    const items = S.feed.filter((r) => r.stage === k);
+    return `<section class="col" aria-label="${t}"><h3>${t}<span>${items.length}</span></h3>
+      ${items.map((r) => {
+        const i = order.indexOf(k), v = viewOf(r);
+        return `<div class="mini"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
+          <div class="row"><span>${money(r.net_effective_rent ?? r.price)} · ${esc(r.neighborhood)}</span><span class="val">${v.scored ? v.score : "–"}</span></div>
+          <div class="row"><span>You ${verdictText(verdictOf(r.id, myId()))} · ${esc(partnerName())} ${verdictText(verdictOf(r.id, partnerId()))}</span>
+            <span class="mv"><button data-action="move" data-id="${r.id}" data-v="${order[i - 1]}" ${i <= 1 ? "disabled" : ""} aria-label="Move back">←</button><button data-action="move" data-id="${r.id}" data-v="${order[i + 1]}" ${i >= order.length - 1 ? "disabled" : ""} aria-label="Move forward">→</button></span></div></div>`;
+      }).join("") || '<div class="small" style="padding:4px">Empty</div>'}
+    </section>`;
+  }).join("")}</div>`;
+}
+
+export function renderSettings() {
+  const me = S.profiles.find((p) => p.id === myId());
+  return `<div class="two">
+    <section class="panel"><h2>You</h2>
+      <p>Signed in as <b>${esc(S.me?.email)}</b>${S.api.demo ? " (demo)" : ""}.</p>
+      <div class="ctl"><label for="myname">Your name</label><input id="myname" class="text" value="${esc(me?.display_name ?? "")}" maxlength="40"></div>
+      <div><button class="btn" data-action="savename">Save name</button> <button class="btn" data-action="signout">Sign out</button></div>
+    </section>
+    <section class="panel"><h2>Your partner</h2>
+      ${partner() ? `<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p>`
+        : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
+    </section>
+    <section class="panel"><h2>Scores</h2>
+      <p>Listings are re-scored whenever either of you saves criteria, and new ones are scored as they arrive. If anything looks stale, re-score everything now.</p>
+      <div><button class="btn" data-action="rescore" ${S.saving ? "disabled" : ""}>${S.saving ? "Re-scoring…" : "Re-score all listings"}</button></div>
+    </section>
+    <section class="panel"><h2>Install on your phone</h2>
+      <p>In Chrome, open the menu (⋮) and choose <b>Add to Home screen</b> or <b>Install app</b>. It then opens like an app, without the browser bar.</p>
+    </section>
+  </div>`;
+}
+
+export function renderSignIn() {
+  if (S.sentLinkTo) {
+    return `<div class="signin"><h1>Check your email</h1><p>We sent a sign-in link to <b>${esc(S.sentLinkTo)}</b>. Open it on this device.</p>
+      <button class="btn" data-action="resend">Use a different email</button></div>`;
+  }
+  return `<form class="signin" id="signin"><h1>Stoop</h1><p>Your Brooklyn rental search. Sign in with the email you were invited with.</p>
+    <label for="email" class="small">Email</label>
+    <input id="email" type="email" class="text" autocomplete="email" required placeholder="you@example.com">
+    <button class="btn primary" type="submit">Email me a sign-in link</button>
+    ${S.error ? `<p class="err">${esc(S.error)}</p>` : ""}</form>`;
+}

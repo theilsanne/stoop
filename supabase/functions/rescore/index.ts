@@ -1,10 +1,10 @@
 // rescore: the app calls this after either of you saves criteria.
 // Re-scores every active listing against both people's current criteria.
 //
-// Deploy with:  supabase functions deploy rescore
-// Only a signed-in person (one of you two) can run it.
+// Deploy with:  supabase functions deploy rescore --no-verify-jwt
+// The gateway check is off because it doesn't understand Supabase's newer
+// publishable keys; this function checks the signed-in user itself instead.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
 import { scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 
 const cors = {
@@ -21,17 +21,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
-  // The anon key is also a valid JWT, so check there's a real signed-in user behind the token.
+  const db = serviceClient();
+
+  // Only a real signed-in user (one of you two) may run this. A bare API key is not enough.
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const auth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-  const { data, error } = await auth.auth.getUser(token);
+  const { data, error } = token ? await db.auth.getUser(token) : { data: { user: null }, error: null };
   if (error || !data.user) return json({ error: "Sign in first" }, 401);
 
-  const results = await scoreAndStore(serviceClient(), null);
-  const all = Object.values(results);
-  return json({
-    rescored: all.length,
-    passing: all.filter((r) => r.passes).length,
-    near_misses: all.filter((r) => r.near_miss).length,
-  });
+  try {
+    const results = await scoreAndStore(db, null);
+    const all = Object.values(results);
+    return json({
+      rescored: all.length,
+      passing: all.filter((r) => r.passes).length,
+      near_misses: all.filter((r) => r.near_miss).length,
+    });
+  } catch (e) {
+    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+  }
 });

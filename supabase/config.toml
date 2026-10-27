@@ -8,5 +8,6 @@ schemas = ["public", "graphql_public", "rentals"]
 [functions.ingest]
 verify_jwt = false
 
+# rescore checks the signed-in user itself (see its index.ts).
 [functions.rescore]
-verify_jwt = true
+verify_jwt = false
