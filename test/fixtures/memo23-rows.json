@@ -1,0 +1,83 @@
+[
+  {
+    "id": "5179052",
+    "urlPath": "/building/bower/320",
+    "street": "2683 Atlantic Avenue",
+    "unit": "#320",
+    "areaName": "Cypress Hills",
+    "geoPoint_latitude": 40.676167,
+    "geoPoint_longitude": -73.89536,
+    "price": 3230,
+    "netEffectivePrice": 0,
+    "monthsFree": 0,
+    "leaseTermMonths": null,
+    "moveInFees_json": "[{\"typeLabel\":\"Application fee\",\"requirement\":\"REQUIRED\",\"refundability\":{\"type\":\"NON_REFUNDABLE\"},\"calculation\":{\"calculationType\":\"FLAT_FEE\",\"feeQuantifier\":20,\"maxQuantifier\":null},\"schedule\":{\"timing\":\"APPLICATION_SUBMISSION\",\"occurrenceType\":\"ONE_TIME\"}},{\"typeLabel\":\"Security deposit\",\"requirement\":\"REQUIRED\",\"refundability\":{\"type\":\"REFUNDABLE\"},\"calculation\":{\"calculationType\":\"FLAT_FEE\",\"feeQuantifier\":3230,\"maxQuantifier\":null},\"schedule\":{\"timing\":\"MOVE_IN\",\"occurrenceType\":\"ONE_TIME\"}}]",
+    "bedroomCount": 2,
+    "fullBathroomCount": 2,
+    "livingAreaSize": 0,
+    "availableAt": "2026-10-09",
+    "onMarketAt": "2026-10-09",
+    "createdAt": "2026-10-09T13:55:09.000-04:00",
+    "propertyDetails_amenities_list": [
+      "BIKE_ROOM",
+      "CHILDRENS_PLAYROOM",
+      "SHARED_OUTDOOR_SPACE",
+      "DOORMAN",
+      "ELEVATOR",
+      "FIOS_AVAILABLE",
+      "GYM",
+      "LAUNDRY",
+      "STORAGE_SPACE",
+      "MEDIA_ROOM",
+      "PACKAGE_ROOM",
+      "POOL"
+    ],
+    "propertyDetails_features_list": [
+      "CENTRAL_AC",
+      "VIEW",
+      "DISHWASHER",
+      "PRIVATE_OUTDOOR_SPACE",
+      "WASHER_DRYER"
+    ],
+    "originalSearchUrl": "https://streeteasy.com/for-rent/nyc/price:-5000%7Carea:304,310,319,325,326,364%7Cpets:allowed?sort_by=listed_desc",
+    "status": "ACTIVE",
+    "sourceType": "PARTNER",
+    "images": []
+  },
+  {
+    "id": "5187209",
+    "urlPath": "/building/408-madison-street-brooklyn/phb",
+    "street": "408 Madison Street",
+    "unit": "#PHB",
+    "areaName": "Bedford-Stuyvesant",
+    "geoPoint_latitude": 40.685474,
+    "geoPoint_longitude": -73.941986,
+    "price": 4850,
+    "netEffectivePrice": 4477,
+    "monthsFree": 1,
+    "leaseTermMonths": 13,
+    "moveInFees_json": "[{\"typeLabel\":\"Application fee\",\"requirement\":\"REQUIRED\",\"refundability\":{\"type\":\"NON_REFUNDABLE\"},\"calculation\":{\"calculationType\":\"FLAT_FEE\",\"feeQuantifier\":20,\"maxQuantifier\":null},\"schedule\":{\"timing\":\"APPLICATION_SUBMISSION\",\"occurrenceType\":\"ONE_TIME\"}},{\"typeLabel\":\"Security deposit\",\"requirement\":\"REQUIRED\",\"refundability\":{\"type\":\"REFUNDABLE\"},\"calculation\":{\"calculationType\":\"FLAT_FEE\",\"feeQuantifier\":4875,\"maxQuantifier\":null},\"schedule\":{\"timing\":\"MOVE_IN\",\"occurrenceType\":\"ONE_TIME\"}}]",
+    "bedroomCount": 3,
+    "fullBathroomCount": 2,
+    "livingAreaSize": 0,
+    "availableAt": "2026-10-21",
+    "onMarketAt": "2026-10-21",
+    "createdAt": "2026-10-21T09:42:10.000-04:00",
+    "propertyDetails_amenities_list": [
+      "FIOS_AVAILABLE",
+      "SHARED_OUTDOOR_SPACE"
+    ],
+    "propertyDetails_features_list": [
+      "CENTRAL_AC",
+      "VIEW",
+      "DISHWASHER",
+      "HARDWOOD_FLOORS",
+      "PRIVATE_OUTDOOR_SPACE",
+      "WASHER_DRYER"
+    ],
+    "originalSearchUrl": "https://streeteasy.com/for-rent/nyc/price:-5000%7Carea:304,310,319,325,326,364%7Cpets:allowed?sort_by=listed_desc",
+    "status": "ACTIVE",
+    "sourceType": "PARTNER",
+    "images": []
+  }
+]

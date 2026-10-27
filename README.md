@@ -42,10 +42,18 @@ The app itself (a PWA on GitHub Pages) comes next.
 
 ### 2. Apify
 
-1. Pick a StreetEasy rentals actor and create a **Task** from it with your StreetEasy search URLs (sorted newest first) and a cap of 30–50 items per search.
-2. Schedule the task hourly for now.
-3. Make a second task from the same actor with the same search URLs but **no item cap**, scheduled **weekly**. Hourly runs only see the newest listings; this one confirms which older listings are still up. Anything not seen for 8 days is marked off-market.
-4. Copy your API token from Apify's integration settings.
+We use **memo23's "Streeteasy.com Scraper"** (`memo23/apify-streeteasy-cheerio`, pay per result).
+In a test it kept the search URL's filters and newest-first sort; another scraper tried (abotapi) ignored both.
+
+1. Build your search on streeteasy.com (rentals, your neighborhoods, a max price a bit above the higher budget, pets allowed), sort by **Newest**, and copy the URL. It looks like
+   `https://streeteasy.com/for-rent/nyc/price:-5000%7Carea:...%7Cpets:allowed?sort_by=listed_desc`
+2. Open the actor → **Use Actor**, put the URL in **Start URLs**, leave **Flatten dataset rows** on (the default), and leave Proxy alone.
+3. **Save as task** twice:
+   - **Frequent:** Max Listings `30`, scheduled every 2–3 hours for now (hourly in waking hours from February).
+   - **Weekly:** Max Listings `0`/empty (everything), scheduled weekly. Hourly runs only see the newest listings; this one confirms which older listings are still up. Anything not seen for 8 days is marked off-market.
+4. Copy your API token from **Settings → API & Integrations**.
+
+Field notes (handled in `normalize.ts`): memo23 sends `0` for unknown size and for "no concession", has no pet field (listings from a pets-allowed search are marked pets allowed), and has no no-fee flag (a listing is no-fee when its fee list has no broker fee).
 
 ### 3. Deploy the functions
 
@@ -78,7 +86,7 @@ Start the task once by hand. When it finishes, the webhook response (in Apify's 
 {"items":42,"skipped_unusable":0,"saved":42,"new":42,"price_drops":0,"went_off_market":0,"would_alert":3}
 ```
 
-Then open **Table Editor → rentals.listings** and spot-check a few rows against StreetEasy. The field mapping in `normalize.ts` was written before seeing your actor's real output, so check that price, neighborhood, beds, available date, and no-fee came through. The full scraped item is kept in the `raw` column; if a field is empty, find its name there and add it to the matching list in `normalize.ts`.
+Then open **Table Editor → rentals.listings** and spot-check a few rows against StreetEasy: price, net effective rent, neighborhood, beds, available date, no-fee. The full scraped item is kept in the `raw` column; if a field is empty, find its name there and add it to the matching list in `normalize.ts`.
 
 ## Testing ingest by hand
 

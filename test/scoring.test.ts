@@ -108,3 +108,33 @@ test("normalize skips items without an id or a price", () => {
   assert.equal(normalize({ address: "x", price: 3000 }), null);
   assert.equal(normalize({ id: 1, address: "x" }), null);
 });
+
+import { readFileSync } from "node:fs";
+
+test("normalize maps real memo23 rows", () => {
+  const rows = JSON.parse(readFileSync(new URL("./fixtures/memo23-rows.json", import.meta.url), "utf8"));
+  const [plain, concession] = rows.map((r: Record<string, unknown>) => normalize(r)!);
+
+  // no concession: memo23 sends 0s, which must not become "$0 rent" or "0 sq ft"
+  assert.equal(plain.source_id, "5179052");
+  assert.equal(plain.url, "https://streeteasy.com/building/bower/320");
+  assert.equal(plain.neighborhood, "Cypress Hills");
+  assert.equal(plain.price, 3230);
+  assert.equal(plain.net_effective_rent, 3230);
+  assert.equal(plain.free_months, null);
+  assert.equal(plain.sqft, null);
+  assert.equal(plain.beds, 2);
+  assert.equal(plain.available_date, "2026-10-09");
+  assert.equal(plain.no_fee, true); // fee list has only application fee + deposit
+  assert.equal(plain.amenities.pets_allowed, true); // search was filtered to pets allowed
+  assert.equal(plain.amenities.laundry_in_unit, true);
+  assert.equal(plain.amenities.dishwasher, true);
+  assert.equal(typeof plain.lat, "number");
+
+  // one month free on a 13-month lease: StreetEasy's own net effective rent is used
+  assert.equal(concession.price, 4850);
+  assert.equal(concession.net_effective_rent, 4477);
+  assert.equal(concession.free_months, 1);
+  assert.equal(concession.lease_term_months, 13);
+  assert.equal(concession.neighborhood, "Bedford-Stuyvesant");
+});
