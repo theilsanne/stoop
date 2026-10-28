@@ -1,6 +1,6 @@
 import { icon } from "../icons.ts";
 import { PARENT_HOOD, defFor } from "../catalog.ts";
-import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts, sectionOf } from "../state.ts";
+import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, previewCounts, sectionOf } from "../state.ts";
 import type { CriteriaChange, Criterion } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
