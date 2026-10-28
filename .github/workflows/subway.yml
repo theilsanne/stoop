@@ -4,6 +4,11 @@
 name: Update subway network
 on:
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: "Also push the raw timetable to the gtfs-snapshot branch (for development)"
+        type: boolean
+        default: false
   schedule:
     - cron: "17 9 1 * *"
 permissions:
@@ -19,9 +24,13 @@ jobs:
         run: |
           curl -sSfL -o gtfs_subway.zip https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip
           mkdir gtfs && unzip -q gtfs_subway.zip -d gtfs && ls -la gtfs
-      - name: Keep a copy of the raw timetable
-        uses: actions/upload-artifact@v4
-        with: { name: gtfs-subway, path: gtfs_subway.zip, retention-days: 7 }
+      - name: Snapshot the raw timetable to its own branch
+        if: inputs.snapshot
+        run: |
+          mkdir /tmp/snap && cp gtfs_subway.zip /tmp/snap/ && cd /tmp/snap
+          git init -q -b gtfs-snapshot && git add gtfs_subway.zip
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "MTA subway GTFS snapshot"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gtfs-snapshot
       - name: Build the network
         if: hashFiles('scripts/build-subway.mjs') != ''
         run: node scripts/build-subway.mjs gtfs supabase/functions/_shared/subway-graph.json
