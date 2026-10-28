@@ -15,7 +15,7 @@ export function renderPipeline() {
         return `<div class="mini" data-drag-id="${r.id}"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
           <div class="row"><span>${money(r.net_effective_rent ?? r.price)} · ${esc(r.neighborhood)}</span><span class="val">${v.scored ? v.score : "–"}</span></div>
           <div class="row"><span>You ${verdictText(verdictOf(r.id, myId()))} · ${esc(partnerName())} ${verdictText(verdictOf(r.id, partnerId()))}</span>
-            <span class="mv"><button data-action="move" data-id="${r.id}" data-v="${order[i - 1]}" ${i <= 1 ? "disabled" : ""} aria-label="Move back">←</button><button data-action="move" data-id="${r.id}" data-v="${order[i + 1]}" ${i >= order.length - 1 ? "disabled" : ""} aria-label="Move forward">→</button></span></div></div>`;
+            <span class="mv"><button data-action="move" data-id="${r.id}" data-v="${order[i - 1]}" ${i <= 1 ? "disabled" : ""} aria-label="Move back">${icon("caret-left", { size: 16 })}</button><button data-action="move" data-id="${r.id}" data-v="${order[i + 1]}" ${i >= order.length - 1 ? "disabled" : ""} aria-label="Move forward">${icon("caret-right", { size: 16 })}</button></span></div></div>`;
       }).join("") || '<div class="small" style="padding:4px">Empty</div>'}
     </section>`;
   }).join("")}</div>`;

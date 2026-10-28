@@ -148,6 +148,11 @@ function closeSheet() {
   closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; });
 }
 
+// whether the last thing the person did was a key press (vs a tap or click)
+let usingKeyboard = false;
+document.addEventListener("keydown", () => { usingKeyboard = true; }, true);
+document.addEventListener("pointerdown", () => { usingKeyboard = false; }, true);
+
 // ---------- full-screen photo viewer ----------
 let viewerReturn: HTMLElement | null = null;
 function openViewer(id: string, start: number) {
@@ -267,7 +272,8 @@ async function openSheet(id: string) {
   S.openId = id;
   S.bdWho = "me";
   render();
-  ($("close-sheet") as HTMLButtonElement | null)?.focus();
+  // focus moves into the sheet for keyboard and screen reader users; the ring only shows if they're using a keyboard
+  ($("close-sheet") as HTMLButtonElement | null)?.focus({ focusVisible: usingKeyboard } as FocusOptions);
   if (S.places.length && !routes.has(id)) {
     api.commuteRoutes(id).then((r) => { routes.set(id, r); if (S.openId === id) drawSheet(); }, () => routes.set(id, {}));
   }
