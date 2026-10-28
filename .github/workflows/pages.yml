@@ -1,49 +1,150 @@
-name: Deploy app to GitHub Pages
+name: Deploy to GitHub Pages
 
+# Pushing to main publishes the live app at /stoop/. Pushing any other branch that changes the
+# app publishes a preview at /stoop/previews/<branch>/, built against the real Supabase project.
+# Deleting a branch removes its preview. The site lives on the pages-previews branch, so every
+# deploy carries the live app and all the previews together.
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     paths: ["app/**", "supabase/functions/_shared/scoring.ts", ".github/workflows/pages.yml"]
+  delete:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
+# One deploy at a time, and never cancel one halfway: a cancelled deploy could leave the site half-written.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm ci
-      - run: npm run build
-        env:
-          # Both are public by design; set them under Settings → Secrets and variables → Actions → Variables.
-          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: app/dist
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # for a deleted branch, github.ref_name is the default branch, so take the name from the event
+      REF_NAME: ${{ github.event_name == 'delete' && github.event.ref || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Work out where this build goes
+        run: |
+          slug=$(printf '%s' "$REF_NAME" | sed -E 's#[^A-Za-z0-9._-]+#-#g; s#^-+##; s#-+$##')
+          echo "SLUG=$slug" >> "$GITHUB_ENV"
+          if [ "$REF_NAME" = main ]; then
+            echo "BASE=/stoop/" >> "$GITHUB_ENV"
+          else
+            echo "BASE=/stoop/previews/$slug/" >> "$GITHUB_ENV"
+          fi
+
+      - name: Fetch the site so far (pages-previews branch)
+        run: |
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$url" pages-previews >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch pages-previews "$url" "$RUNNER_TEMP/site"
+          else
+            git init --quiet -b pages-previews "$RUNNER_TEMP/site"
+          fi
+
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'delete' }}
+        with:
+          path: this
+
+      - uses: actions/setup-node@v4
+        if: ${{ github.event_name != 'delete' }}
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: this/app/package-lock.json
+
+      - name: Build this branch
+        if: ${{ github.event_name != 'delete' }}
+        working-directory: this/app
+        run: |
+          npm ci
+          npm run build -- --base "$BASE" --outDir "$RUNNER_TEMP/build" --emptyOutDir
+        env:
+          # Both are public by design; set them under Settings → Secrets and variables → Actions → Variables.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
+      - name: Check whether the site has the live app yet
+        id: site
+        run: |
+          if [ -f "$RUNNER_TEMP/site/index.html" ]; then echo "has_live=true" >> "$GITHUB_OUTPUT"; else echo "has_live=false" >> "$GITHUB_OUTPUT"; fi
+
+      # The first preview would otherwise replace the live app with nothing, so build main too.
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'delete' && env.REF_NAME != 'main' && steps.site.outputs.has_live == 'false' }}
+        with:
+          ref: main
+          path: live
+
+      - name: Build the live app
+        if: ${{ github.event_name != 'delete' && env.REF_NAME != 'main' && steps.site.outputs.has_live == 'false' }}
+        working-directory: live/app
+        run: |
+          npm ci
+          npm run build -- --base /stoop/ --outDir "$RUNNER_TEMP/live-build" --emptyOutDir
+          cp -R "$RUNNER_TEMP/live-build/." "$RUNNER_TEMP/site/"
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
+      - name: Put this build in the site
+        if: ${{ github.event_name != 'delete' }}
+        run: |
+          cd "$RUNNER_TEMP/site"
+          if [ "$REF_NAME" = main ]; then
+            # the live app: replace everything except the previews
+            find . -mindepth 1 -maxdepth 1 ! -name .git ! -name previews -exec rm -rf {} +
+            cp -R "$RUNNER_TEMP/build/." .
+          else
+            mkdir -p "previews/$SLUG"
+            find "previews/$SLUG" -mindepth 1 -delete
+            cp -R "$RUNNER_TEMP/build/." "previews/$SLUG/"
+          fi
+
+      - name: Remove the preview of a deleted branch
+        if: ${{ github.event_name == 'delete' }}
+        run: rm -rf "$RUNNER_TEMP/site/previews/$SLUG"
+
+      - name: Save the site to pages-previews
+        run: |
+          cd "$RUNNER_TEMP/site"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git rev-parse --verify --quiet HEAD >/dev/null && git diff --cached --quiet; then
+            echo "Nothing changed in the site."
+            exit 0
+          fi
+          git commit --quiet -m "Deploy $REF_NAME"
+          git remote remove origin 2>/dev/null || true
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --quiet origin HEAD:refs/heads/pages-previews
+
+      - name: Leave out git data from the upload
+        run: rm -rf "$RUNNER_TEMP/site/.git"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/site
+
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Say where it is
+        if: ${{ github.event_name != 'delete' }}
+        run: |
+          if [ "$REF_NAME" = main ]; then
+            echo "Live app: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Preview: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/previews/$SLUG/" >> "$GITHUB_STEP_SUMMARY"
+          fi

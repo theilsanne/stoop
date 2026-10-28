@@ -20,7 +20,7 @@ Layout:
 - **The app talks to the database only through `Api` in `app/src/api.ts`.** Any new read or write goes into both `SupabaseApi` and `DemoApi`, so `?demo` keeps working.
 - **Migrations are applied by hand, in order.** There is no dev and prod split. A migration that has run is never edited; add a new one. Keep them safe to run twice.
 - **Edge Functions are deployed with `--no-verify-jwt`** and check their caller in code. `ingest` checks `x-webhook-secret`; the others call `auth.getUser`. A new function does its own check.
-- **Pushing to `main` deploys the app** (`pages.yml`). Nothing else ships on its own.
+- **Pushing to `main` deploys the live app** at `/stoop/` (`pages.yml`). **Pushing any other branch that changes the app deploys a preview** at `/stoop/previews/<branch>/`, built against the real Supabase project, so a preview can show unmigrated data as errors until the migrations are run. Deleting a branch removes its preview. The site is kept on the `pages-previews` branch, which is written only by that workflow.
 - **Secrets stay out of git.** Use `.env` files and `supabase secrets set`. The anon key in the app is public by design; the Apify token and the webhook secret are not.
 
 ## Working discipline

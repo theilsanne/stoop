@@ -659,7 +659,8 @@ document.addEventListener("visibilitychange", () => {
   else if (S.me && hiddenAt && Date.now() - hiddenAt > 5 * 60e3 && !draftDirty()) load();
 });
 
-if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
+// Branch previews (under /previews/) skip the service worker, so they can't be served from the live app's cache.
+if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import.meta.env.BASE_URL.includes("/previews/")) {
   navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").catch(() => {});
 }
 

@@ -18,7 +18,7 @@ preferences, and shows them in an installable web app at
 | `supabase/functions/_shared/buildings.ts` | Address → BBL (NYC GeoSearch), open HPD violations, 311 complaints (NYC Open Data). No keys needed. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
-| `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`. |
+| `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml`: `main` is the live app, and other branches get previews. |
 | `test/` | Tests for scoring and field mapping. Run `npm test` (Node 22.6+). |
 
 ## The app
@@ -52,7 +52,7 @@ Add `?demo` to the URL to try it on built-in sample listings without signing in.
 1. Create the project (Data API on, "automatically expose new tables" off).
 2. **Authentication → URL Configuration**
    - Site URL: `https://theilsanne.github.io/stoop/`
-   - Redirect URLs: the same, plus `http://localhost:5173/**`
+   - Redirect URLs: the same, plus `http://localhost:5173/**` and `https://theilsanne.github.io/stoop/previews/**` (so sign-in works on branch previews)
 3. **Authentication → Sign In / Providers:** Email on. Magic links come with it.
 4. **SQL Editor:** paste `supabase/migrations/20261006000000_init.sql` and run it.
 5. **Project Settings → Data API → Exposed schemas:** add `rentals`.
@@ -133,8 +133,10 @@ Each new listing's address is matched to a city building (BBL) with NYC Planning
    - `SUPABASE_URL` = `https://<your-project-ref>.supabase.co`
    - `SUPABASE_ANON_KEY` = the publishable (or legacy anon) key from **Supabase → Project Settings → API Keys**
    Both are meant to be public; row-level security and sign-in protect the data.
-3. **Actions tab → Deploy app to GitHub Pages → Run workflow** (later pushes deploy automatically).
+3. **Actions tab → Deploy to GitHub Pages → Run workflow** (later pushes deploy automatically).
 4. Open `https://theilsanne.github.io/stoop/`, sign in with your email, and on Android choose **Add to Home screen** from Chrome's menu.
+
+**Branch previews.** Pushing a branch that changes the app also publishes it at `https://theilsanne.github.io/stoop/previews/<branch>/`, with the link in that run's summary. A preview uses the real database, so run any new migrations first. Sign-in is per URL, so each preview asks for its own sign-in link. Deleting the branch removes its preview.
 
 ## Testing ingest by hand
 
