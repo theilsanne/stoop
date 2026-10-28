@@ -3,6 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
+import { initSheetDrag } from "./sheetdrag.ts";
 import { closeSheetMotion, enterView, growBars, land, liveBar, openSheetMotion, picked, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
@@ -149,11 +150,22 @@ export function render() {
   sheetShown = open;
 }
 
-function closeSheet() {
+// The open sheet gets a browser history entry, so the phone's back gesture closes it
+// instead of leaving the app. Closing it any other way steps that entry back off.
+let dragDy = 0;
+function closeSheet(fromDy = 0) {
+  if (!S.openId) return;
+  if (window.history.state?.sheet) { dragDy = fromDy; window.history.back(); return; } // popstate does the closing
+  shutSheet(fromDy);
+}
+function shutSheet(fromDy = 0) {
   if (!S.openId) return;
   S.openId = null; sheetShown = false;
-  closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; });
+  closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; }, fromDy);
 }
+window.addEventListener("popstate", () => {
+  if (S.openId && !window.history.state?.sheet) { const dy = dragDy; dragDy = 0; shutSheet(dy); }
+});
 
 // whether the last thing the person did was a key press (vs a tap or click)
 let usingKeyboard = false;
@@ -280,6 +292,8 @@ async function boot() {
 }
 
 async function openSheet(id: string) {
+  if (window.history.state?.sheet) window.history.replaceState({ sheet: id }, "");
+  else window.history.pushState({ sheet: id }, "");
   S.openId = id;
   S.bdWho = "me";
   render();
@@ -696,6 +710,7 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
+initSheetDrag((dy) => closeSheet(dy));
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;

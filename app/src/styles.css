@@ -507,8 +507,9 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .face.rest{font-family:var(--mono);font-size:11px;font-weight:600}
 .odo{display:inline-flex;height:1em;overflow:hidden;vertical-align:top}
 .wheel{display:block;width:.62em;height:1em;overflow:hidden}
-.strip{display:block;transform:translateY(calc(var(--d) * -1em))}
-.strip i{display:block;height:1em;line-height:1;font-style:normal;text-align:center}
+/* scoped to the rolling-number wheel: .strip is also the photo strip's class */
+.wheel .strip{display:block;transform:translateY(calc(var(--d) * -1em))}
+.wheel .strip i{display:block;height:1em;line-height:1;font-style:normal;text-align:center}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sub{margin-top:6px;font-size:13px;color:var(--ink-2)}
 .stamp{display:inline-block;margin:0 9px 0 4px;padding:1px 7px;border:1.5px solid currentColor;border-radius:5px;outline:1px solid currentColor;outline-offset:2px;
@@ -603,3 +604,41 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .disclose .n{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:0}
 .disclose:hover .ic,.disclose:hover .n{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.disclose .ic{transition:none}}
+
+/* ---- phone: the listing sheet is a bottom sheet with a grab handle ---- */
+.grabber{display:none}
+@media (max-width:619px){
+  .overlay{align-items:flex-end;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px))}
+  .sheet{width:100%;height:calc(100% - 28px - env(safe-area-inset-top,0px));border-radius:18px;box-shadow:0 -8px 30px rgba(0,0,0,.18);
+    padding-bottom:28px;scrollbar-width:none;overscroll-behavior:contain}
+  .sheet::-webkit-scrollbar{display:none}
+  .sheet-head{padding-top:6px;border-radius:18px 18px 0 0;touch-action:none}
+  .sheet-head .sheet-top,.sheet-head .stage-row{touch-action:manipulation}
+  .grabber{display:flex;justify-content:center;padding:4px 0 6px;margin:0 -20px;cursor:grab;touch-action:none}
+  .grabber span{width:40px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink-2) 45%,transparent)}
+  .sheet.dragging{transition:none;user-select:none}
+}
+
+/* ---- wider screens: the side sheet floats, inset from the edges, with rounded corners ---- */
+@media (min-width:620px){
+  .overlay{padding:12px}
+  .sheet{height:100%;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08);border:1px solid var(--line)}
+  .sheet-head{border-radius:18px 18px 0 0;padding-top:16px}
+}
+
+/* while a sheet is open, the feed behind it doesn't scroll, and a pull down doesn't reload the app */
+body:has(.overlay){overflow:hidden}
+html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
+
+/* Icon buttons change as one piece on hover: the icon gets its color from its own rule, at the
+   same moment as the background. (Left to inherit, Safari can repaint the icon only once the
+   pointer is over the icon itself, so the background and icon seem to change separately.) */
+.ic{transition:color .15s var(--ease)}
+.vbtn:hover:not([aria-pressed="true"]) .ic,button.who:hover .ic,.grip:hover .ic,.iconbtn:hover .ic{color:var(--ink)}
+.iconbtn.remove:hover .ic{color:var(--bad)}
+.vbtn:not([aria-pressed="true"]) .ic,button.who .ic,.grip .ic,.iconbtn .ic{color:var(--ink-2)}
+.vbtn[aria-pressed="true"][data-v="yes"] .ic{color:var(--good)}
+.vbtn[aria-pressed="true"][data-v="maybe"] .ic{color:var(--warn)}
+.vbtn[aria-pressed="true"][data-v="no"] .ic{color:var(--bad)}
+button.who[aria-pressed="true"] .ic{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.ic{transition:none}}

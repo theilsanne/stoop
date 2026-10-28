@@ -74,6 +74,7 @@ export function renderSheet() {
 
   return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}">
     <div class="sheet-head">
+      <div class="grabber" aria-hidden="true"><span></span></div>
       <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
         <div class="hood">${esc(row.neighborhood)}</div></div>
         <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>

@@ -54,4 +54,5 @@ Things the two of you and any agent must follow go in this file or a skill. How 
 | [swe](.claude/skills/swe/SKILL.md) | changing the app or any TypeScript outside `supabase/` |
 | [backend](.claude/skills/backend/SKILL.md) | changing migrations, RLS, Edge Functions, secrets or auth |
 | [subagents](.claude/skills/subagents/SKILL.md) | spawning any subagent: model choice, self-contained prompts, verification |
+| [mr-stark-i-dont-feel-so-good](.claude/skills/mr-stark-i-dont-feel-so-good/SKILL.md) | the user says they're low on tokens, or invokes it by name |
 | [adversarial-merge](.claude/skills/adversarial-merge/SKILL.md) | reviewing a PR before merge, when the user invokes the review loop by name |
