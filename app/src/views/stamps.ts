@@ -98,7 +98,7 @@ export function sheetStamp(id: string) {
   const mine = seals.find((x) => x.mine), theirs = seals.find((x) => !x.mine);
   // two slots, the partner's then yours: a seal once stamped, a dashed ring until then. Yours is where a drop prints.
   const slot = (p: Face, s: Stamp | undefined, mine: boolean) => s
-    ? seal(p, { size: 92, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })
+    ? seal(p, { size: 80, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })
     : `<span class="slot" aria-hidden="true">${esc(initials(p.display_name))}</span>`;
   return `<div class="box stamp-band">
     <div class="slots">

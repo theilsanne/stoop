@@ -480,7 +480,7 @@ img.av{object-fit:cover;background:var(--surface-2)}
 /* two slots, the partner's then yours: a seal once stamped, a dashed ring until then */
 .stamp-band .slots{display:flex;align-items:center;gap:14px;flex:none}
 .slot-wrap{display:inline-grid;border-radius:50%}
-.stamp-band .slot{display:inline-grid;place-items:center;width:92px;height:92px;border-radius:50%;
+.stamp-band .slot{display:inline-grid;place-items:center;width:80px;height:80px;border-radius:50%;
   border:1.5px dashed var(--line);color:var(--ink-2);font-size:22px;font-weight:600;letter-spacing:.02em}
 .stamp-band .slot-wrap .seal{display:block}
 .stamp-lines{flex:1 1 220px;display:grid;gap:4px;min-width:0;font-size:14px;color:var(--ink-2)}
