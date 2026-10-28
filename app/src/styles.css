@@ -195,7 +195,6 @@ textarea{width:100%;min-height:70px;background:var(--bg);border:1px solid var(--
 .lens-d{font-size:13px;color:var(--ink-2);flex:1 1 260px;min-width:0}
 .whose{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:14px;color:var(--ink-2)}
 .whose b{color:var(--ink)}
-.out{font-size:12.5px;font-weight:600;color:var(--bad)}
 .linkish{border:0;background:none;padding:0;font-weight:600;color:var(--accent);text-align:left;text-decoration:underline;text-underline-offset:2px}
 
 /* ---- app additions ---- */
@@ -438,32 +437,6 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .ctl input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
 .ctl input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
 .ctl label{color:var(--ink-2)}
-
-/* ---- Compare: one row per criterion (or listing). Phone: name and difference on top,
-   the two of you side by side below. Wider: four columns, like a table. ---- */
-.pairs{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
-.pair{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"name how" "a b";gap:6px 14px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;align-items:start}
-.pair:last-child{border-bottom:0}
-.pair-name{grid-area:name;font-weight:600;display:flex;flex-direction:column;gap:2px;min-width:0}
-.pair-how{grid-area:how;justify-self:end;text-align:right}
-.pair-a{grid-area:a}.pair-b{grid-area:b}
-.pair-a,.pair-b{display:flex;flex-direction:column;gap:3px;min-width:0}
-.pair .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
-.pair-head{display:none}
-.splits .pair{grid-template-columns:1fr auto auto;grid-template-areas:"name a b" "how how how"}
-.splits .pair-how{justify-self:start;text-align:left;color:var(--ink-2)}
-.splits .score-cell{align-items:center;text-align:center;min-width:52px}
-.score-cell b{font-family:var(--mono);font-size:17px}
-@media (min-width:720px){
-  .pair{grid-template-columns:minmax(150px,1.2fr) 1fr 1fr minmax(130px,.9fr);grid-template-areas:"name a b how";gap:12px 16px}
-  .pair-how{justify-self:start;text-align:left}
-  .pair .who{display:none}
-  .pair-head{display:grid;background:var(--surface-2);padding:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
-  .pair-head>span:nth-child(1){grid-area:name}.pair-head>span:nth-child(2){grid-area:a}.pair-head>span:nth-child(3){grid-area:b}.pair-head>span:nth-child(4){grid-area:how}
-  .splits .pair{grid-template-columns:minmax(200px,1.4fr) 70px 70px 1.6fr;grid-template-areas:"name a b how"}
-  .splits .score-cell{align-items:flex-start;text-align:left}
-}
-.pair-name .small{font-weight:400}
 
 /* ---- Settings: people, places ---- */
 .two{align-items:start}

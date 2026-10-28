@@ -4,7 +4,7 @@ import { LEVELS, type Level, differ, levelOf } from "../criteria-edit.ts";
 import { biggestCut, coverage, dropCount, histogram, mood, preview } from "../criteria-impact.ts";
 import { liveBar } from "../motion.ts";
 import type { ScorableListing } from "../../../supabase/functions/_shared/scoring.ts";
-import { S, THEIRS, allFields, criterionFor, draftDirty, nameOf, neighborhoods, partner, partnerCriteria, partnerName, personScore, scorableRows } from "../state.ts";
+import { S, THEIRS, allFields, criterionFor, draftDirty, nameOf, neighborhoods, partner, partnerCriteria, partnerName, scorableRows } from "../state.ts";
 import type { CriteriaChange, Criterion, FeedRow } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
@@ -294,27 +294,6 @@ function changeText(ch: CriteriaChange) {
   return parts.length ? `${a.label}: ${parts.join(", ")}` : "";
 }
 
-/** Listings one of you would keep and the other wouldn't, or that you score 20 or more points apart: good ones to talk through. */
-function splitsSection() {
-  const splits = S.feed.map((row) => ({ row, me: personScore(row, "me"), them: personScore(row, "partner") }))
-    .filter((x) => x.me && x.them && (x.me.passes !== x.them.passes || (x.me.passes && Math.abs(x.me.score - x.them.score) >= 20)))
-    .sort((x, y) => Math.abs(y.me!.score - y.them!.score) - Math.abs(x.me!.score - x.them!.score));
-  const cell = (p: { passes: boolean; score: number }) => (p.passes ? `<b>${p.score}</b>` : '<span class="out">Out</span>');
-  const name = esc(partnerName());
-  return `<section class="sect"><h2>Listings you'd split on</h2><p class="lede">One of you would keep it and the other wouldn't, or your scores are 20 or more points apart. Good ones to talk through.${draftDirty() ? " Based on what's saved, not your unsaved edits." : ""}</p>
-    ${splits.length ? `<div class="pairs splits" role="table" aria-label="Listings you'd split on">
-    <div class="pair pair-head" role="row"><span role="columnheader">Listing</span><span role="columnheader">You</span><span role="columnheader">${name}</span><span role="columnheader">Why</span></div>
-    ${splits.slice(0, 40).map(({ row, me, them }) => {
-      const why = [...me!.failed.map((f) => "You: " + f), ...them!.failed.map((f) => partnerName() + ": " + f)];
-      return `<div class="pair" role="row">
-        <span class="pair-name" role="rowheader"><button class="linkish" data-open="${row.id}">${esc(row.address)}</button><span class="small">${esc(row.neighborhood)} · ${money(row.net_effective_rent ?? row.price)} net</span></span>
-        <span class="pair-a score-cell" role="cell"><span class="who">You</span>${cell(me!)}</span>
-        <span class="pair-b score-cell" role="cell"><span class="who">${name}</span>${cell(them!)}</span>
-        <span class="pair-how small" role="cell">${why.length ? esc(why.join("; ")) : "Different wants and weights"}</span>
-      </div>`;
-    }).join("")}</div>` : '<div class="empty">You agree on every listing right now.</div>'}</section>`;
-}
-
 export function renderCriteria() {
   const listings = scorableRows(), all = rows(), log = changeLog.rows;
   const together = !!partner();
@@ -336,7 +315,6 @@ export function renderCriteria() {
     ${mode === "picks" && !picked ? '<div class="empty">Nothing picked yet. Switch to Everything and tap a step on anything you care about.</div>' : ""}
     ${mode === "differ" && !differs ? `<div class="empty">You and ${esc(partnerName())} agree on everything either of you has picked.</div>` : ""}
     ${[...GROUPS, OWN].map(section).join("")}
-    ${together ? splitsSection() : ""}
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     ${historySection(log)}
     <div id="savebar">${savebarHTML()}</div>`;
