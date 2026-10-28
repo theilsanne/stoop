@@ -205,6 +205,26 @@ async function rescoreAll() {
   render();
 }
 
+// Building records come back in batches; keep going while there's progress.
+async function lookUpBuildings() {
+  S.saving = true;
+  render();
+  let found = 0, unmatched = 0;
+  try {
+    for (let i = 0; i < 20; i++) {
+      const r = await api.enrich();
+      found += r.buildings_checked; unmatched += r.unmatched;
+      if (r.errors?.length) console.warn("Building lookups:", r.errors);
+      if (!r.remaining || (!r.geocoded && !r.buildings_checked && !r.unmatched)) break;
+      toast(`Looking up building records… ${r.remaining} to go`);
+    }
+    S.feed = await api.feed();
+    toast(`Building records updated: ${found} checked${unmatched ? `, ${unmatched} addresses couldn't be matched` : ""}.`, { ms: 6000 });
+  } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
+  S.saving = false;
+  render();
+}
+
 async function loadLog() {
   try { changeLog.rows = await api.criteriaLog(); } catch { changeLog.rows = []; }
   if (S.tab === "criteria") render();
@@ -258,6 +278,7 @@ document.addEventListener("click", (e) => {
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
       case "rescore": rescoreAll(); return;
+      case "enrich": lookUpBuildings(); return;
       case "savename": {
         const name = ($("myname") as HTMLInputElement).value.trim();
         api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);

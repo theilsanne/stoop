@@ -52,6 +52,8 @@ function control(c: Criterion) {
     case "in": return hoodChips(c);
     case "is_true": return `<div class="ctl">${c.field === "amenities.not_garden_level"
       ? "Drops listings whose unit or description says garden level, basement or lower level"
+      : c.field === "building.clean"
+      ? "No hazardous (class C) HPD violations open, and fewer than 5 open in total"
       : "Listing has it"}</div>`;
     case "before": return `<div class="ctl"><label for="v-${c.id}">Available before</label><input type="date" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${esc(c.value)}"></div>`;
     case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">Each of us within</label><input type="range" min="15" max="60" step="5" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}"><span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
@@ -122,7 +124,7 @@ export function renderCriteria() {
       ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       ${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</section>
-    <p class="small">Commute times and building records (HPD violations, 311) come in a later update.</p>
+    <p class="small">Building criteria use NYC's HPD and 311 records. Listings whose building hasn't been looked up yet are skipped by them, not penalized. Commute times come in a later update.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
         const t = changeText(ch);

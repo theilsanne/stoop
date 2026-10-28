@@ -131,7 +131,11 @@ export const personScore = (row: FeedRow, who: "me" | "partner") =>
   row.per_person?.[who === "me" ? myId() : partnerId()];
 
 function scorable(row: FeedRow): ScorableListing {
-  return { ...row, amenities: row.amenities ?? {}, building: null, commutes: {} };
+  const building = row.hpd_open_violations == null && row.complaints_311_12mo == null ? null : {
+    hpd_open_violations: row.hpd_open_violations, hpd_class_c_open: row.hpd_class_c_open,
+    complaints_311_12mo: row.complaints_311_12mo, rent_stabilized: null,
+  };
+  return { ...row, amenities: row.amenities ?? {}, building, commutes: {} };
 }
 
 /** Score every listing locally with a candidate version of my criteria (for the editor preview). */

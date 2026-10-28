@@ -1,5 +1,5 @@
 import { S, myId, partnerId, partnerName, personScore, ratingOf, verdictOf, viewOf } from "../state.ts";
-import { STAGES, type PricePoint } from "../types.ts";
+import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 
@@ -21,6 +21,21 @@ function sparkline(points: PricePoint[]) {
     <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts.map((p) => p.join(",")).join(" ")}"/>
     ${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === pts.length - 1 ? 3.5 : 2}" fill="var(--accent)"/>`).join("")}
   </svg><span>${changes.map(money).join(" → ")}</span>`;
+}
+
+/** Plain-language building record, with a tone for each line. */
+export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b" }[] {
+  const out: { text: string; tone: "" | "w" | "b" }[] = [];
+  const v = row.hpd_open_violations, c = row.hpd_class_c_open, n = row.complaints_311_12mo;
+  if (v != null) {
+    const hazard = c && c > 0 ? ` (${c} hazardous)` : "";
+    out.push({
+      text: v === 0 ? "No open HPD violations" : `${v} open HPD violation${v > 1 ? "s" : ""}${hazard}`,
+      tone: (c ?? 0) > 0 || v >= 10 ? "b" : v >= 5 ? "w" : "",
+    });
+  }
+  if (n != null) out.push({ text: `311 complaints, past year: ${n}`, tone: n >= 25 ? "b" : n >= 10 ? "w" : "" });
+  return out;
 }
 
 export function renderSheet() {
@@ -74,6 +89,13 @@ export function renderSheet() {
       <label class="small" for="note">Your notes</label>
       <textarea id="note" data-note="${row.id}" placeholder="Light, noise, the landlord, anything worth remembering">${esc(myNote)}</textarea>
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
+
+    <div class="box"><h3>Building record</h3>
+      ${buildingLines(row).length
+        ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>
+           <p class="small">From NYC HPD and 311 records${row.building_checked_at ? `, checked ${ago(row.building_checked_at)}` : ""}.${row.bbl ? ` <a href="https://whoownswhat.justfix.org/bbl/${esc(row.bbl)}" target="_blank" rel="noopener">See the landlord and their other buildings ↗</a>` : ""}</p>`
+        : `<p class="small">${row.bbl === "" ? "Couldn't match this address to a city building record." : "Not looked up yet. New listings are checked as they arrive; for older ones, use Settings → Look up building records."}</p>`}
+    </div>
 
     <div class="box"><h3>Price history</h3><div class="spark">${pts ? sparkline(pts) : '<span class="small">Loading…</span>'}</div></div>
   </div></div>`;

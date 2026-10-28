@@ -55,6 +55,11 @@ const COORDS: Record<string, [number, number]> = {
   d9: [40.6755, -73.9605], d10: [40.6835, -73.9410], d11: [40.6745, -73.9285], d12: [40.6600, -73.9500],
 };
 for (const l of LISTINGS) [l.lat, l.lng] = COORDS[l.id] ?? [null, null];
+// sample building records: [open HPD violations, of which class C, 311 complaints in 12 months]
+const BLDG: Record<string, [number, number, number]> = {
+  d1: [3, 0, 4], d2: [1, 0, 2], d3: [0, 0, 1], d4: [0, 0, 0], d5: [2, 0, 3], d6: [0, 0, 2], d7: [0, 0, 0],
+  d8: [1, 0, 1], d9: [0, 0, 0], d10: [14, 3, 26], d11: [4, 1, 9], d12: [1, 0, 2],
+};
 
 let seq = 0;
 const C = (owner: string, label: string, kind: Criterion["kind"], field: string, operator: Criterion["operator"],
@@ -106,11 +111,16 @@ export class DemoApi implements Api {
   async feed(): Promise<FeedRow[]> {
     const byOwner = groupByOwner(this.criteriaRows.filter((c) => c.active));
     return LISTINGS.map((l) => {
-      const s = scoreListing(byOwner, { ...l, building: null, commutes: {} });
+      const [v, c, n] = BLDG[l.id] ?? [null, null, null];
+      const building = v == null ? null : { hpd_open_violations: v, hpd_class_c_open: c, complaints_311_12mo: n, rent_stabilized: null };
+      const s = scoreListing(byOwner, { ...l, building, commutes: {} });
       const verdicts: Record<string, Verdict | null> = {};
       for (const r of this.ratingRows.filter((r) => r.listing_id === l.id)) verdicts[r.user_id] = r.verdict;
       return { ...l, score: s.score, passes: s.passes, near_miss: s.near_miss, failed: s.failed,
-        per_person: s.per_person, stage: this.stages.get(l.id) ?? "new", verdicts };
+        per_person: s.per_person, stage: this.stages.get(l.id) ?? "new", verdicts,
+        bbl: v == null ? null : "30000000" + l.id.slice(1).padStart(2, "0"),
+        hpd_open_violations: v ?? null, hpd_class_c_open: c ?? null, complaints_311_12mo: n ?? null,
+        building_checked_at: v == null ? null : new Date().toISOString() };
     });
   }
 
@@ -139,6 +149,7 @@ export class DemoApi implements Api {
     this.criteriaRows = [...this.criteriaRows.filter((c) => c.owner_id !== YOU), ...mine];
   }
   async criteriaLog() { return this.log.slice(0, 40); }
+  async enrich() { return { geocoded: 0, unmatched: 0, buildings_checked: 0, remaining: 0, errors: [] }; }
   async rescore() {
     const f = await this.feed();
     return { rescored: f.length, passing: f.filter((r) => r.passes).length };

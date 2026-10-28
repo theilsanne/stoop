@@ -12,6 +12,8 @@ preferences, and shows them in an installable web app at
 | `supabase/migrations/20261006000000_init.sql` | The database: listings, each person's criteria, scores, ratings, pipeline stage, alerts. Everything lives in a `rentals` schema. |
 | `supabase/functions/ingest` | Called by Apify after each scraper run. Saves new listings, marks ones unseen for 30 days (configurable) off-market, scores everything from the run. |
 | `supabase/functions/rescore` | Called by the app after either person saves criteria. Re-scores every active listing. |
+| `supabase/functions/enrich` | Called from the app's Settings. Looks up building records for listings that don't have them yet, in batches, then re-scores. |
+| `supabase/functions/_shared/buildings.ts` | Address → BBL (NYC GeoSearch), open HPD violations, 311 complaints (NYC Open Data). No keys needed. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
 | `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`. |
@@ -81,7 +83,10 @@ supabase link --project-ref <your-project-ref>
 supabase secrets set APIFY_TOKEN=<token> WEBHOOK_SECRET=<a long random string>
 supabase functions deploy ingest --no-verify-jwt
 supabase functions deploy rescore --no-verify-jwt
+supabase functions deploy enrich --no-verify-jwt
 ```
+
+Optional: a free [NYC Open Data app token](https://data.cityofnewyork.us/profile/edit/developer_settings) raises the city's rate limits: `supabase secrets set NYC_OPENDATA_TOKEN=...`.
 
 Both functions do their own checks: `ingest` requires the webhook secret, `rescore` requires a signed-in user. (Supabase's gateway check is turned off because it doesn't accept the newer publishable keys.)
 
@@ -106,6 +111,14 @@ Start the task once by hand. When it finishes, the webhook response (in Apify's 
 
 Then open **Table Editor → rentals.listings** and spot-check a few rows against StreetEasy: price, net effective rent, neighborhood, beds, available date, no-fee. The full scraped item is kept in the `raw` column; if a field is empty, find its name there and add it to the matching list in `normalize.ts`.
 
+### Database updates
+
+Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed (safe to re-run).
+
+### Building records
+
+Each new listing's address is matched to a city building (BBL) with NYC Planning's GeoSearch, then its open HPD violations (by class) and 311 complaints from the past year are fetched and cached for 14 days. Lookups fail soft: a listing without a record is skipped by building criteria, never penalized. Addresses that can't be matched are marked (`bbl = ''`) and not retried. Rent-stabilization status isn't included: the city doesn't publish a reliable open list.
+
 ### 6. Publish the app
 
 1. **GitHub → stoop → Settings → Pages:** set **Source** to **GitHub Actions**.
@@ -129,4 +142,4 @@ curl -X POST https://<ref>.supabase.co/functions/v1/ingest \
 ## Not built yet
 
 - Web push alerts (ingest already works out who would get one)
-- Commute times and NYC Open Data building records (scoring already uses them once filled)
+- Commute times to places each of you adds (scoring already supports them)

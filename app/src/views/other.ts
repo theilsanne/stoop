@@ -32,6 +32,13 @@ export function renderSettings() {
       ${partner() ? `<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p>`
         : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
     </section>
+    <section class="panel"><h2>Building records</h2>
+      <p>HPD violations and 311 complaints from NYC Open Data. New listings are looked up as they arrive. ${(() => {
+        const checked = S.feed.filter((r) => r.building_checked_at).length, total = S.feed.length;
+        return `<b>${checked} of ${total}</b> current listings have a record.`;
+      })()}</p>
+      <div><button class="btn" data-action="enrich" ${S.saving ? "disabled" : ""}>${S.saving ? "Looking up…" : "Look up building records"}</button></div>
+    </section>
     <section class="panel"><h2>Scores</h2>
       <p>Listings are re-scored whenever either of you saves criteria, and new ones are scored as they arrive. If anything looks stale, re-score everything now.</p>
       <div><button class="btn" data-action="rescore" ${S.saving ? "disabled" : ""}>${S.saving ? "Re-scoring…" : "Re-score all listings"}</button></div>

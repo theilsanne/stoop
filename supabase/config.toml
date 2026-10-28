@@ -11,3 +11,7 @@ verify_jwt = false
 # rescore checks the signed-in user itself (see its index.ts).
 [functions.rescore]
 verify_jwt = false
+
+# enrich checks the signed-in user itself.
+[functions.enrich]
+verify_jwt = false

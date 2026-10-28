@@ -7,6 +7,7 @@ import {
   groupByOwner, scoreListing,
 } from "./scoring.ts";
 import { normalize } from "./normalize.ts";
+import { type Fetch, lookupBbl, lookupBuilding } from "./buildings.ts";
 
 export function serviceClient() {
   return createClient(
@@ -27,6 +28,71 @@ export type DB = ReturnType<typeof serviceClient>;
 function check<T>(res: { data: T; error: { message: string } | null }, what: string): NonNullable<T> {
   if (res.error) throw new Error(`${what}: ${res.error.message}`);
   return (res.data ?? []) as NonNullable<T>;
+}
+
+const BUILDING_FRESH_DAYS = 14;
+
+/**
+ * Fill in building records for listings: look up each listing's BBL from its
+ * address, then fetch HPD violations and 311 complaints for buildings not checked
+ * in the last two weeks. Pass ids to do specific listings (ingest), or null to
+ * work through all active listings that need it (backfill), up to `limit` each.
+ */
+export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100) {
+  const fetchFn = fetch as unknown as Fetch;
+  const token = Deno.env.get("NYC_OPENDATA_TOKEN") || undefined;
+  const cols = "id, address, bbl, zip:raw->>zipCode, zip2:raw->>propertyDetails_address_zipCode";
+  type Row = { id: string; address: string | null; bbl: string | null; zip: string | null; zip2: string | null };
+  const rows: Row[] = [];
+  if (ids) {
+    for (const part of chunk(ids)) rows.push(...check(await db.from("listings").select(cols).in("id", part), "load listings") as Row[]);
+  } else {
+    for (let from = 0; ; from += 1000) {
+      const page = check(await db.from("listings").select(cols).eq("status", "active").order("id").range(from, from + 999), "load listings") as Row[];
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+  }
+
+  // 1. address → BBL. bbl = "" marks an address the lookup couldn't match, so it isn't retried forever.
+  const needBbl = rows.filter((r) => r.bbl == null && r.address).slice(0, limit);
+  let geocoded = 0, unmatched = 0;
+  for (const part of chunk(needBbl, 8)) {
+    await Promise.all(part.map(async (r) => {
+      const bbl = await lookupBbl(fetchFn, r.address!, r.zip ?? r.zip2);
+      r.bbl = bbl ?? "";
+      if (bbl) geocoded++; else unmatched++;
+      check(await db.from("listings").update({ bbl: r.bbl }).eq("id", r.id), "save bbl");
+    }));
+  }
+
+  // 2. BBL → building record, for buildings not checked recently
+  const bbls = [...new Set(rows.map((r) => r.bbl).filter((b): b is string => !!b))];
+  const fresh = new Set<string>();
+  const cutoff = new Date(Date.now() - BUILDING_FRESH_DAYS * 24 * 3600e3).toISOString();
+  for (const part of chunk(bbls)) {
+    const known = check(await db.from("buildings").select("bbl").in("bbl", part).gt("refreshed_at", cutoff), "load buildings") as { bbl: string }[];
+    for (const b of known) fresh.add(b.bbl);
+  }
+  const toCheck = bbls.filter((b) => !fresh.has(b)).slice(0, limit);
+  const errors: string[] = [];
+  let checked = 0;
+  for (const part of chunk(toCheck, 6)) {
+    const records = await Promise.all(part.map((bbl) => lookupBuilding(fetchFn, bbl, token)));
+    for (const r of records) errors.push(...r.errors);
+    const saveable = records.filter((r) => r.hpd_open_violations != null || r.complaints_311_12mo != null);
+    if (saveable.length) {
+      check(await db.from("buildings").upsert(saveable.map(({ errors: _e, ...b }) => ({ ...b, refreshed_at: new Date().toISOString() })), { onConflict: "bbl" }), "save buildings");
+    }
+    checked += saveable.length;
+  }
+
+  const remaining = rows.filter((r) => r.bbl == null && r.address).length
+    + Math.max(0, bbls.filter((b) => !fresh.has(b)).length - toCheck.length);
+  return {
+    geocoded, unmatched, buildings_checked: checked, remaining,
+    errors: [...new Set(errors)].slice(0, 5),
+  };
 }
 
 /**

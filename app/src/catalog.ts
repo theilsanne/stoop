@@ -34,6 +34,9 @@ export const CATALOG: FieldDef[] = [
   { key: "door", label: "Doorman", field: "amenities.doorman", operator: "is_true", value: null, group: "Building" },
   { key: "gym", label: "Gym", field: "amenities.gym", operator: "is_true", value: null, group: "Building" },
   { key: "shared", label: "Shared outdoor space", field: "amenities.shared_outdoor_space", operator: "is_true", value: null, group: "Building" },
+  { key: "clean", label: "Clean building record", field: "building.clean", operator: "is_true", value: null, group: "Building" },
+  { key: "hpd", label: "Open HPD violations", field: "building.hpd_open_violations", operator: "lte", value: 5, step: 1, group: "Building" },
+  { key: "c311", label: "311 complaints in the past year", field: "building.complaints_311_12mo", operator: "lte", value: 10, step: 1, group: "Building" },
 ];
 
 export function defFor(c: Pick<Criterion, "field" | "operator">): FieldDef | undefined {

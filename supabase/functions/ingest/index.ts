@@ -4,13 +4,13 @@
 // 2. Download the run's dataset from Apify.
 // 3. Normalize each item and upsert it into rentals.listings.
 // 4. Mark listings not seen for OFF_MARKET_DAYS (default 30) as off-market.
-// 5. Score the listings from this run and save the scores.
+// 5. Look up building records (HPD, 311) for them, then score and save.
 // 6. Work out which ones deserve an alert (sending comes with web push).
 //
 // Deploy with:  supabase functions deploy ingest --no-verify-jwt
 // Secrets:      APIFY_TOKEN, WEBHOOK_SECRET
 
-import { chunk, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
+import { chunk, enrichBuildings, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 import { normalize, type ListingRow } from "../_shared/normalize.ts";
 
 // Capped runs (Apify's free plan returns 50 per run) only fetch the newest listings,
@@ -103,6 +103,9 @@ Deno.serve(async (req) => {
     .eq("status", "active").lt("last_seen_at", cutoff);
   if (sweepErr) return json({ error: `off-market sweep: ${sweepErr.message}` }, 500);
 
+  // building records for this run's listings (fails soft: scoring just skips what's missing)
+  const buildings = await enrichBuildings(db, touched.map((t) => t.id)).catch((e) => ({ error: String(e) }));
+
   // score this run's listings
   const scores = await scoreAndStore(db, touched.map((t) => t.id));
 
@@ -121,6 +124,7 @@ Deno.serve(async (req) => {
     items: items.length, skipped_unusable: skipped, saved: touched.length,
     new: newIds.length, price_drops: drops.length, went_off_market: wentOff ?? 0,
     would_alert: alertable.length,
+    buildings,
   };
   console.log("ingest", JSON.stringify(summary));
   return json(summary);

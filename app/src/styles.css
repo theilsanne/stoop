@@ -301,6 +301,8 @@ button.score:hover{transform:scale(1.05)}
 .wchip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--surface)}
 .wchip.ok{color:var(--good)} .wchip.part{color:var(--warn)} .wchip.no{color:var(--ink-2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--ink-2) 50%,transparent)}
 .badge.gap{background:var(--warn-soft);color:var(--warn)}
+.badge.bldg{background:var(--bad-soft);color:var(--bad)}
+.box a:not(.btn){color:var(--accent);text-underline-offset:2px}
 .toast{display:flex;align-items:center;gap:12px;justify-content:space-between}
 .toast-act{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:6px 12px;font-weight:700;flex:none;cursor:pointer}
 .mapwrap{position:relative;isolation:isolate;z-index:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:8px}

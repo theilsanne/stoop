@@ -3,7 +3,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type {
-  CriteriaChange, Criterion, FeedRow, Me, PricePoint, Profile, Rating, Stage, Verdict,
+  CriteriaChange, Criterion, EnrichResult, FeedRow, Me, PricePoint, Profile, Rating, Stage, Verdict,
 } from "./types.ts";
 
 export interface Api {
@@ -28,6 +28,8 @@ export interface Api {
   criteriaLog(): Promise<CriteriaChange[]>;
   /** Re-score every active listing on the server. */
   rescore(): Promise<{ rescored: number; passing: number }>;
+  /** Look up building records for listings that don't have them (one batch). */
+  enrich(): Promise<EnrichResult>;
 }
 
 const FEED_COLUMNS = [
@@ -36,6 +38,7 @@ const FEED_COLUMNS = [
   "beds", "baths", "sqft", "available_date", "amenities", "photos",
   "listed_at", "first_seen_at", "last_seen_at",
   "score", "passes", "near_miss", "failed", "per_person", "stage", "verdicts",
+  "bbl", "hpd_open_violations", "hpd_class_c_open", "complaints_311_12mo", "building_checked_at",
 ].join(",");
 
 const CRITERION_COLUMNS =
@@ -189,5 +192,11 @@ export class SupabaseApi implements Api {
     const { data, error } = await this.sb.functions.invoke("rescore", { method: "POST" });
     fail("Re-scoring listings", error);
     return data as { rescored: number; passing: number };
+  }
+
+  async enrich() {
+    const { data, error } = await this.sb.functions.invoke("enrich", { method: "POST" });
+    fail("Looking up building records", error);
+    return data as EnrichResult;
   }
 }

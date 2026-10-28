@@ -43,6 +43,16 @@ export interface FeedRow extends Listing {
   per_person: Record<string, PersonScore> | null;
   stage: Stage;
   verdicts: Record<string, Verdict | null> | null;
+  // building record (NYC Open Data), null until looked up
+  bbl: string | null;
+  hpd_open_violations: number | null;
+  hpd_class_c_open: number | null;
+  complaints_311_12mo: number | null;
+  building_checked_at: string | null;
+}
+
+export interface EnrichResult {
+  geocoded: number; unmatched: number; buildings_checked: number; remaining: number; errors: string[];
 }
 
 export interface Profile {
