@@ -1,6 +1,7 @@
 import { icon } from "../icons.ts";
-import { PARENT_HOOD, defFor } from "../catalog.ts";
-import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, previewCounts, sectionOf } from "../state.ts";
+import { PARENT_HOOD, defFor, type FieldDef } from "../catalog.ts";
+import { WEIGHT_LEVELS, levelOf } from "../criteria-edit.ts";
+import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, pendingOf, previewCounts } from "../state.ts";
 import type { CriteriaChange, Criterion } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
@@ -71,30 +72,69 @@ function control(c: Criterion) {
   }
 }
 
+/** A want's weight, as one of three levels. A number that isn't a level (from before levels) says so. */
+function weightControl(c: Criterion) {
+  const level = levelOf(c.weight);
+  return `<div class="ctl"><span class="wlabel">Weight</span><div class="seg levels" role="group" aria-label="Weight for ${esc(c.label)}">${WEIGHT_LEVELS.map((l) =>
+    `<button data-action="level" data-id="${c.id}" data-v="${l.weight}" aria-pressed="${level?.key === l.key}">${l.label}</button>`).join("")}</div>${
+    level ? "" : `<span class="small">Custom weight ${c.weight}. Pick a level to change it.</span>`}</div>`;
+}
+
 function row(c: Criterion) {
   const numeric = c.operator === "lte" || c.operator === "gte" || c.operator === "within_minutes";
   const margin = Math.round((c.near_miss_margin ?? 0) * 100);
-  return `<div class="crit ${c.active ? "" : "off"}" data-crit="${c.id}">
+  const pending = pendingOf(c);
+  return `<div class="crit ${c.active ? "" : "off"}${pending ? " pending" : ""}" data-crit="${c.id}">
     <div class="crit-head">
-      <button class="grip" data-action="grip" data-id="${c.id}" aria-label="Reorder ${esc(c.label)}: drag, or use the up and down arrow keys" title="Drag to reorder">${icon("dots-six-vertical", { size: 18 })}</button>
+      <button class="grip" data-action="grip" data-id="${c.id}" aria-label="Reorder ${esc(c.label)}: drag, or use the up and down arrow keys. Shift with an arrow key moves it to the other list." title="Drag to reorder or switch lists">${icon("dots-six-vertical", { size: 18 })}</button>
       <h3 class="lbl">${esc(c.label)}</h3>
-      <div class="seg" role="group" aria-label="Type"><button data-action="kind" data-id="${c.id}" data-v="dealbreaker" aria-pressed="${c.kind === "dealbreaker"}">Dealbreaker</button><button data-action="kind" data-id="${c.id}" data-v="want" aria-pressed="${c.kind === "want"}">Want</button></div>
+      ${pending ? `<span class="pendtag">${pending === "new" ? "New" : "Moved"}, not saved</span>` : ""}
       <label class="switch"><input type="checkbox" role="switch" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> ${c.active ? "On" : "Off"}</label>
       <button class="iconbtn remove" data-action="remove" data-id="${c.id}" aria-label="Remove ${esc(c.label)}" title="Remove">${icon("trash", { size: 18 })}</button>
     </div>
     <div class="crit-body">
       ${control(c)}
-      ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label>${slider(`w-${c.id}`, "weight", c.id, 0, 10, c.weight)}<span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
+      ${c.kind === "want" ? weightControl(c) : ""}
       ${c.kind === "dealbreaker" && numeric ? `<div class="ctl"><label for="m-${c.id}">Near-miss margin</label>${slider(`m-${c.id}`, "margin", c.id, 0, 15, margin)}<span class="val" id="ml-${c.id}">${margin}%</span></div>` : ""}
     </div></div>`;
 }
 
+/** The live counts, and the button that opens the add menu. */
 export function impactHTML() {
   const dirty = draftDirty();
   const now = previewCounts(myCriteria()), next = dirty ? previewCounts(S.draft) : now;
   const ar = (a: number, b: number) => (dirty && a !== b ? ` <span class="arrow">→</span> <b>${b}</b>` : "");
   return `<div class="nums">For you: passing <b>${now.mine.pass}</b>${ar(now.mine.pass, next.mine.pass)} · near misses <b>${now.mine.near}</b>${ar(now.mine.near, next.mine.near)} · for both of you <b>${now.both.pass}</b>${ar(now.both.pass, next.both.pass)}</div>
-    <div class="acts"><button class="btn" data-action="discard" ${dirty && !S.saving ? "" : "disabled"}>Discard</button><button class="btn primary" data-action="savecrit" ${dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "Save and re-score"}</button></div>`;
+    <button class="btn sm-btn" data-action="toggleadd" aria-expanded="${S.adding}" aria-controls="addmenu">${S.adding ? "Done" : "+ Add a criterion"}</button>`;
+}
+
+/** The bar at the bottom of the page, shown only while there are unsaved edits. */
+export function savebarHTML() {
+  if (!draftDirty()) return "";
+  return `<div class="savebar"><span>Unsaved changes</span><div class="acts"><button class="btn" data-action="discard" ${S.saving ? "disabled" : ""}>Discard</button><button class="btn primary" data-action="savecrit" ${S.saving ? "disabled" : ""}>${S.saving ? "Saving…" : "Save and re-score"}</button></div></div>`;
+}
+
+/** Redraw the live counts and the save bar in place, so typing in a field keeps its focus. */
+export function refreshBars() {
+  const impact = document.getElementById("impact"), bar = document.getElementById("savebar");
+  if (impact) impact.innerHTML = impactHTML();
+  if (bar) bar.innerHTML = savebarHTML();
+}
+
+const GROUPS = ["Basics", "Apartment", "Building", "Commute"] as const;
+
+/** Everything that can go on a list, grouped, with a Dealbreaker and a Want button on each row. */
+function addMenuHTML() {
+  const have = new Set(S.draft.map((c) => c.field + "|" + c.operator));
+  const fields = allFields();
+  const buttons = (d: FieldDef) => have.has(d.field + "|" + d.operator)
+    ? `<span class="small">On your list</span>`
+    : `<span class="addbtns"><button class="btn sm-btn" data-action="add" data-key="${d.key}" data-v="dealbreaker" aria-label="Add ${esc(d.label)} as a dealbreaker">Dealbreaker</button><button class="btn sm-btn" data-action="add" data-key="${d.key}" data-v="want" aria-label="Add ${esc(d.label)} as a want">Want</button></span>`;
+  return `<div class="addmenu" id="addmenu">
+    ${GROUPS.filter((g) => fields.some((d) => d.group === g)).map((g) => `<section class="addgroup"><h3>${g}</h3><ul>${
+      fields.filter((d) => d.group === g).map((d) => `<li><span>${esc(d.label)}</span>${buttons(d)}</li>`).join("")}</ul></section>`).join("")}
+    <section class="addgroup"><h3>Your own</h3><ul><li><input id="writein" class="text" maxlength="60" placeholder="e.g. exposed brick" aria-label="What to look for in listings"><span class="addbtns"><button class="btn sm-btn" data-action="writein" data-v="dealbreaker">Dealbreaker</button><button class="btn sm-btn" data-action="writein" data-v="want">Want</button></span></li></ul></section>
+  </div>`;
 }
 
 function changeText(ch: CriteriaChange) {
@@ -119,29 +159,20 @@ function changeText(ch: CriteriaChange) {
 }
 
 export function renderCriteria() {
-  const dbs = S.draft.filter((c) => sectionOf(c) === "dealbreaker"), ws = S.draft.filter((c) => sectionOf(c) === "want");
-  const have = new Set(S.draft.map((c) => c.field + "|" + c.operator));
-  const fields = allFields();
-  const groups = (["Basics", "Apartment", "Building", "Commute"] as const).filter((g) => fields.some((d) => d.group === g));
-  const options = groups.map((g) => `<optgroup label="${g}">${fields.filter((d) => d.group === g).map((d) =>
-    `<option value="${d.key}" ${have.has(d.field + "|" + d.operator) ? "disabled" : ""} ${S.preset === d.key ? "selected" : ""}>${esc(d.label)}</option>`).join("")}</optgroup>`).join("")
-    + `<optgroup label="Your own"><option value="__write" ${S.preset === "__write" ? "selected" : ""}>Write your own…</option></optgroup>`;
-  const writing = S.preset === "__write";
+  const dbs = S.draft.filter((c) => c.kind === "dealbreaker"), ws = S.draft.filter((c) => c.kind === "want");
   const log = changeLog.rows;
-  return `<div class="critbar">
-      <div class="impact" id="impact">${impactHTML()}</div>
-      <div class="addrow"><select class="sm" id="preset" data-change="preset" aria-label="Criterion to add" title="Criterion to add">${options}</select>
-        ${writing ? `<input id="writein" class="text writein" placeholder="e.g. exposed brick" maxlength="60" aria-label="What to look for in listings">` : ""}
-        <button class="btn sm-btn" data-action="add" data-v="dealbreaker">+ Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">+ Want</button></div>
-    </div>
+  return `<div class="critbar"><div class="impact" id="impact">${impactHTML()}</div></div>
+    ${S.adding ? addMenuHTML() : ""}
     <section class="sect"><h2>Dealbreakers</h2><p class="lede">A listing that fails any of these drops out of your feed. Give a number a near-miss margin and listings that miss it by a little show up under Near misses instead.</p>
       <div class="crit-list" data-section="dealbreaker">${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</div></section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       <div class="crit-list" data-section="want">${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</div></section>
+    <p class="small">Drag a criterion to the other list to switch it between a dealbreaker and a want.</p>
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
         const t = changeText(ch);
         return t ? `<li><time>${new Date(ch.changed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time><span class="by">${ch.changed_by ? esc(nameOf(ch.changed_by)) : "Setup"}</span><span>${esc(t)}</span></li>` : "";
-      }).join("")}</ul>` : '<p class="small">No changes yet. Saved edits from both of you show here.</p>'}</section>`;
+      }).join("")}</ul>` : '<p class="small">No changes yet. Saved edits from both of you show here.</p>'}</section>
+    <div id="savebar">${savebarHTML()}</div>`;
 }

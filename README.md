@@ -27,7 +27,7 @@ preferences, and shows them in an installable web app at
 | --- | --- |
 | Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. Switch between **List** and **Map**: pins colored by score on OpenStreetMap tiles (no API key), with MTA subway lines from NY Open Data (`s692-irgq`). |
 | Listing | Photos, rent and concessions, amenities, why it scores what it does for each of you, both verdicts and notes, stage, price history. |
-| Criteria | Your own dealbreakers and wants. Shows how many listings would pass before you save; saving re-scores everything. Change history for both of you. |
+| Criteria | Your own dealbreakers and wants. Add from a menu of everything you can look at, or write your own phrase. Drag a criterion to the other list to switch it. Shows how many listings would pass before you save; saving re-scores everything. Change history for both of you. |
 | Compare | Your list next to your partner's, where you differ, and the listings you'd split on. |
 | Pipeline | Shortlisted → tour requested → toured → applied → won. |
 
@@ -37,7 +37,7 @@ Add `?demo` to the URL to try it on built-in sample listings without signing in.
 
 ## How scoring works
 
-- Each person keeps their own list of criteria: **dealbreakers** (pass/fail) and **wants** (weighted 0–10).
+- Each person keeps their own list of criteria: **dealbreakers** (pass/fail) and **wants** (weighted Nice to have, Important or Must have).
 - A listing passes for a person when it passes all their active dealbreakers. Their score is the weighted share of their wants it meets, 0–100.
 - Rent and other numbers get partial credit, fading to zero 10% past the line. Commutes fade out over 10 minutes past the line.
 - A dealbreaker with a near-miss margin (say 5%) lets listings that miss by a little show up as near misses instead of vanishing.

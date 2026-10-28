@@ -5,6 +5,7 @@ import {
 import type { Api } from "./api.ts";
 import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Verdict } from "./types.ts";
 import { CATALOG, type FieldDef } from "./catalog.ts";
+import { moveToSection } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
@@ -36,39 +37,45 @@ export interface State {
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
-  preset: string;          // the criterion picked in Criteria's "add" picker ("__write" = write your own)
+  adding: boolean;         // the "Add a criterion" menu on the Criteria page is open
   alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
 
-/** The section a criterion added since the last save was put in (it stays there until you save). */
-export const addedAs = new Map<string, Criterion["kind"]>();
-
-/** Put one section's criteria in the given order, leaving the other section where it is. */
+/** Put one list's criteria in the given order, leaving the other list where it is. */
 export function reorderSection(section: Criterion["kind"], ids: string[]) {
-  const slots = S.draft.flatMap((c, i) => (sectionOf(c) === section ? [i] : []));
+  const slots = S.draft.flatMap((c, i) => (c.kind === section ? [i] : []));
   const byId = new Map(S.draft.map((c) => [c.id, c]));
   if (ids.length !== slots.length || ids.some((id) => !byId.has(id))) return;
   slots.forEach((slot, k) => { S.draft[slot] = byId.get(ids[k])!; });
 }
 
-/** Move one criterion up (-1) or down (1) within its section. */
+/** Move one criterion up (-1) or down (1) within its list. */
 export function moveInSection(id: string, dir: -1 | 1) {
   const c = S.draft.find((x) => x.id === id);
   if (!c) return false;
-  const ids = S.draft.filter((x) => sectionOf(x) === sectionOf(c)).map((x) => x.id);
+  const ids = S.draft.filter((x) => x.kind === c.kind).map((x) => x.id);
   const i = ids.indexOf(id), j = i + dir;
   if (j < 0 || j >= ids.length) return false;
   [ids[i], ids[j]] = [ids[j], ids[i]];
-  reorderSection(sectionOf(c), ids);
+  reorderSection(c.kind, ids);
   return true;
 }
 
-/** Which section a criterion shows in: where it was when last saved, so switching
- *  Dealbreaker/Want doesn't move it out from under you before you save. */
-export function sectionOf(c: Criterion): Criterion["kind"] {
-  return myCriteria().find((x) => x.id === c.id)?.kind ?? addedAs.get(c.id) ?? c.kind;
+/** Switch a criterion to the other list (a dealbreaker or a want). Returns false if nothing changed. */
+export function moveCriterion(id: string, kind: Criterion["kind"]) {
+  const next = moveToSection(S.draft, id, kind);
+  if (next === S.draft) return false;
+  S.draft = next;
+  return true;
+}
+
+/** How a criterion differs from what's saved: "new" (not saved yet), "moved" (switched lists), or null. */
+export function pendingOf(c: Criterion): "new" | "moved" | null {
+  const saved = myCriteria().find((x) => x.id === c.id);
+  if (!saved) return "new";
+  return saved.kind !== c.kind ? "moved" : null;
 }
 
 export function initState(api: Api) {
@@ -77,7 +84,7 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", preset: "",
+    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", adding: false,
   } satisfies State);
 }
 
@@ -109,7 +116,6 @@ interface StoredDraft { user: string; base: string; draft: Criterion[]; at: numb
 
 /** Start the draft over from what's saved. clearStored=false keeps any edits waiting on this device. */
 export function resetDraft(clearStored = true) {
-  addedAs.clear();
   S.draft = clone(myCriteria());
   if (clearStored) save("draft", null);
 }

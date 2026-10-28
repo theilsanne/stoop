@@ -115,9 +115,6 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 /* criteria */
 .critbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 50px);z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow)}
 .impact{padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.critbar .addrow{border-top:1px solid var(--line);padding:10px 14px}
-.critbar .addrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.critbar .addrow select{flex:0 1 auto}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
 .brand h1{display:inline-flex;align-items:center;gap:8px}
@@ -131,8 +128,6 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
   .critbar .impact{padding:8px 12px;gap:6px}
   .critbar .impact .nums{font-size:12.5px}
   .critbar .impact .nums b{font-size:14px}
-  .critbar .acts .btn{padding:5px 10px;font-size:13px}
-  .critbar .addrow{padding:8px 12px;flex-wrap:nowrap;gap:6px}
   .btn.sm-btn{padding:6px 8px;white-space:nowrap}
 }
 .toast{cursor:pointer}
@@ -160,7 +155,6 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .switch{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
 .switch input{accent-color:var(--accent);width:16px;height:16px}
 .x{border:0;background:none;color:var(--ink-2);font-size:13px;text-decoration:underline;padding:4px}
-.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .log{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 .log li{padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;display:flex;gap:10px;flex-wrap:wrap}
 .log time{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:7ch}
@@ -372,7 +366,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);color:var(--ink);
   font-size:14px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;text-decoration:none;
   transition:background-color .15s var(--ease),border-color .15s var(--ease),transform .12s var(--ease),opacity .15s}
-.btn.sm-btn,.close,.critbar .acts .btn{height:var(--h-sm);padding:0 14px;font-size:13px}
+.btn.sm-btn,.close,.savebar .acts .btn{height:var(--h-sm);padding:0 14px;font-size:13px}
 .btn:hover:not(:disabled),.close:hover{background:color-mix(in srgb,var(--surface) 100%,var(--ink) 5%);border-color:color-mix(in srgb,var(--line) 60%,var(--ink-2))}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 88%,var(--ink));border-color:transparent}
@@ -542,7 +536,7 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .grip{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:-4px -4px -4px -8px;
   border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:grab;touch-action:none;transition:background-color .15s,color .15s}
 .grip:hover{background:var(--hover);color:var(--ink)}
-.crit.dragging{z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.16),var(--shadow);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
+.crit.dragging{pointer-events:none;z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.16),var(--shadow);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
 .crit.dragging .grip,body.sorting,body.sorting *{cursor:grabbing !important}
 body.sorting{user-select:none;-webkit-user-select:none}
 @media (pointer:coarse){.grip::after{content:"";position:absolute;inset:-6px}.grip{position:relative}}
@@ -560,10 +554,8 @@ body.sorting{user-select:none;-webkit-user-select:none}
 @media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
 @media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
 .crit-body:not(:has(*)){display:none}
-.crit-head h3.lbl{flex:1 1 200px;min-width:0;margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.crit-head h3.lbl{flex:1 1 0;min-width:0;margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
 
-/* ---- write-ins ---- */
-.critbar .addrow input.writein{flex:1 1 180px;width:auto;min-width:0;height:var(--h-sm);font-size:14px}
 .ctl.words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;width:100%}
 .ctl.words input{width:100%}
 .ctl.words .small{grid-column:2}
@@ -571,10 +563,35 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .writeins li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
 .writeins .switch{font-size:14.5px;color:var(--ink);gap:10px}
 
-.critbar .addrow:has(.writein){display:grid;grid-template-columns:auto 1fr auto auto;gap:8px}
-.critbar .addrow:has(.writein) select{max-width:none}
+/* ---- the add menu: every criterion by group, a Dealbreaker and a Want button on each row ---- */
+.addmenu{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px 20px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:22px;box-shadow:var(--shadow)}
+.addgroup h3{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);margin:0 0 6px}
+.addgroup ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.addgroup li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;min-height:var(--h-sm);font-size:14px;color:var(--ink)}
+.addgroup li > span.small{white-space:nowrap}
+.addgroup li:has(input){grid-template-columns:minmax(0,1fr)}
+.addgroup input.text{min-width:0;width:100%;height:var(--h-sm);font-size:14px}
+.addbtns{display:inline-flex;gap:6px;flex:none}
 @media (max-width:620px){
-  .critbar .addrow:has(.writein){grid-template-columns:1fr 1fr}
-  .critbar .addrow:has(.writein) select,.critbar .addrow input.writein{grid-column:1 / -1}
-  .critbar .addrow:has(.writein) .btn{width:100%}
+  .addmenu{grid-template-columns:1fr;padding:12px}
 }
+
+/* ---- weight levels: the same segmented control as the rest of the app, wrapping on a phone ---- */
+.seg.levels{flex-wrap:wrap;border-radius:12px}
+.seg.levels > button{border-radius:999px}
+.wlabel{color:var(--ink-2)}
+
+/* ---- criteria that aren't saved yet: a New or Moved tag, and a faint accent border ---- */
+.pendtag{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.crit.pending{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+
+/* ---- drag between the two lists: the list under the pointer lights up ---- */
+.crit-list{min-height:56px;border-radius:12px;transition:background-color .15s}
+.crit-list.drop-target{background:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:4px}
+
+/* ---- the save bar sits at the bottom of the page, and only shows while there are unsaved edits ---- */
+#savebar{position:sticky;bottom:0;z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}
+#savebar:empty{display:none}
+.savebar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 12px;box-shadow:var(--shadow)}
+.savebar > span{font-size:14px;color:var(--ink-2)}
+.savebar .acts .btn:disabled{opacity:.6}

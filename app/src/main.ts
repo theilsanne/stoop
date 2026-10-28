@@ -10,11 +10,11 @@ import { DemoApi } from "./demo.ts";
 import {
   S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Tab, addedAs, moveInSection, reorderSection,
+  type Filter, type Lens, type Tab, moveCriterion, moveInSection, reorderSection,
 } from "./state.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
-import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
+import { changeLog, refreshBars, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
@@ -52,7 +52,7 @@ function controlKey(el: Element | null): string | null {
   if (!(el instanceof HTMLElement) || el === document.body) return null;
   if (el.id) return `#${CSS.escape(el.id)}`;
   const d = el.dataset;
-  const attrs = ["action", "change", "edit", "id", "v", "open", "note"]
+  const attrs = ["action", "change", "edit", "id", "v", "key", "open", "note"]
     .filter((k) => d[k] != null).map((k) => `[data-${k}="${CSS.escape(d[k]!)}"]`);
   return attrs.length ? el.tagName.toLowerCase() + attrs.join("") : null;
 }
@@ -363,7 +363,6 @@ function addWriteIn(kind: Criterion["kind"]) {
   const slug = phrase.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   if (S.draft.some((c) => c.field === "write_in:" + slug)) { toast(`You already have “${phrase}”`); return; }
   const newId = "new-" + Date.now();
-  addedAs.set(newId, kind);
   S.draft.push({
     id: newId, owner_id: myId(), label: phrase[0].toUpperCase() + phrase.slice(1), kind,
     field: "write_in:" + slug, operator: "mentions", value: [phrase],
@@ -463,13 +462,12 @@ async function loadLog() {
 
 // ---------- events ----------
 const draftById = (id: string) => S.draft.find((c) => c.id === id)!;
-const refreshImpact = () => { const el = document.getElementById("impact"); if (el) el.innerHTML = impactHTML(); };
 
 document.addEventListener("click", (e) => {
   const t = e.target as HTMLElement;
   const a = t.closest<HTMLElement>("[data-action]");
   if (a) {
-    const { action, id = "", v = "" } = a.dataset;
+    const { action, id = "", v = "", key = "" } = a.dataset;
     if (action !== "tab" && action !== "peek") holdInPlace(a); // switching sections goes to the top instead
     switch (action) {
       case "closesheet": if (t === a) closeSheet(); return;
@@ -497,20 +495,19 @@ document.addEventListener("click", (e) => {
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
-      case "kind": draftById(id).kind = v as Criterion["kind"]; break;
+      case "level": draftById(id).weight = Number(v); break;
+      case "toggleadd": S.adding = !S.adding; break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];
         c.value = list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
         break;
       }
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
+      case "writein": addWriteIn(v as Criterion["kind"]); return;
       case "add": {
-        const pick = ($("preset") as HTMLSelectElement).value;
-        if (pick === "__write") { addWriteIn(v as Criterion["kind"]); return; }
-        const def = allFields().find((d) => d.key === pick);
+        const def = allFields().find((d) => d.key === key);
         if (!def) return;
         const newId = "new-" + Date.now();
-        addedAs.set(newId, v as Criterion["kind"]);
         S.draft.push({
           id: newId, owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
           field: def.field, operator: def.operator,
@@ -554,11 +551,16 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  // a criterion's grip: arrow keys move it up or down within its section
+  // a criterion's grip: arrow keys move it up or down within its list; Shift+Up and Shift+Down
+  // move it to Dealbreakers (above) or Wants (below)
   const grip = (e.target as HTMLElement).closest?.<HTMLElement>(".grip");
   if (grip && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
     e.preventDefault();
-    if (moveInSection(grip.dataset.id!, e.key === "ArrowUp" ? -1 : 1)) { holdInPlace(grip); render(); }
+    const id = grip.dataset.id!;
+    const moved = e.shiftKey
+      ? moveCriterion(id, e.key === "ArrowUp" ? "dealbreaker" : "want")
+      : moveInSection(id, e.key === "ArrowUp" ? -1 : 1);
+    if (moved) { holdInPlace(grip); render(); }
     return;
   }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
@@ -595,11 +597,6 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
-  if (t.dataset.change === "preset") {
-    S.preset = t.value;
-    render();
-    if (S.preset === "__write") document.getElementById("writein")?.focus();
-  }
   if (t.dataset.mark) markWriteIn(t.dataset.mark, (t as unknown as HTMLInputElement).checked);
   if (t.dataset.change === "threshold") {
     const n = Number(t.value);
@@ -618,13 +615,12 @@ document.addEventListener("input", (e) => {
   if (f === "label") c.label = t.value;
   else if (f === "words") c.value = t.value.split(",").map((w) => w.trim()).filter(Boolean);
   else if (f === "active") { c.active = t.checked; render(); return; }
-  else if (f === "weight") { c.weight = +t.value; $("wl-" + c.id).textContent = t.value; }
   else if (f === "margin") { c.near_miss_margin = +t.value ? +t.value / 100 : null; $("ml-" + c.id).textContent = t.value + "%"; }
   else if (f === "value") {
     if (c.operator === "before") c.value = t.value || c.value;
     else if (t.value !== "") { c.value = +t.value; const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value; }
   }
-  refreshImpact();
+  refreshBars();
   persistDraft();
 });
 
@@ -684,7 +680,10 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
-initSort((section, ids) => { reorderSection(section as Criterion["kind"], ids); render(); });
+initSort(
+  (section, ids) => { reorderSection(section as Criterion["kind"], ids); render(); },
+  (id, kind) => { moveCriterion(id, kind as Criterion["kind"]); render(); },
+);
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
