@@ -14,10 +14,21 @@ const tidy = (els: Element[], props: string[]) => () => {
   for (const el of els) for (const p of props) (el as HTMLElement).style.removeProperty(p);
 };
 
-/** A new screen: the content rises in, and the first cards follow one after another. */
-export function enterView(main: Element | null) {
+/**
+ * New content. A new section (another tab): the page rises in and the first cards
+ * follow one after another. A switch within the same page (filter, sort, list/map):
+ * the switches stay perfectly still and only the listings below them fade in.
+ */
+export function enterView(main: Element | null, newSection = true) {
   if (!main || reduced()) return;
   const items = [...main.querySelectorAll(".card, .mini, .panel, .crit, .cmp-sum > div, .tblwrap")].slice(0, 14);
+  if (!newSection) {
+    if (items.length) {
+      animate(items, { opacity: [0, 1] }, { duration: 0.18, ease: "easeOut", delay: stagger(0.02) })
+        .finished.then(tidy(items, ["opacity"]));
+    }
+    return;
+  }
   const head = [...main.children].filter((c) => !items.some((i) => c.contains(i) || c === i)).slice(0, 4);
   if (head.length) {
     animate(head, { opacity: [0, 1], y: [6, 0] }, { duration: 0.22, ease: "easeOut" })

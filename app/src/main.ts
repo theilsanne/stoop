@@ -127,7 +127,10 @@ export function render() {
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
 
   const key = viewKey();
-  if (key !== lastView && !S.loading) enterView(root.querySelector("main"));
+  if (key !== lastView && !S.loading) {
+    const section = (k: string) => k.split("|").slice(0, 2).join("|"); // loading + tab
+    enterView(root.querySelector("main"), section(key) !== section(lastView));
+  }
   lastView = key;
   const open = !!S.openId;
   if (open && !sheetShown) openSheetMotion($("sheet-root"));
