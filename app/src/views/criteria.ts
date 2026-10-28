@@ -128,8 +128,7 @@ export function renderCriteria() {
     + `<optgroup label="Your own"><option value="__write" ${S.preset === "__write" ? "selected" : ""}>Write your own…</option></optgroup>`;
   const writing = S.preset === "__write";
   const log = changeLog.rows;
-  return `<p class="whose"><span><b>Your criteria.</b> ${esc(partnerName())} keeps their own list; you can see it in Compare.</span></p>
-    <div class="critbar">
+  return `<div class="critbar">
       <div class="impact" id="impact">${impactHTML()}</div>
       <div class="addrow"><select class="sm" id="preset" data-change="preset" aria-label="Criterion to add" title="Criterion to add">${options}</select>
         ${writing ? `<input id="writein" class="text writein" placeholder="e.g. exposed brick" maxlength="60" aria-label="What to look for in listings">` : ""}
