@@ -560,3 +560,4 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .iconbtn:active{transform:scale(.92)}
 @media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
 @media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
+.crit-body:not(:has(*)){display:none}

@@ -57,11 +57,12 @@ function control(c: Criterion) {
       return `<div class="ctl"><label for="v-${c.id}">${c.operator === "lte" ? "At most" : "At least"}</label>${unit === "money" ? "$" : ""}<input type="number" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}" step="${def?.step ?? 1}" min="0">${unit === "sqft" ? " ft²" : ""}</div>`;
     }
     case "in": return hoodChips(c);
-    case "is_true": return `<div class="ctl">${c.field === "amenities.not_garden_level"
-      ? "Drops listings whose unit or description says garden level, basement or lower level"
+    // a yes/no feature needs no setting; two of them get a line saying what counts
+    case "is_true": return c.field === "amenities.not_garden_level"
+      ? `<div class="ctl">Drops listings whose unit or description says garden level, basement or lower level</div>`
       : c.field === "building.clean"
-      ? "No hazardous (class C) HPD violations open, and fewer than 5 open in total"
-      : "Listing has it"}</div>`;
+      ? `<div class="ctl">No hazardous (class C) HPD violations open, and fewer than 5 open in total</div>`
+      : "";
     case "before": return `<div class="ctl"><label for="v-${c.id}">Available before</label><input type="date" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${esc(c.value)}"></div>`;
     case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">${c.field.startsWith("commute:") ? "Within" : "Each of us within"}</label>${slider(`v-${c.id}`, "value", c.id, 15, 60, Number(c.value), 5)}<span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
     default: return "";
