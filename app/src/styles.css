@@ -611,3 +611,16 @@ body.sorting{user-select:none;-webkit-user-select:none}
 /* while a sheet is open, the feed behind it doesn't scroll, and a pull down doesn't reload the app */
 body:has(.overlay){overflow:hidden}
 html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
+
+/* Icon buttons change as one piece on hover: the icon gets its color from its own rule, at the
+   same moment as the background. (Left to inherit, Safari can repaint the icon only once the
+   pointer is over the icon itself, so the background and icon seem to change separately.) */
+.ic{transition:color .15s var(--ease)}
+.vbtn:hover:not([aria-pressed="true"]) .ic,button.who:hover .ic,.grip:hover .ic,.iconbtn:hover .ic{color:var(--ink)}
+.iconbtn.remove:hover .ic{color:var(--bad)}
+.vbtn:not([aria-pressed="true"]) .ic,button.who .ic,.grip .ic,.iconbtn .ic{color:var(--ink-2)}
+.vbtn[aria-pressed="true"][data-v="yes"] .ic{color:var(--good)}
+.vbtn[aria-pressed="true"][data-v="maybe"] .ic{color:var(--warn)}
+.vbtn[aria-pressed="true"][data-v="no"] .ic{color:var(--bad)}
+button.who[aria-pressed="true"] .ic{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.ic{transition:none}}
