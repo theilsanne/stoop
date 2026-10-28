@@ -47,19 +47,32 @@ export function openSheetMotion(root: Element) {
   if (!overlay || !sheet) return;
   const phone = innerWidth < 620;
   animate(overlay, { opacity: [0, 1] }, { duration: 0.2 });
-  animate(sheet, phone ? { y: ["100%", "0%"] } : { x: ["100%", "0%"] }, SPRING)
+  animate(sheet, phone ? { y: ["100%", "0%"] } : { x: [(sheet as HTMLElement).offsetWidth + 40, 0] }, SPRING)
     .finished.then(tidy([sheet], ["transform"]));
 }
 
-/** Slide the sheet away, then run done (which empties it). */
-export function closeSheetMotion(root: Element, done: () => void) {
-  const overlay = root.querySelector(".overlay"), sheet = root.querySelector(".sheet");
+/** Slide the sheet away, then run done (which empties it). fromDy: where a drag left it, in pixels. */
+export function closeSheetMotion(root: Element, done: () => void, fromDy = 0) {
+  const overlay = root.querySelector<HTMLElement>(".overlay"), sheet = root.querySelector<HTMLElement>(".sheet");
   if (reduced() || !overlay || !sheet) { done(); return; }
   const phone = innerWidth < 620;
-  (overlay as HTMLElement).style.pointerEvents = "none";
-  animate(overlay, { opacity: 0 }, { duration: 0.2, delay: 0.05 });
-  animate(sheet, phone ? { y: "100%" } : { x: "100%" }, { duration: 0.22, ease: [0.4, 0, 1, 1] })
+  overlay.style.pointerEvents = "none";
+  animate(overlay, { opacity: 0 }, { duration: 0.2, delay: fromDy ? 0 : 0.05 });
+  animate(sheet, phone ? { y: [fromDy, sheet.offsetHeight + 40] } : { x: sheet.offsetWidth + 40 }, { duration: fromDy ? 0.18 : 0.22, ease: [0.4, 0, 1, 1] })
     .finished.then(done, done);
+}
+
+/** The bottom sheet following a finger: dy pixels down; the backdrop fades as it goes. Direct, not animated. */
+export function followSheet(sheet: HTMLElement, overlay: HTMLElement, dy: number) {
+  sheet.style.transform = `translateY(${dy}px)`;
+  overlay.style.backgroundColor = `rgba(8,14,11,${(0.5 * Math.max(0, 1 - Math.max(0, dy) / sheet.offsetHeight)).toFixed(3)})`;
+}
+
+/** Let go without closing: the sheet springs back up. */
+export function releaseSheet(sheet: HTMLElement, overlay: HTMLElement, dy: number) {
+  overlay.style.removeProperty("background-color");
+  if (reduced()) { sheet.style.transform = ""; return; }
+  animate(sheet, { y: [dy, 0] }, { type: "spring", stiffness: 500, damping: 40 }).finished.then(tidy([sheet], ["transform"]), () => {});
 }
 
 /** A notice springs up from the bottom. */

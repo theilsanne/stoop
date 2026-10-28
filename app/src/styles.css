@@ -586,3 +586,22 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .disclose .n{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:0}
 .disclose:hover .ic,.disclose:hover .n{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.disclose .ic{transition:none}}
+
+/* ---- phone: the listing sheet is a bottom sheet with a grab handle ---- */
+.grabber{display:none}
+@media (max-width:619px){
+  .overlay{align-items:flex-end}
+  .sheet{width:100%;height:calc(100% - 28px - env(safe-area-inset-top,0px));border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+  .sheet-head{padding-top:6px;border-radius:18px 18px 0 0;touch-action:none}
+  .sheet-head .sheet-top,.sheet-head .stage-row{touch-action:manipulation}
+  .grabber{display:flex;justify-content:center;padding:4px 0 6px;margin:0 -20px;cursor:grab;touch-action:none}
+  .grabber span{width:40px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink-2) 45%,transparent)}
+  .sheet.dragging{transition:none;user-select:none}
+}
+
+/* ---- wider screens: the side sheet floats, inset from the edges, with rounded corners ---- */
+@media (min-width:620px){
+  .overlay{padding:12px}
+  .sheet{height:100%;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08);border:1px solid var(--line)}
+  .sheet-head{border-radius:18px 18px 0 0;padding-top:16px}
+}
