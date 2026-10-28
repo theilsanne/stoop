@@ -37,7 +37,7 @@ export interface Api {
   /** Look the address up (NYC only) and save it as one of my places. */
   addPlace(label: string, address: string): Promise<Place>;
   removePlace(id: string): Promise<void>;
-  /** Work out transit times to places (one batch). */
+  /** Work out subway commute times to places (redo: start over). */
   commute(redo?: boolean): Promise<CommuteResult>;
   /** The route behind each commute time for one listing, by place id ("Walk 4 → A → Walk 6"). */
   commuteRoutes(listingId: string): Promise<Record<string, string>>;

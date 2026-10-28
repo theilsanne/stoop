@@ -342,7 +342,7 @@ async function workOutCommutes(redo = false) {
       done += r.computed;
       if (r.errors?.length) console.warn("Commute lookups:", r.errors);
       if (!r.remaining || !r.computed) {
-        if (!r.computed && r.failed && !done) S.error = "Couldn't get transit times right now" + (r.errors?.[0] ? ` (${r.errors[0]})` : "") + ". Try again later.";
+        if (!r.computed && r.failed && !done) S.error = "Couldn't work out commute times" + (r.errors?.[0] ? ` (${r.errors[0]})` : "") + ". Try again later.";
         break;
       }
       toast(`Working out commute times… ${r.remaining} to go`);

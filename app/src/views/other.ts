@@ -34,7 +34,7 @@ export function renderSettings() {
         : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
     </section>
     <section class="panel" id="places"><h2>Places</h2>
-      <p>Where you each go regularly: work, a studio, family. Every listing gets a transit time to each place, and you can add criteria like “Commute to Office within 35 min”.</p>
+      <p>Where you each go regularly: work, a studio, family. Every listing gets a subway commute time to each place (door to door, weekday mornings), and you can add criteria like “Commute to Office within 35 min”.</p>
       ${S.places.length ? `<ul class="places">${S.places.map((p) => `<li><div><b>${esc(placeName(p))}</b><div class="small">${esc(p.address)}</div></div>${
         p.user_id === myId() ? `<button class="x" data-action="removeplace" data-id="${p.id}">Remove</button>` : ""}</li>`).join("")}</ul>` : ""}
       <form id="addplace" class="placeform">

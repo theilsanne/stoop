@@ -96,10 +96,10 @@ export function renderSheet() {
       <ul class="bd-list">${S.places.map((p) => {
         const m = row.commutes?.[p.id];
         const route = routes.get(row.id)?.[p.id];
-        return `<li class="commute-li"><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by transit`}</span>${
+        return `<li class="commute-li"><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by subway`}</span>${
           route ? `<span class="route">${esc(route)}</span>` : ""}</li>`;
       }).join("")}</ul>
-      <p class="small">The fastest trip leaving between 8:15 and 8:45am on a Tuesday, door to door. Transit times by <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a>, from public schedule data.</p>
+      <p class="small">Subway only, door to door: the walk to the station, the usual wait and ride on a weekday morning, any change of trains, and the walk at the end. From the MTA's timetable.</p>
     </div>` : ""}
 
     <div class="box"><h3>Building record</h3>

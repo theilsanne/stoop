@@ -125,7 +125,7 @@ export function renderCriteria() {
       ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       ${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</section>
-    <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use transit times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
+    <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
         const t = changeText(ch);

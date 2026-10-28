@@ -1,5 +1,5 @@
 // commute: work out transit times from active listings to your saved places
-// (via Transitous), a batch at a time, then re-score. The app calls it after you
+// (subway only, from the MTA timetable; see _shared/subway.ts), then re-score. The app calls it after you
 // add a place, and from Settings.
 //
 // Deploy with:  supabase functions deploy commute --no-verify-jwt
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   try {
     const { redo } = await req.json().catch(() => ({ redo: false }));
-    const result = await computeCommutes(db, null, 40, !!redo);
+    const result = await computeCommutes(db, null, 2000, !!redo);
     if (result.computed) await scoreAndStore(db, null);
     return json(result);
   } catch (e) {

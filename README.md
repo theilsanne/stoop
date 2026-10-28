@@ -13,8 +13,8 @@ preferences, and shows them in an installable web app at
 | `supabase/functions/ingest` | Called by Apify after each scraper run. Saves new listings, marks ones unseen for 30 days (configurable) off-market, scores everything from the run. |
 | `supabase/functions/rescore` | Called by the app after either person saves criteria. Re-scores every active listing. |
 | `supabase/functions/enrich` | Called from the app's Settings. Looks up building records for listings that don't have them yet, in batches, then re-scores. |
-| `supabase/functions/commute` | Called from the app's Settings and after adding a place. Works out transit times from listings to every saved place, in batches, then re-scores. |
-| `supabase/functions/_shared/commute.ts` | Transit times from [Transitous](https://transitous.org), a free open-source router (no key). |
+| `supabase/functions/commute` | Called from the app's Settings and after adding a place. Works out subway commute times from listings to every saved place, then re-scores. |
+| `supabase/functions/_shared/subway.ts` | Subway-only commute times: walk → wait → ride → change → walk, over a network built from the MTA timetable (`subway-graph.json`, rebuilt monthly by `scripts/build-subway.mjs` via the "Update subway network" workflow). |
 | `supabase/functions/_shared/buildings.ts` | Address → BBL (NYC GeoSearch), open HPD violations, 311 complaints (NYC Open Data). No keys needed. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
@@ -120,7 +120,7 @@ Run each file in `supabase/migrations/` in order in the SQL Editor. After the fi
 
 ### Commute times
 
-Each of you adds places in **Settings → Places** (name + NYC street address, located with NYC GeoSearch). Every listing gets a transit time to each place, the fastest trip leaving 8:15–8:45am on a Tuesday (its route is kept too, e.g. "Walk 4 → A → Walk 6"), from [Transitous](https://transitous.org/api/). Its usage policy: non-commercial, open-source projects only, identify the app (we send a User-Agent), and keep load light (more than ~720 route requests a day counts as heavy). Times are asked once per listing per place and refreshed every 45 days; a backfill goes 40 at a time. Criteria: **Commute to <place> within N min**, one per place.
+Each of you adds places in **Settings → Places** (name + NYC street address, located with NYC GeoSearch). Every listing gets a subway commute time to each place, worked out in our own functions from the MTA's subway timetable (weekday 7:30–9:30am pattern): walk to a nearby station (up to ~25 min), half the usual gap between trains as the wait, the typical ride times, MTA transfer times, and the walk at the end; walking instead when that's faster. The route is kept too (e.g. "Walk 4 → A → Walk 6"). We used Transitous before, but the MTA's published timetable ended Oct 31, 2026, so it stopped seeing subway service for dates after that. Criteria: **Commute to <place> within N min**, one per place.
 
 ### Building records
 
@@ -161,4 +161,4 @@ and deploy `alerts` and `ingest`. Each of you turns alerts on in Settings on you
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Icons from [Phosphor](https://phosphoricons.com) (MIT). Map data © OpenStreetMap contributors. Transit times from [Transitous](https://transitous.org).
+MIT, see [LICENSE](LICENSE). Icons from [Phosphor](https://phosphoricons.com) (MIT). Map data © OpenStreetMap contributors. Subway data from the MTA.

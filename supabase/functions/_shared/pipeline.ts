@@ -8,7 +8,9 @@ import {
 } from "./scoring.ts";
 import { normalize } from "./normalize.ts";
 import { type Fetch, lookupBbl, lookupBuilding } from "./buildings.ts";
-import { lookupCommute, morningDeparture } from "./commute.ts";
+import { type SubwayGraph, subwayCommute } from "./subway.ts";
+import graphJson from "./subway-graph.json" with { type: "json" };
+const SUBWAY = graphJson as unknown as SubwayGraph;
 
 export function serviceClient() {
   return createClient(
@@ -100,18 +102,17 @@ export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100,
   };
 }
 
-const COMMUTE_FRESH_DAYS = 45; // schedules change seasonally; re-ask occasionally
+const COMMUTE_FRESH_DAYS = 45; // the subway network is rebuilt monthly; refresh times now and then
 
 /**
- * Transit minutes from listings to every saved place, via Transitous. Only pairs
- * with no answer yet (or an old one) are asked, at most `limit` per call, a few at
- * a time to stay gentle on a free service. A failed lookup is skipped, not stored.
+ * Subway commute times from listings to every saved place, worked out here from the
+ * MTA timetable (see subway.ts). No outside service, so a whole batch is quick.
+ * Only pairs with no answer yet (or an old one) are worked out; redo starts over.
  */
-export async function computeCommutes(db: DB, ids: string[] | null, limit = 40, redo = false) {
+export async function computeCommutes(db: DB, ids: string[] | null, limit = 2000, redo = false) {
   const places = (check(await db.from("places").select("id, lat, lng"), "load places") as
     { id: string; lat: number | null; lng: number | null }[]).filter((p) => p.lat != null && p.lng != null);
   if (!places.length) return { computed: 0, failed: 0, remaining: 0, errors: [] as string[] };
-  // start over: drop every saved time, so all are worked out again with the current method
   if (redo) check(await db.from("commutes").delete().gte("computed_at", "1970-01-01"), "clear commutes");
 
   type L = { id: string; lat: number | null; lng: number | null };
@@ -127,7 +128,6 @@ export async function computeCommutes(db: DB, ids: string[] | null, limit = 40, 
   }
   const located = listings.filter((l) => l.lat != null && l.lng != null);
 
-  // what we already know
   const known = new Set<string>();
   const cutoff = new Date(Date.now() - COMMUTE_FRESH_DAYS * 24 * 3600e3).toISOString();
   for (const part of chunk(located.map((l) => l.id))) {
@@ -137,26 +137,16 @@ export async function computeCommutes(db: DB, ids: string[] | null, limit = 40, 
   const todo = located.flatMap((l) => places.filter((p) => !known.has(l.id + "|" + p.id)).map((p) => ({ l, p })));
   const batch = todo.slice(0, limit);
 
-  const departAt = morningDeparture();
-  const errors: string[] = [];
-  let computed = 0, failed = 0;
-  for (const part of chunk(batch, 3)) {
-    const rows = await Promise.all(part.map(async ({ l, p }) => {
-      try {
-        const trip = await lookupCommute(fetch as unknown as Fetch, { lat: l.lat!, lng: l.lng! }, { lat: p.lat!, lng: p.lng! }, departAt);
-        if (trip == null) { failed++; return null; }
-        // mode holds the route, e.g. "Walk 4 → A → Walk 6"
-        return { listing_id: l.id, place_id: p.id, minutes: trip.minutes, mode: trip.route || "transit", computed_at: new Date().toISOString() };
-      } catch (e) {
-        failed++; errors.push(e instanceof Error ? e.message : String(e));
-        return null;
-      }
-    }));
-    const ok = rows.filter((r) => r != null);
-    if (ok.length) check(await db.from("commutes").upsert(ok, { onConflict: "listing_id,place_id" }), "save commutes");
-    computed += ok.length;
-  }
-  return { computed, failed, remaining: todo.length - batch.length, errors: [...new Set(errors)].slice(0, 5) };
+  let failed = 0;
+  const now = new Date().toISOString();
+  const rows = batch.flatMap(({ l, p }) => {
+    const trip = subwayCommute(SUBWAY, { lat: l.lat!, lng: l.lng! }, { lat: p.lat!, lng: p.lng! });
+    if (!trip) { failed++; return []; }
+    // mode holds the route, e.g. "Walk 4 → A → Walk 6"
+    return [{ listing_id: l.id, place_id: p.id, minutes: trip.minutes, mode: trip.route, computed_at: now }];
+  });
+  for (const part of chunk(rows, 500)) check(await db.from("commutes").upsert(part, { onConflict: "listing_id,place_id" }), "save commutes");
+  return { computed: rows.length, failed, remaining: todo.length - batch.length, errors: failed ? [`${failed} trips had no subway or walking route`] : [] };
 }
 
 /**

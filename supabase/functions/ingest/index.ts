@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
   // commute times for new listings only (existing ones already have them)
   const newIdsForCommute = touched.filter((t) => !before.has(t.source_id)).map((t) => t.id);
   const commutes = newIdsForCommute.length
-    ? await computeCommutes(db, newIdsForCommute, 120).catch((e) => ({ error: String(e) }))
+    ? await computeCommutes(db, newIdsForCommute).catch((e) => ({ error: String(e) }))
     : null;
 
   // score this run's listings
