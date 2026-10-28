@@ -1,4 +1,5 @@
 import { icon } from "../icons.ts";
+import { cardPhotos } from "./photos.ts";
 import {
   S, isNewSinceVisit, placeName, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
   type Filter, type Lens, type Sort, type View,
@@ -78,12 +79,11 @@ export function parseSort(value: string): { sort: Sort; lens: Lens } {
 }
 
 export function card(row: FeedRow, v: View) {
-  const photo = row.photos?.[0];
   const open = S.whyOpen.has(row.id);
   const fails = v.passes || !v.failed.length ? "" :
     `<div class="fails">${v.failed.map((f) => `<span class="chip ${v.near ? "near" : ""}">${v.near ? "Near miss: " : "✗ "}${esc(f)}</span>`).join("")}</div>`;
   return `<article class="card" data-open="${row.id}" tabindex="0" aria-label="${esc(row.address)}">
-    <div class="ph">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
+    <div class="ph">${cardPhotos(row.id, row.photos)}
       <div class="badges">${badges(row)}</div>
       ${v.scored ? `<button class="score ${tier(v.score)}" data-action="why" data-id="${row.id}" aria-expanded="${open}" aria-label="Score ${v.score}. Show why">${v.score}</button>` : ""}
     </div>

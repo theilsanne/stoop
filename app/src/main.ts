@@ -1,6 +1,7 @@
 import "./styles.css";
 import { icon } from "./icons.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold } from "./motion.ts";
+import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
+import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -51,6 +52,8 @@ export function render() {
     return;
   }
   const y = window.scrollY;
+  // keep each photo strip on the photo you'd swiped to
+  const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
@@ -64,6 +67,10 @@ export function render() {
     }[S.tab]()}</main>`;
   window.scrollTo(0, y);
   $("sheet-root").innerHTML = renderSheet();
+  for (const s of document.querySelectorAll<HTMLElement>("[data-strip]")) {
+    const left = strips.get(s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""));
+    if (left) { s.scrollLeft = left; syncStrip(s); }
+  }
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
 
   const key = viewKey();
@@ -79,6 +86,38 @@ function closeSheet() {
   S.openId = null; sheetShown = false;
   closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; });
 }
+
+// ---------- full-screen photo viewer ----------
+let viewerReturn: HTMLElement | null = null;
+function openViewer(id: string, start: number) {
+  const row = S.feed.find((r) => r.id === id);
+  if (!row?.photos?.length) return;
+  viewerReturn = document.activeElement as HTMLElement | null;
+  const host = document.createElement("div");
+  host.id = "viewer-root";
+  host.innerHTML = viewer(row.photos, start);
+  document.body.append(host);
+  const strip = host.querySelector<HTMLElement>("[data-strip]")!;
+  strip.scrollLeft = start * strip.clientWidth;
+  syncStrip(strip);
+  viewerIn(host.querySelector(".viewer"));
+  (host.querySelector("#close-viewer") as HTMLElement).focus();
+}
+function closeViewer() {
+  const host = document.getElementById("viewer-root");
+  if (!host) return;
+  viewerOut(host.querySelector(".viewer"), () => host.remove());
+  viewerReturn?.focus();
+}
+
+// photo strips scroll sideways; keep their counters and arrows in step (scroll doesn't bubble, so capture)
+let stripTick = 0;
+document.addEventListener("scroll", (e) => {
+  const s = e.target as HTMLElement;
+  if (!(s instanceof HTMLElement) || !s.dataset?.strip) return;
+  cancelAnimationFrame(stripTick);
+  stripTick = requestAnimationFrame(() => syncStrip(s));
+}, true);
 
 function toast(text: string, opts: { ms?: number; action?: { label: string; run: () => void } } = {}) {
   const n = document.createElement("div");
@@ -289,6 +328,13 @@ document.addEventListener("click", (e) => {
     const { action, id = "", v = "" } = a.dataset;
     switch (action) {
       case "closesheet": if (t === a) closeSheet(); return;
+      case "photo": {
+        const box = a.parentElement!, strip = box.querySelector<HTMLElement>("[data-strip]");
+        if (strip) stepStrip(strip, v === "prev" ? -1 : 1);
+        return;
+      }
+      case "viewphoto": openViewer(id, Number(v)); return;
+      case "closeviewer": closeViewer(); return;
       case "tab":
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
         if (v === "criteria" && changeLog.rows == null) loadLog();
@@ -353,6 +399,13 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (document.querySelector(".viewer")) {
+    const strip = document.querySelector<HTMLElement>(".viewer [data-strip]")!;
+    if (e.key === "Escape") closeViewer();
+    if (e.key === "ArrowLeft") stepStrip(strip, -1);
+    if (e.key === "ArrowRight") stepStrip(strip, 1);
+    return;
+  }
   if (e.key === "Escape" && S.openId) closeSheet();
   const t = e.target as HTMLElement;
   if ((e.key === "Enter" || e.key === " ") && t.matches(".card[data-open]")) { e.preventDefault(); openSheet(t.dataset.open!); }

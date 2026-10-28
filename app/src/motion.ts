@@ -87,3 +87,16 @@ export function land(el: Element | null) {
   animate(el, { scale: [0.94, 1], opacity: [0.4, 1] }, { type: "spring", stiffness: 500, damping: 22 })
     .finished.then(tidy([el], ["transform", "opacity"]));
 }
+
+/** The photo viewer fades up; photos settle from slightly smaller. */
+export function viewerIn(el: Element | null) {
+  if (!el || reduced()) return;
+  animate(el, { opacity: [0, 1] }, { duration: 0.18 });
+  const strip = el.querySelector(".strip");
+  if (strip) animate(strip, { scale: [0.96, 1] }, SPRING).finished.then(tidy([strip], ["transform"]));
+}
+
+export function viewerOut(el: Element | null, done: () => void) {
+  if (!el || reduced()) { done(); return; }
+  animate(el, { opacity: 0 }, { duration: 0.15 }).finished.then(done, done);
+}

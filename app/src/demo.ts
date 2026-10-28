@@ -27,9 +27,25 @@ function L(
       laundry_in_unit: am[0], laundry_in_building: am[1], dishwasher: am[2], outdoor_space: am[3],
       elevator: am[4], pets_allowed: true,
     },
-    photos: [], listed_at: seen, first_seen_at: seen, last_seen_at: new Date().toISOString(),
+    photos: demoPhotos(id), listed_at: seen, first_seen_at: seen, last_seen_at: new Date().toISOString(),
     history: history ?? [price],
   };
+}
+
+// Sample "photos": drawn in place (no network), a few rooms per listing in its own colors.
+const ROOMS = ["Living room", "Kitchen", "Bedroom", "Bathroom", "Second bedroom", "Building"];
+function demoPhotos(id: string): string[] {
+  const n = Number(id.replace(/\D/g, "")) || 1;
+  const hue = (n * 47) % 360;
+  return ROOMS.slice(0, 3 + (n % 4)).map((room, i) => {
+    const h = (hue + i * 18) % 360;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 533"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">`
+      + `<stop offset="0" stop-color="hsl(${h},38%,72%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360},32%,46%)"/></linearGradient></defs>`
+      + `<rect width="800" height="533" fill="url(#g)"/><rect x="${120 + i * 40}" y="120" width="220" height="260" rx="6" fill="hsla(${h},60%,96%,.55)"/>`
+      + `<rect x="0" y="400" width="800" height="133" fill="hsla(${h},30%,22%,.35)"/>`
+      + `<text x="40" y="490" font-family="sans-serif" font-size="34" font-weight="600" fill="#fff">${room}</text></svg>`;
+    return "data:image/svg+xml," + encodeURIComponent(svg);
+  });
 }
 
 const T = true, F = false;

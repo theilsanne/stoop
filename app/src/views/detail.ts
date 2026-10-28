@@ -2,6 +2,7 @@ import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verd
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
+import { sheetPhotos } from "./photos.ts";
 
 export const history = new Map<string, PricePoint[]>(); // filled lazily when a sheet opens
 
@@ -63,7 +64,7 @@ export function renderSheet() {
       <div class="stage-row"><label for="stage" class="small">Stage</label>
         <select class="sm" id="stage" data-change="stage" data-id="${row.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
     </div>
-    ${row.photos?.length ? `<div class="photos">${row.photos.slice(0, 8).map((p) => `<img src="${esc(p)}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join("")}</div>` : ""}
+    ${sheetPhotos(row.id, row.photos)}
     <div class="box"><div class="kv">
       <div><span>Net effective</span><b>${money(row.net_effective_rent ?? row.price)}</b></div>
       <div><span>Asking</span><b>${money(row.price)}</b></div>
