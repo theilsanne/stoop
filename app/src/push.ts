@@ -14,13 +14,25 @@ async function registration() {
   return navigator.serviceWorker.ready;
 }
 
-/** Whether this phone is set up to get alerts. */
+/**
+ * Whether this phone is set up to get alerts. When it is, the subscription is saved
+ * to the server again (harmless if it's already there), so the two never drift apart.
+ * A failed save throws, so it can be shown.
+ */
 export async function alertState(api: Api): Promise<AlertState> {
   if (api.demo || !pushSupported()) return "unsupported";
   if (Notification.permission === "denied") return "blocked";
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
-  return sub ? "on" : "off";
+  if (!sub) return "off";
+  await saveSub(api, sub);
+  return "on";
+}
+
+async function saveSub(api: Api, sub: PushSubscription) {
+  const j = sub.toJSON();
+  if (!j.keys?.p256dh || !j.keys?.auth) throw new Error("This phone's alert subscription is incomplete. Tap Turn off on this phone, then Turn on alerts.");
+  await api.savePushSubscription({ endpoint: sub.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
 }
 
 function keyBytes(base64url: string) {
@@ -36,8 +48,7 @@ export async function turnOnAlerts(api: Api) {
   const key = await api.alertsKey();
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
-  const j = sub.toJSON();
-  await api.savePushSubscription({ endpoint: sub.endpoint, p256dh: j.keys!.p256dh, auth: j.keys!.auth });
+  await saveSub(api, sub);
 }
 
 export async function turnOffAlerts(api: Api) {

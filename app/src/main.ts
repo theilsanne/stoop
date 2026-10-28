@@ -187,7 +187,8 @@ async function load() {
   S.loading = false;
   render();
   openFromLink();
-  alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); }, () => { S.alerts = "unsupported"; });
+  alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); },
+    (e) => { S.alerts = "on"; S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); render(); });
   save("lastVisit", Date.now()); // next visit's "new" badge counts from now
   setTimeout(maybeInstallTip, 1500); // after Chrome has had a moment to offer installing
 }
@@ -287,8 +288,8 @@ function testResult(r: TestResult) {
 async function alertsAction(run: () => Promise<void>) {
   S.busy.add("alerts");
   render();
-  try { await run(); } catch (e) { toast(e instanceof Error ? e.message : String(e), { ms: 8000 }); }
-  S.alerts = await alertState(api).catch(() => "unsupported" as const);
+  try { await run(); } catch (e) { S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); }
+  S.alerts = await alertState(api).catch((e) => { S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); return "on" as const; });
   S.busy.delete("alerts");
   render();
 }
@@ -422,6 +423,7 @@ document.addEventListener("click", (e) => {
       }); return;
       case "alerts-off": alertsAction(async () => { await turnOffAlerts(api); toast("Alerts are off on this phone"); }); return;
       case "alerts-test": alertsAction(async () => {
+        await alertState(api); // make sure this phone is saved on the server first
         testResult(await api.testAlert());
       }); return;
       case "removeplace": {
