@@ -3,7 +3,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type {
-  CommuteResult, CriteriaChange, Criterion, EnrichResult, FeedRow, Me, Place, PricePoint, Profile, Rating, Stage, Verdict,
+  CommuteResult, CriteriaChange, Criterion, EnrichResult, FeedRow, Me, Place, PricePoint, Profile, Rating, Stage, Stamp, Verdict,
 } from "./types.ts";
 
 export interface TestResult { phones: number; sent: number; failed: number; removed: number; errors: string[] }
@@ -17,10 +17,16 @@ export interface Api {
 
   profiles(): Promise<Profile[]>;
   updateMyName(name: string): Promise<void>;
+  /** Save my profile photo (a square JPEG from avatar.ts). Replaces the last one. */
+  setAvatar(image: Blob): Promise<void>;
+  removeAvatar(): Promise<void>;
 
   feed(): Promise<FeedRow[]>;
   ratings(): Promise<Rating[]>;
   setRating(listingId: string, verdict: Verdict | null, note: string | null): Promise<void>;
+  stamps(): Promise<Stamp[]>;
+  /** Stamp a listing as one I really like, or take my stamp back. */
+  setStamp(listingId: string, stamped: boolean): Promise<void>;
   setStage(listingId: string, stage: Stage): Promise<void>;
   priceHistory(listingId: string): Promise<PricePoint[]>;
 
@@ -77,6 +83,8 @@ const CRITERION_COLUMNS =
   "id,owner_id,label,kind,field,operator,value,weight,near_miss_margin,active,sort_order";
 
 export const isNewId = (id: string) => id.startsWith("new-");
+
+const AVATAR_LINK_SECONDS = 7 * 24 * 3600; // profile photo links, long enough for an open tab
 
 function fail(what: string, error: { message: string } | null): asserts error is null {
   if (error) throw new Error(`${what}: ${error.message}`);
@@ -141,14 +149,47 @@ export class SupabaseApi implements Api {
   async signOut() { await this.sb.auth.signOut(); }
 
   async profiles() {
-    const { data, error } = await this.sb.from("profiles").select("id,display_name,notify_threshold");
+    const { data, error } = await this.sb.from("profiles").select("id,display_name,notify_threshold,avatar_path");
     fail("Loading profiles", error);
-    return data as Profile[];
+    const rows = data as (Omit<Profile, "avatar_url"> & { avatar_path: string | null })[];
+    // photos are private: hand out links that last a week. A photo that can't be signed shows initials instead.
+    const paths = rows.map((r) => r.avatar_path).filter((p): p is string => !!p);
+    const links = new Map<string, string>();
+    if (paths.length) {
+      const { data: signed } = await this.sb.storage.from("avatars").createSignedUrls(paths, AVATAR_LINK_SECONDS);
+      for (const s of signed ?? []) if (s.path && s.signedUrl) links.set(s.path, s.signedUrl);
+    }
+    return rows.map(({ avatar_path, ...p }) => ({ ...p, avatar_url: avatar_path ? links.get(avatar_path) ?? null : null }));
   }
 
   async updateMyName(name: string) {
     const { error } = await this.sb.from("profiles").update({ display_name: name }).eq("id", this.user!.id);
     fail("Saving your name", error);
+  }
+
+  private async currentAvatarPath() {
+    const { data, error } = await this.sb.from("profiles").select("avatar_path").eq("id", this.user!.id).single();
+    fail("Reading your profile", error);
+    return (data as { avatar_path: string | null }).avatar_path;
+  }
+
+  async setAvatar(image: Blob) {
+    const uid = this.user!.id;
+    const old = await this.currentAvatarPath();
+    // a new file name each time, so nothing cached under the old photo is shown again
+    const path = `${uid}/${Date.now()}.jpg`;
+    const { error: upErr } = await this.sb.storage.from("avatars").upload(path, image, { contentType: "image/jpeg", cacheControl: "3600" });
+    fail("Uploading your photo", upErr);
+    const { error } = await this.sb.from("profiles").update({ avatar_path: path }).eq("id", uid);
+    fail("Saving your photo", error);
+    if (old) await this.sb.storage.from("avatars").remove([old]); // the old file is only cleaned up, so a failure here is harmless
+  }
+
+  async removeAvatar() {
+    const old = await this.currentAvatarPath();
+    const { error } = await this.sb.from("profiles").update({ avatar_path: null }).eq("id", this.user!.id);
+    fail("Removing your photo", error);
+    if (old) await this.sb.storage.from("avatars").remove([old]);
   }
 
   async feed() {
@@ -175,6 +216,25 @@ export class SupabaseApi implements Api {
       { onConflict: "listing_id,user_id" },
     );
     fail("Saving your rating", error);
+  }
+
+  async stamps() {
+    const { data, error } = await this.sb.from("stamps").select("listing_id,user_id");
+    fail("Loading stamps", error);
+    return data as Stamp[];
+  }
+
+  async setStamp(listingId: string, stamped: boolean) {
+    if (stamped) {
+      const { error } = await this.sb.from("stamps").upsert(
+        { listing_id: listingId, user_id: this.user!.id },
+        { onConflict: "listing_id,user_id", ignoreDuplicates: true },
+      );
+      fail("Stamping this listing", error);
+    } else {
+      const { error } = await this.sb.from("stamps").delete().eq("listing_id", listingId).eq("user_id", this.user!.id);
+      fail("Taking your stamp back", error);
+    }
   }
 
   async setStage(listingId: string, stage: Stage) {

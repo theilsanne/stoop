@@ -3,14 +3,15 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, stampLift, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
   S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
-  restoreDraft, verdictOf,
+  restoreDraft, stampedBy, verdictOf,
   type Filter, type Lens, type Tab,
 } from "./state.ts";
+import { squareAvatar } from "./avatar.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
@@ -237,10 +238,10 @@ async function load() {
   S.loading = true;
   render();
   try {
-    const [profiles, feed, ratings, criteria, places] = await Promise.all([
-      api.profiles(), api.feed(), api.ratings(), api.criteria(), api.places().catch(() => []),
+    const [profiles, feed, ratings, stamps, criteria, places] = await Promise.all([
+      api.profiles(), api.feed(), api.ratings(), api.stamps(), api.criteria(), api.places().catch(() => []),
     ]);
-    Object.assign(S, { profiles, feed, ratings, criteria, places });
+    Object.assign(S, { profiles, feed, ratings, stamps, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
     if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
@@ -293,6 +294,33 @@ async function rate(id: string, v: Verdict) {
   render();
   if (next) pop([...document.querySelectorAll(`.vbtn[data-id="${CSS.escape(id)}"][data-v="${next}"]`)]);
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
+}
+
+/** Stamp the listing as one I really like, or take my stamp back. Shows at once; undone if the save fails. */
+async function toggleStamp(id: string) {
+  const before = S.stamps;
+  const on = !stampedBy(id, myId());
+  S.stamps = on
+    ? [...S.stamps, { listing_id: id, user_id: myId() }]
+    : S.stamps.filter((s) => !(s.listing_id === id && s.user_id === myId()));
+  render();
+  // the stamp comes down on the card and on the sheet, if it's open
+  for (const mark of document.querySelectorAll(`[data-action="stamp"][data-id="${CSS.escape(id)}"] .mark`)) {
+    if (on) stampDown(mark); else stampLift(mark);
+  }
+  try { await api.setStamp(id, on); } catch (e) { S.stamps = before; showError(e); }
+}
+
+async function changeAvatar(run: () => Promise<void>, done: string) {
+  S.busy.add("avatar");
+  render();
+  try {
+    await run();
+    S.profiles = await api.profiles();
+    toast(done);
+  } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
+  S.busy.delete("avatar");
+  render();
 }
 
 let noteTimer: number | undefined;
@@ -459,6 +487,9 @@ document.addEventListener("click", (e) => {
       case "more": S.shown += 40; break;
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
+      case "stamp": toggleStamp(id); return;
+      case "pickavatar": $("avatar-file").click(); return;
+      case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "move": setStage(id, v as Stage); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
@@ -553,6 +584,11 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
+  if (t.dataset.change === "avatar") {
+    const input = t as unknown as HTMLInputElement, file = input.files?.[0];
+    input.value = ""; // so picking the same photo again still counts as a change
+    if (file) changeAvatar(async () => api.setAvatar(await squareAvatar(file)), "Profile photo saved");
+  }
   if (t.dataset.change === "threshold") {
     const n = Number(t.value);
     api.setAlertThreshold(n).then(async () => { S.profiles = await api.profiles(); toast(`You'll be alerted at ${n} and up`); render(); }, showError);

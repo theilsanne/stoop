@@ -71,6 +71,13 @@ export interface Profile {
   id: string;
   display_name: string;
   notify_threshold: number;
+  avatar_url: string | null; // a signed link to the profile photo; null shows initials
+}
+
+/** "I really like this one": one per person per listing. */
+export interface Stamp {
+  listing_id: string;
+  user_id: string;
 }
 
 export interface Rating {

@@ -3,6 +3,7 @@ import { icon } from "../icons.ts";
 import { STAGES } from "../types.ts";
 import { esc, money } from "../util.ts";
 import { verdictText } from "./feed.ts";
+import { avatar } from "./avatar.ts";
 
 export function renderPipeline() {
   const order = STAGES.map(([k]) => k);
@@ -23,14 +24,26 @@ export function renderPipeline() {
 
 export function renderSettings() {
   const me = S.profiles.find((p) => p.id === myId());
+  const busy = S.busy.has("avatar");
   return `<div class="two">
     <section class="panel"><h2>You</h2>
       <p>Signed in as <b>${esc(S.me?.email)}</b>${S.api.demo ? " (demo)" : ""}.</p>
+      <div class="avatar-edit">
+        ${avatar(me ?? { id: myId(), display_name: "", avatar_url: null }, 88)}
+        <div class="avatar-acts">
+          <div class="btnrow">
+            <button class="btn" data-action="pickavatar" ${busy ? "disabled" : ""}>${busy ? "Saving…" : me?.avatar_url ? "Change photo" : "Add a photo"}</button>
+            ${me?.avatar_url ? `<button class="x" data-action="removeavatar" ${busy ? "disabled" : ""}>Remove</button>` : ""}
+          </div>
+          <p class="small">Your picture is what you stamp listings with. It's cropped square.</p>
+        </div>
+        <input type="file" id="avatar-file" accept="image/*" class="visually-hidden" tabindex="-1" aria-hidden="true" data-change="avatar">
+      </div>
       <div class="ctl"><label for="myname">Your name</label><input id="myname" class="text" value="${esc(me?.display_name ?? "")}" maxlength="40"></div>
       <div><button class="btn" data-action="savename">Save name</button> <button class="btn" data-action="signout">Sign out</button></div>
     </section>
     <section class="panel"><h2>Your partner</h2>
-      ${partner() ? `<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p>`
+      ${partner() ? `<div class="avatar-edit">${avatar(partner()!, 64)}<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p></div>`
         : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
     </section>
     <section class="panel" id="places"><h2>Places</h2>

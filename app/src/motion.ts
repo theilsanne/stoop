@@ -92,6 +92,27 @@ export function pop(els: Element[]) {
   }
 }
 
+/**
+ * A stamp comes down on a listing: the picture slams onto the photo, and an ink ring
+ * spreads out from it and fades. Taking a stamp back just gives the picture a small lift.
+ */
+export function stampDown(mark: Element | null) {
+  if (!mark || reduced()) return;
+  const el = mark as HTMLElement;
+  const ring = document.createElement("span");
+  ring.className = "ink";
+  el.append(ring);
+  animate(el, { scale: [1.6, 0.9, 1], opacity: [0.3, 1] }, { duration: 0.4, ease: [0.2, 0.9, 0.3, 1] })
+    .finished.then(tidy([el], ["transform", "opacity"]));
+  animate(ring, { scale: [0.9, 1.9], opacity: [0.75, 0] }, { duration: 0.6, ease: "easeOut" })
+    .finished.then(() => ring.remove());
+}
+
+export function stampLift(mark: Element | null) {
+  if (!mark || reduced()) return;
+  animate(mark, { scale: [1, 0.88, 1] }, SOFT).finished.then(tidy([mark], ["transform"]));
+}
+
 /** A pipeline card that just changed columns settles into place. */
 export function land(el: Element | null) {
   if (!el || reduced()) return;

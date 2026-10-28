@@ -452,4 +452,44 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 @media (prefers-reduced-motion:reduce){
   .btn,.close,.vbtn,button.who,.mv button,.seg>button,.hchip,.card{transition:none}
   .btn:active,.close:active,.vbtn:active,button.who:active,.mv button:active,.seg>button:active,.hchip:active,.card:active{transform:none}
+  .stamp-btn .mark,.stamp-btn .av,.stamp-btn.pill{transition:none}
 }
+
+/* ---- profile photos: a picture, or initials on a color of their own ---- */
+.av{display:inline-grid;place-items:center;flex:none;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;
+  background:hsl(var(--hue) 46% 40%);color:#fff;font-family:var(--display);font-weight:800;font-size:calc(var(--s) * .4);line-height:1;user-select:none}
+img.av{object-fit:cover;background:var(--surface-2)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0;margin:-1px}
+.avatar-edit{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.avatar-edit p{margin:0}
+.avatar-acts{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* ---- stamps: your picture pressed onto a listing ---- */
+.stamps{position:absolute;left:10px;bottom:10px;z-index:2;display:flex;align-items:flex-end;gap:6px}
+.stamp-btn{position:relative;display:inline-flex;align-items:center;gap:10px;border:0;background:none;padding:0;color:var(--ink);-webkit-tap-highlight-color:transparent}
+.stamp-btn .mark{position:relative;display:inline-grid;place-items:center;flex:none;padding:3px;border-radius:50%;background:var(--surface);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);transition:box-shadow .25s var(--ease)}
+.stamp-btn .av{transition:transform .3s var(--ease),opacity .2s var(--ease)}
+/* not stamped yet: a little faded, and the picture grows on hover */
+.stamp-btn:not([aria-pressed="true"]) .av{opacity:.72}
+.stamp-btn:not([aria-pressed="true"]):hover .av{opacity:1;transform:scale(1.06)}
+/* stamped: the picture tilts and the mark gets an accent ring, like an inked seal */
+.stamp-btn[aria-pressed="true"] .mark{box-shadow:0 0 0 2px var(--accent),0 2px 8px rgba(0,0,0,.28)}
+.stamp-btn[aria-pressed="true"] .av{transform:rotate(-8deg)}
+.stamp-btn:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 0 0 5px var(--accent)}
+.stamp-btn .ink{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);pointer-events:none}
+/* the partner's stamp, shown tilted the other way so it reads as theirs */
+.stamp-them .av{box-shadow:0 0 0 2px var(--surface),0 2px 8px rgba(0,0,0,.28);transform:rotate(7deg)}
+
+/* on the listing sheet: a pill with the words, and where the partner stands */
+.stamp-band{flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.stamp-btn.pill{height:52px;padding:0 20px 0 6px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);
+  font-size:15px;font-weight:600;transition:background-color .2s var(--ease),border-color .2s var(--ease),color .2s,transform .12s var(--ease)}
+.stamp-btn.pill:hover{border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
+.stamp-btn.pill:active{transform:scale(.97)}
+.stamp-btn.pill[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.stamp-btn.pill .mark{padding:2px}
+.stamp-band .them{display:inline-flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2)}
+.stamp-band .them b{color:var(--ink)}
+.stamp-band .them .av{transform:rotate(7deg)}
+.stamp-band .them > span{min-width:0}

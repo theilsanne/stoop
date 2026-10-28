@@ -23,6 +23,17 @@ export function ago(iso: string | null | undefined) {
 
 export const beds = (n: number | null) => (n == null ? "–" : n === 0 ? "Studio" : `${n} bd`);
 
+/** "Noah Semus" → "NS", "noah" → "N". Stands in for a profile photo. */
+export function initials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : words[0][0];
+  return letters.toUpperCase();
+}
+
+/** A color for someone without a photo, the same every time: from their id. */
+export const hueOf = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 360;
+
 export const clone = <T>(x: T): T => structuredClone(x);
 
 export function store<T>(key: string, fallback: T): T {

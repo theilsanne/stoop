@@ -3,7 +3,7 @@ import {
   type ScorableListing, groupByOwner, scoreListing, scorePerson,
 } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
-import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Verdict } from "./types.ts";
+import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Stamp, Verdict } from "./types.ts";
 import { CATALOG, type FieldDef } from "./catalog.ts";
 import { clone, save, store } from "./util.ts";
 
@@ -18,6 +18,7 @@ export interface State {
   profiles: Profile[];
   feed: FeedRow[];
   ratings: Rating[];
+  stamps: Stamp[];         // "I really like this one", both people's
   criteria: Criterion[];   // both people's saved lists
   places: Place[];         // commute destinations, both people's
   draft: Criterion[];      // my list as being edited
@@ -43,7 +44,7 @@ export const S = {} as State;
 
 export function initState(api: Api) {
   Object.assign(S, {
-    api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
+    api, me: null, profiles: [], feed: [], ratings: [], stamps: [], criteria: [], places: [], draft: [],
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
@@ -57,6 +58,8 @@ export const partner = (): Profile | null => S.profiles.find((p) => p.id !== myI
 export const partnerId = () => partner()?.id ?? "";
 export const partnerName = () => partner()?.display_name || "Partner";
 export const nameOf = (id: string) => (id === myId() ? "You" : id === partnerId() ? partnerName() : "Someone");
+
+export const profileOf = (id: string): Profile | undefined => S.profiles.find((p) => p.id === id);
 
 export const myCriteria = () => S.criteria.filter((c) => c.owner_id === myId());
 export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === partnerId());
@@ -112,6 +115,11 @@ export const ratingOf = (listingId: string, userId: string): Rating | undefined 
   S.ratings.find((r) => r.listing_id === listingId && r.user_id === userId);
 export const verdictOf = (listingId: string, userId: string): Verdict | null =>
   ratingOf(listingId, userId)?.verdict ?? null;
+
+// ---------- stamps ----------
+// Stamps are shown and counted, never scored: they don't touch the scoring rules.
+export const stampedBy = (listingId: string, userId: string) =>
+  !!userId && S.stamps.some((s) => s.listing_id === listingId && s.user_id === userId);
 
 // ---------- scores ----------
 export interface View { score: number; passes: boolean; near: boolean; failed: string[]; scored: boolean }

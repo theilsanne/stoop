@@ -116,7 +116,7 @@ Then open **Table Editor → rentals.listings** and spot-check a few rows agains
 
 ### Database updates
 
-Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run).
+Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run). Then `20261028020000_avatars.sql` adds profile photos and `20261028030000_stamps.sql` adds listing stamps.
 
 ### Commute times
 

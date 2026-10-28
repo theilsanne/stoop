@@ -1,5 +1,6 @@
 import { icon } from "../icons.ts";
 import { cardPhotos } from "./photos.ts";
+import { cardStamp } from "./stamps.ts";
 import {
   S, isNewSinceVisit, placeName, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
   type Filter, type Lens, type Sort, type View,
@@ -86,6 +87,7 @@ export function card(row: FeedRow, v: View) {
     <div class="ph">${cardPhotos(row.id, row.photos)}
       <div class="badges">${badges(row)}</div>
       ${v.scored ? `<button class="score ${tier(v.score)}" data-action="why" data-id="${row.id}" aria-expanded="${open}" aria-label="Score ${v.score}. Show why">${v.score}</button>` : ""}
+      ${cardStamp(row.id)}
     </div>
     <div class="cb">
       <div class="rent"><b>${money(row.net_effective_rent ?? row.price)}</b>${
