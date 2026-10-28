@@ -159,7 +159,26 @@ function amenitiesFrom(item: Item): Record<string, boolean> {
   const petFlag = toBool(pick(item, ["petFriendly", "pets_allowed", "isPetFriendly", "catsAllowed"]));
   if (petFlag !== null) out.pets_allowed = petFlag;
 
+  // stored as "not garden level" so a dealbreaker can require it with the existing is_true check
+  const garden = isGardenLevel(item);
+  if (garden !== null) out.not_garden_level = !garden;
+
   return out;
+}
+
+// Garden level (at or below street level, usually a brownstone's bottom floor).
+// No scraper reports the floor, so this reads the unit label and the description.
+// A bare "garden" isn't enough: listings mention the Botanic Garden, roof gardens, etc.
+const GARDEN_UNIT = /^#?\s*(garden|gdn|grdn|garden\s*(level|fl(oor)?|apt)?|bsmt|basement|lower(\s*level)?|ll|cellar)$/i;
+const GARDEN_TEXT =
+  /\b(garden[\s-]level|garden[\s-](apartment|apt|floor|unit|duplex|triplex)|lower[\s-]level\s+(apartment|apt|unit)|(english|semi)[\s-]?basement|basement[\s-](apartment|apt|unit|level)|below[\s-]grade)\b/i;
+
+/** true = garden level, false = we have a unit label or description and nothing says garden, null = can't tell. */
+export function isGardenLevel(item: Item): boolean | null {
+  const unit = String(pick(item, ["unit", "propertyDetails_address_displayUnit", "displayUnit"]) ?? "").trim();
+  const text = [pick(item, ["description"]), pick(item, ["title"])].filter(Boolean).join(" ");
+  if (!unit && !text) return null;
+  return GARDEN_UNIT.test(unit) || GARDEN_TEXT.test(text);
 }
 
 /** No fee = the listing's fee list has no broker fee. Unknown when there's no fee list. */

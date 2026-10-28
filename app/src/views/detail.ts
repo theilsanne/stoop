@@ -35,6 +35,7 @@ export function renderSheet() {
     ? `<ul class="bd-list">${ps.breakdown.map((x) => `<li>${mark(x.credit, x.known)}<span>${esc(x.label)} <span class="small">${x.kind === "dealbreaker" ? "dealbreaker" : "weight " + x.weight}</span></span><span class="why">${esc(/^\d{4}-\d{2}-\d{2}$/.test(x.shown) ? fmtDate(x.shown) : x.shown)}</span></li>`).join("")}</ul>`
     : `<p class="small">${who === "me" ? "You don't" : esc(partnerName()) + " doesn't"} have a score for this listing yet. It appears after the next re-score.</p>`;
   const amen = Object.entries(row.amenities ?? {}).filter(([, on]) => on).map(([k]) => AMENITY_LABELS[k]).filter(Boolean);
+  if (row.amenities?.not_garden_level === false) amen.unshift("Garden level");
   const myNote = ratingOf(row.id, myId())?.note ?? "";
   const theirNote = ratingOf(row.id, partnerId())?.note;
   const pts = history.get(row.id);

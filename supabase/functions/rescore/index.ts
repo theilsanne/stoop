@@ -1,11 +1,12 @@
 // rescore: the app calls this after either of you saves criteria.
-// Re-scores every active listing against both people's current criteria.
+// Re-scores every active listing against both people's current criteria,
+// after refreshing each listing's amenity flags from its saved scraper item.
 //
 // Deploy with:  supabase functions deploy rescore --no-verify-jwt
 // The gateway check is off because it doesn't understand Supabase's newer
 // publishable keys; this function checks the signed-in user itself instead.
 
-import { scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
+import { refreshAmenities, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 
 const cors = {
   "access-control-allow-origin": "*",
@@ -29,9 +30,11 @@ Deno.serve(async (req) => {
   if (error || !data.user) return json({ error: "Sign in first" }, 401);
 
   try {
+    const refreshed = await refreshAmenities(db);
     const results = await scoreAndStore(db, null);
     const all = Object.values(results);
     return json({
+      refreshed,
       rescored: all.length,
       passing: all.filter((r) => r.passes).length,
       near_misses: all.filter((r) => r.near_miss).length,

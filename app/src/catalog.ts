@@ -27,6 +27,7 @@ export const CATALOG: FieldDef[] = [
   { key: "dw", label: "Dishwasher", field: "amenities.dishwasher", operator: "is_true", value: null, group: "Apartment" },
   { key: "out", label: "Private outdoor space", field: "amenities.outdoor_space", operator: "is_true", value: null, group: "Apartment" },
   { key: "ac", label: "Central AC", field: "amenities.central_ac", operator: "is_true", value: null, group: "Apartment" },
+  { key: "nogarden", label: "Not garden level", field: "amenities.not_garden_level", operator: "is_true", value: null, group: "Apartment" },
   { key: "pets", label: "Pets allowed", field: "amenities.pets_allowed", operator: "is_true", value: null, group: "Building" },
   { key: "bldlaundry", label: "Laundry in building", field: "amenities.laundry_in_building", operator: "is_true", value: null, group: "Building" },
   { key: "elev", label: "Elevator", field: "amenities.elevator", operator: "is_true", value: null, group: "Building" },

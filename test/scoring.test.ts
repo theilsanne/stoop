@@ -99,7 +99,7 @@ test("normalize maps a StreetEasy-style item", () => {
   assert.equal(row.net_effective_rent, 3163);
   assert.equal(row.neighborhood, "Crown Heights");
   assert.equal(row.no_fee, true);
-  assert.deepEqual(row.amenities, { dishwasher: true, laundry_in_building: true, pets_allowed: true });
+  assert.deepEqual(row.amenities, { dishwasher: true, laundry_in_building: true, pets_allowed: true, not_garden_level: true });
   assert.deepEqual(row.photos, ["https://photos.example/1.jpg"]);
   assert.equal(row.listed_at, "2026-10-01T22:29:35.000Z");
 });
@@ -137,4 +137,27 @@ test("normalize maps real memo23 rows", () => {
   assert.equal(concession.free_months, 1);
   assert.equal(concession.lease_term_months, 13);
   assert.equal(concession.neighborhood, "Bedford-Stuyvesant");
+});
+
+import { isGardenLevel } from "../supabase/functions/_shared/normalize.ts";
+
+test("garden level: unit labels and specific phrases count, passing mentions don't", () => {
+  assert.equal(isGardenLevel({ unit: "#GARDEN" }), true);
+  assert.equal(isGardenLevel({ unit: "#GDN" }), true);
+  assert.equal(isGardenLevel({ unit: "BSMT" }), true);
+  assert.equal(isGardenLevel({ unit: "#1G", description: "Sunny one bedroom" }), false);
+  assert.equal(isGardenLevel({ unit: "#2", description: "Charming garden-level 1BR in a brownstone" }), true);
+  assert.equal(isGardenLevel({ unit: "#2", description: "Garden apartment with private yard" }), true);
+  assert.equal(isGardenLevel({ unit: "#2", description: "Parlor floor and garden duplex" }), true);
+  assert.equal(isGardenLevel({ unit: "#2", description: "English basement, newly renovated" }), true);
+  assert.equal(isGardenLevel({ unit: "#320", description: "Landscaped Zen Garden and roof deck" }), false);
+  assert.equal(isGardenLevel({ unit: "#104", description: "Near the Brooklyn Botanic Garden" }), false);
+  assert.equal(isGardenLevel({ unit: "#5A", description: "Shared garden, laundry in basement" }), false);
+  assert.equal(isGardenLevel({}), null);
+});
+
+test("garden level lands in amenities as not_garden_level", () => {
+  assert.equal(normalize({ id: 1, price: 3000, unit: "#GARDEN" })!.amenities.not_garden_level, false);
+  assert.equal(normalize({ id: 2, price: 3000, unit: "#4A", description: "Top floor" })!.amenities.not_garden_level, true);
+  assert.equal("not_garden_level" in normalize({ id: 3, price: 3000 })!.amenities, false);
 });

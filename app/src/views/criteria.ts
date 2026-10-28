@@ -49,7 +49,9 @@ function control(c: Criterion) {
       return `<div class="ctl"><label for="v-${c.id}">${c.operator === "lte" ? "At most" : "At least"}</label>${unit === "money" ? "$" : ""}<input type="number" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}" step="${def?.step ?? 1}" min="0">${unit === "sqft" ? " ft²" : ""}</div>`;
     }
     case "in": return hoodChips(c);
-    case "is_true": return `<div class="ctl">Listing has it</div>`;
+    case "is_true": return `<div class="ctl">${c.field === "amenities.not_garden_level"
+      ? "Drops listings whose unit or description says garden level, basement or lower level"
+      : "Listing has it"}</div>`;
     case "before": return `<div class="ctl"><label for="v-${c.id}">Available before</label><input type="date" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${esc(c.value)}"></div>`;
     case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">Each of us within</label><input type="range" min="15" max="60" step="5" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}"><span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
     default: return "";

@@ -6,6 +6,7 @@ import {
   type Building, type Criterion, type ScorableListing,
   groupByOwner, scoreListing,
 } from "./scoring.ts";
+import { normalize } from "./normalize.ts";
 
 export function serviceClient() {
   return createClient(
@@ -26,6 +27,34 @@ export type DB = ReturnType<typeof serviceClient>;
 function check<T>(res: { data: T; error: { message: string } | null }, what: string): NonNullable<T> {
   if (res.error) throw new Error(`${what}: ${res.error.message}`);
   return (res.data ?? []) as NonNullable<T>;
+}
+
+/**
+ * Re-derive amenity flags for active listings from the saved scraper item (raw),
+ * so detection rules added later (e.g. garden level) apply to listings already stored.
+ * Only rows whose flags changed are written. Returns how many changed.
+ */
+export async function refreshAmenities(db: DB): Promise<number> {
+  const rows: { id: string; source: string; amenities: Record<string, boolean>; raw: Record<string, unknown> | null }[] = [];
+  for (let from = 0; ; from += 500) {
+    const page = check(
+      await db.from("listings").select("id, source, amenities, raw").eq("status", "active").order("id").range(from, from + 499),
+      "load listings for refresh",
+    ) as typeof rows;
+    rows.push(...page);
+    if (page.length < 500) break;
+  }
+  const changed = rows.flatMap((r) => {
+    if (!r.raw) return [];
+    const next = normalize(r.raw, r.source)?.amenities;
+    return next && JSON.stringify(next) !== JSON.stringify(r.amenities ?? {}) ? [{ id: r.id, amenities: next }] : [];
+  });
+  for (const part of chunk(changed, 20)) {
+    await Promise.all(part.map(async (c) => {
+      check(await db.from("listings").update({ amenities: c.amenities }).eq("id", c.id), "update amenities");
+    }));
+  }
+  return changed.length;
 }
 
 /**
