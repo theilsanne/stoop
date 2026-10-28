@@ -566,6 +566,7 @@ document.addEventListener("input", (e) => {
   const f = t.dataset.edit;
   if (!f || !t.dataset.id) return;
   const c = draftById(t.dataset.id);
+  if (t.type === "range") t.style.setProperty("--fill", `${Math.round(((+t.value - +t.min) / (+t.max - +t.min)) * 100)}%`);
   if (f === "label") c.label = t.value;
   else if (f === "active") { c.active = t.checked; render(); return; }
   else if (f === "weight") { c.weight = +t.value; $("wl-" + c.id).textContent = t.value; }

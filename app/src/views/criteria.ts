@@ -42,6 +42,12 @@ function hoodChips(c: Criterion) {
   <p class="small">Numbers are current listings. StreetEasy splits some areas: Stuyvesant Heights and Ocean Hill are part of Bed-Stuy, Weeksville is part of Crown Heights.</p>`;
 }
 
+/** A slider, with its filled part drawn up to the current value. */
+function slider(id: string, edit: string, cid: string, min: number, max: number, value: number, step = 1, label = "") {
+  const fill = Math.round(((value - min) / (max - min)) * 100);
+  return `<input type="range" id="${id}" data-edit="${edit}" data-id="${cid}" min="${min}" max="${max}" step="${step}" value="${value}" style="--fill:${fill}%"${label ? ` aria-label="${label}"` : ""}>`;
+}
+
 function control(c: Criterion) {
   const def = defFor(c);
   switch (c.operator) {
@@ -56,7 +62,7 @@ function control(c: Criterion) {
       ? "No hazardous (class C) HPD violations open, and fewer than 5 open in total"
       : "Listing has it"}</div>`;
     case "before": return `<div class="ctl"><label for="v-${c.id}">Available before</label><input type="date" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${esc(c.value)}"></div>`;
-    case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">${c.field.startsWith("commute:") ? "Within" : "Each of us within"}</label><input type="range" min="15" max="60" step="5" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}"><span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
+    case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">${c.field.startsWith("commute:") ? "Within" : "Each of us within"}</label>${slider(`v-${c.id}`, "value", c.id, 15, 60, Number(c.value), 5)}<span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
     default: return "";
   }
 }
@@ -68,12 +74,12 @@ function row(c: Criterion) {
     <div class="crit-head">
       <input class="lbl" id="l-${c.id}" data-edit="label" data-id="${c.id}" value="${esc(c.label)}" aria-label="Criterion name">
       <div class="seg" role="group" aria-label="Type"><button data-action="kind" data-id="${c.id}" data-v="dealbreaker" aria-pressed="${c.kind === "dealbreaker"}">Dealbreaker</button><button data-action="kind" data-id="${c.id}" data-v="want" aria-pressed="${c.kind === "want"}">Want</button></div>
-      <label class="switch"><input type="checkbox" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> On</label>
+      <label class="switch"><input type="checkbox" role="switch" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> ${c.active ? "On" : "Off"}</label>
     </div>
     <div class="crit-body">
       ${control(c)}
-      ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label><input type="range" min="0" max="10" id="w-${c.id}" data-edit="weight" data-id="${c.id}" value="${c.weight}"><span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
-      ${c.kind === "dealbreaker" && numeric ? `<div class="ctl"><label for="m-${c.id}">Near-miss margin</label><input type="range" min="0" max="15" id="m-${c.id}" data-edit="margin" data-id="${c.id}" value="${margin}"><span class="val" id="ml-${c.id}">${margin}%</span></div>` : ""}
+      ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label>${slider(`w-${c.id}`, "weight", c.id, 0, 10, c.weight)}<span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
+      ${c.kind === "dealbreaker" && numeric ? `<div class="ctl"><label for="m-${c.id}">Near-miss margin</label>${slider(`m-${c.id}`, "margin", c.id, 0, 15, margin)}<span class="val" id="ml-${c.id}">${margin}%</span></div>` : ""}
       <button class="x" data-action="remove" data-id="${c.id}">Remove</button>
     </div></div>`;
 }

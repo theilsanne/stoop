@@ -453,3 +453,58 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
   .btn,.close,.vbtn,button.who,.mv button,.seg>button,.hchip,.card{transition:none}
   .btn:active,.close:active,.vbtn:active,button.who:active,.mv button:active,.seg>button:active,.hchip:active,.card:active{transform:none}
 }
+
+/* ---- on/off switch (a checkbox underneath, so it works with keyboards and screen readers) ---- */
+.switch{cursor:pointer;user-select:none}
+.switch input{-webkit-appearance:none;appearance:none;flex:none;margin:0;width:38px;height:22px;border-radius:var(--r-pill);
+  background:var(--surface-2);border:1px solid var(--line);position:relative;cursor:pointer;transition:background-color .2s var(--ease),border-color .2s var(--ease)}
+.switch input::before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s var(--ease)}
+.switch input:checked{background:var(--accent);border-color:var(--accent)}
+.switch input:checked::before{transform:translateX(16px)}
+.switch input:active::before{width:19px}
+.switch input:checked:active::before{transform:translateX(13px)}
+.switch input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- slider: filled track up to the value, a round thumb ---- */
+.ctl input[type=range]{-webkit-appearance:none;appearance:none;width:min(220px,100%);height:24px;margin:0;background:transparent;cursor:pointer;accent-color:auto}
+.ctl input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--accent) var(--fill,50%),var(--surface-2) var(--fill,50%))}
+.ctl input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--surface-2)}
+.ctl input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+.ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;border-radius:50%;background:#fff;
+  border:1px solid color-mix(in srgb,var(--line) 60%,var(--ink-2));box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .12s var(--ease),box-shadow .15s}
+.ctl input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid color-mix(in srgb,var(--line) 60%,var(--ink-2));box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.ctl input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+.ctl input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ctl input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ctl label{color:var(--ink-2)}
+.crit-head input.lbl{border-bottom:1px dashed transparent;border-radius:0;transition:border-color .15s}
+.crit-head input.lbl:hover{border-bottom-color:var(--line)}
+.crit-head input.lbl:focus{border-bottom:1px solid var(--accent)}
+
+/* ---- Compare: one row per criterion (or listing). Phone: name and difference on top,
+   the two of you side by side below. Wider: four columns, like a table. ---- */
+.pairs{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.pair{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"name how" "a b";gap:6px 14px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;align-items:start}
+.pair:last-child{border-bottom:0}
+.pair.diff{background:color-mix(in srgb,var(--warn-soft) 55%,transparent)}
+.pair-name{grid-area:name;font-weight:600;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pair-how{grid-area:how;justify-self:end;text-align:right}
+.pair-a{grid-area:a}.pair-b{grid-area:b}
+.pair-a,.pair-b{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pair .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.pair-head{display:none}
+.splits .pair{grid-template-columns:1fr auto auto;grid-template-areas:"name a b" "how how how"}
+.splits .pair-how{justify-self:start;text-align:left;color:var(--ink-2)}
+.splits .score-cell{align-items:center;text-align:center;min-width:52px}
+.score-cell b{font-family:var(--mono);font-size:17px}
+@media (min-width:720px){
+  .pair{grid-template-columns:minmax(150px,1.2fr) 1fr 1fr minmax(130px,.9fr);grid-template-areas:"name a b how";gap:12px 16px}
+  .pair-how{justify-self:start;text-align:left}
+  .pair .who{display:none}
+  .pair-head{display:grid;background:var(--surface-2);padding:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+  .pair-head>span:nth-child(1){grid-area:name}.pair-head>span:nth-child(2){grid-area:a}.pair-head>span:nth-child(3){grid-area:b}.pair-head>span:nth-child(4){grid-area:how}
+  .splits .pair{grid-template-columns:minmax(200px,1.4fr) 70px 70px 1.6fr;grid-template-areas:"name a b how"}
+  .splits .score-cell{align-items:flex-start;text-align:left}
+}
+.pair-name .small{font-weight:400}

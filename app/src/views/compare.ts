@@ -63,13 +63,26 @@ export function renderCompare() {
 
   return `<div class="cmp-sum"><div><b>${rows.length - differs}</b> things you agree on</div><div><b>${differs}</b> things you differ on</div><div><b>${splits.length}</b> listings you'd split on</div>
       <div class="peek"><button class="btn" data-action="peek" data-v="partner">See the feed as ${esc(partnerName())}</button></div></div>
-    <div class="tblwrap"><table class="cmp"><thead><tr><th scope="col">Criterion</th><th scope="col">You</th><th scope="col">${esc(partnerName())}</th><th scope="col" class="wideonly">Difference</th></tr></thead>
-      <tbody>${rows.map((r) => `<tr class="${r.how ? "diff" : ""}"><th scope="row">${esc(r.label)}${r.how ? `<div class="flag narrow">${esc(r.how)}</div>` : ""}</th><td>${describe(r.a)}</td><td>${describe(r.b)}</td><td class="wideonly">${r.how ? `<span class="flag">${esc(r.how)}</span>` : '<span class="same">Same</span>'}</td></tr>`).join("")}</tbody></table></div>
+    <div class="pairs" role="table" aria-label="Your criteria side by side">
+      <div class="pair pair-head" role="row"><span role="columnheader">Criterion</span><span role="columnheader">You</span><span role="columnheader">${esc(partnerName())}</span><span role="columnheader">Difference</span></div>
+      ${rows.map((r) => `<div class="pair${r.how ? " diff" : ""}" role="row">
+        <span class="pair-name" role="rowheader">${esc(r.label)}</span>
+        <span class="pair-a" role="cell"><span class="who">You</span>${describe(r.a)}</span>
+        <span class="pair-b" role="cell"><span class="who">${esc(partnerName())}</span>${describe(r.b)}</span>
+        <span class="pair-how" role="cell">${r.how ? `<span class="flag">${esc(r.how)}</span>` : '<span class="same">Same</span>'}</span>
+      </div>`).join("")}
+    </div>
     ${hoods() ? `<section class="sect" style="margin-top:22px"><h2>Neighborhoods</h2><div class="hcs">${hoods()}</div></section>` : ""}
     <section class="sect"><h2>Listings you'd split on</h2><p class="lede">One of you would keep it and the other wouldn't, or your scores are 20 or more points apart. Good ones to talk through.</p>
-      ${splits.length ? `<div class="tblwrap"><table class="cmp"><thead><tr><th scope="col">Listing</th><th scope="col">You</th><th scope="col">${esc(partnerName())}</th><th scope="col" class="wideonly">Why</th></tr></thead><tbody>
+      ${splits.length ? `<div class="pairs splits" role="table" aria-label="Listings you'd split on">
+      <div class="pair pair-head" role="row"><span role="columnheader">Listing</span><span role="columnheader">You</span><span role="columnheader">${esc(partnerName())}</span><span role="columnheader">Why</span></div>
       ${splits.slice(0, 40).map(({ row, me, them }) => {
         const why = [...me!.failed.map((f) => "You: " + f), ...them!.failed.map((f) => partnerName() + ": " + f)];
-        return `<tr><th scope="row"><button class="linkish" data-open="${row.id}">${esc(row.address)}</button><div class="small">${esc(row.neighborhood)} · ${money(row.net_effective_rent ?? row.price)} net</div><div class="small narrow">${why.length ? esc(why.join("; ")) : "Different wants and weights"}</div></th><td>${cell(me!)}</td><td>${cell(them!)}</td><td class="small wideonly">${why.length ? esc(why.join("; ")) : "Different wants and weights"}</td></tr>`;
-      }).join("")}</tbody></table></div>` : '<div class="empty">You agree on every listing right now.</div>'}</section>`;
+        return `<div class="pair" role="row">
+          <span class="pair-name" role="rowheader"><button class="linkish" data-open="${row.id}">${esc(row.address)}</button><span class="small">${esc(row.neighborhood)} · ${money(row.net_effective_rent ?? row.price)} net</span></span>
+          <span class="pair-a score-cell" role="cell"><span class="who">You</span>${cell(me!)}</span>
+          <span class="pair-b score-cell" role="cell"><span class="who">${esc(partnerName())}</span>${cell(them!)}</span>
+          <span class="pair-how small" role="cell">${why.length ? esc(why.join("; ")) : "Different wants and weights"}</span>
+        </div>`;
+      }).join("")}</div>` : '<div class="empty">You agree on every listing right now.</div>'}</section>`;
 }

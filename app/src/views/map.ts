@@ -62,7 +62,7 @@ export function renderMapShell() {
       <div id="map" class="map" role="region" aria-label="Map of listings"></div>
       <div class="maplegend">
         <span><i style="background:var(--accent)"></i>70+</span><span><i style="background:var(--warn)"></i>50–69</span><span><i style="background:var(--ink-2)"></i>under 50</span>
-        <label class="switch"><input type="checkbox" id="subway-toggle" data-change="subway" ${showSubway.on ? "checked" : ""}> Subway lines</label>
+        <label class="switch"><input type="checkbox" role="switch" id="subway-toggle" data-change="subway" ${showSubway.on ? "checked" : ""}> Subway lines</label>
       </div>
     </div>
     <p class="summary"><b>${located}</b> on the map${missing ? ` · ${missing} without a location` : ""}</p>`;
