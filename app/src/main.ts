@@ -45,6 +45,27 @@ function tabCount(t: Tab) {
 let lastView = "", sheetShown = false;
 const viewKey = () => [S.loading, S.tab, S.feedView, S.filter, S.sort, S.lens].join("|");
 
+/** A selector that finds "the same control" again after a redraw. */
+function controlKey(el: Element | null): string | null {
+  if (!(el instanceof HTMLElement) || el === document.body) return null;
+  if (el.id) return `#${CSS.escape(el.id)}`;
+  const d = el.dataset;
+  const attrs = ["action", "change", "edit", "id", "v", "open", "note"]
+    .filter((k) => d[k] != null).map((k) => `[data-${k}="${CSS.escape(d[k]!)}"]`);
+  return attrs.length ? el.tagName.toLowerCase() + attrs.join("") : null;
+}
+
+/**
+ * Keep a control at the same spot on screen through the redraw it causes: picking
+ * Near misses keeps the switch where it was, and a criterion you change from Want
+ * to Dealbreaker stays under your finger even though the list regroups.
+ */
+let anchor: { key: string; top: number; at: number } | null = null;
+function holdInPlace(el: HTMLElement) {
+  const key = controlKey(el);
+  if (key && $("app").contains(el)) anchor = { key, top: el.getBoundingClientRect().top, at: performance.now() };
+}
+
 /**
  * Redraw the listing sheet in place: keep where you'd scrolled to, and keep focus
  * (and the cursor, in your notes) on whatever you were using.
@@ -75,20 +96,29 @@ export function render() {
     return;
   }
   const y = window.scrollY;
+  // keep keyboard focus on the same control after the redraw
+  const focusKey = root.contains(document.activeElement) ? controlKey(document.activeElement) : null;
+  const hold = anchor && performance.now() - anchor.at < 1000 ? anchor : null;
+  anchor = null;
   // keep each photo strip on the photo you'd swiped to
   const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
     </header>
-    <nav class="tabs" role="tablist">${TABS.map(([k, t]) =>
-      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
+    <nav class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, t]) =>
+      `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
-    <main>${S.loading ? '<div class="loading">Loading listings…</div>' : {
+    <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
     }[S.tab]()}</main>`;
   window.scrollTo(0, y);
+  if (hold) {
+    const el = root.querySelector(hold.key);
+    if (el) window.scrollBy(0, el.getBoundingClientRect().top - hold.top);
+  }
+  if (focusKey) (root.querySelector(focusKey) as HTMLElement | null)?.focus({ preventScroll: true });
   drawSheet();
   for (const s of document.querySelectorAll<HTMLElement>("[data-strip]")) {
     const left = strips.get(s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""));
@@ -390,6 +420,7 @@ document.addEventListener("click", (e) => {
   const a = t.closest<HTMLElement>("[data-action]");
   if (a) {
     const { action, id = "", v = "" } = a.dataset;
+    if (action !== "tab" && action !== "peek") holdInPlace(a); // switching sections goes to the top instead
     switch (action) {
       case "closesheet": if (t === a) closeSheet(); return;
       case "photo": {
@@ -474,6 +505,18 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
+  const tab = (e.target as HTMLElement).closest?.<HTMLElement>('nav.tabs [role="tab"]');
+  if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+    e.preventDefault();
+    const keys = TABS.map(([k]) => k), i = keys.indexOf(tab.dataset.v as Tab);
+    const next = e.key === "Home" ? 0 : e.key === "End" ? keys.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + keys.length) % keys.length;
+    S.tab = keys[next]; save("tab", S.tab); S.shown = 40; window.scrollTo(0, 0);
+    if (S.tab === "criteria" && changeLog.rows == null) loadLog();
+    render();
+    document.getElementById(`tab-${S.tab}`)?.focus();
+    return;
+  }
   if (document.querySelector(".viewer")) {
     const strip = document.querySelector<HTMLElement>(".viewer [data-strip]")!;
     if (e.key === "Escape") closeViewer();
@@ -488,6 +531,7 @@ document.addEventListener("keydown", (e) => {
 
 document.addEventListener("change", (e) => {
   const t = e.target as HTMLSelectElement;
+  if (t.dataset.change) holdInPlace(t); // dropdowns and toggles stay where they are too
   if (t.dataset.change === "sort") {
     const { sort, lens } = parseSort(t.value);
     S.sort = sort; S.lens = lens; S.shown = 40;
