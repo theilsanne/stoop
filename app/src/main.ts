@@ -45,6 +45,28 @@ function tabCount(t: Tab) {
 let lastView = "", sheetShown = false;
 const viewKey = () => [S.loading, S.tab, S.feedView, S.filter, S.sort, S.lens].join("|");
 
+/**
+ * Redraw the listing sheet in place: keep where you'd scrolled to, and keep focus
+ * (and the cursor, in your notes) on whatever you were using.
+ */
+function drawSheet() {
+  const root = $("sheet-root");
+  const top = root.querySelector<HTMLElement>(".sheet")?.scrollTop ?? 0;
+  const active = document.activeElement as HTMLElement | null;
+  const inside = active && root.contains(active) ? active : null;
+  const focusKey = inside?.id ? `#${CSS.escape(inside.id)}`
+    : inside?.dataset.action ? `[data-action="${inside.dataset.action}"][data-v="${inside.dataset.v ?? ""}"]` : null;
+  const sel = inside instanceof HTMLTextAreaElement ? [inside.selectionStart, inside.selectionEnd] as const : null;
+  root.innerHTML = renderSheet();
+  const sheet = root.querySelector<HTMLElement>(".sheet");
+  if (sheet) sheet.scrollTop = top;
+  if (focusKey) {
+    const el = root.querySelector<HTMLElement>(focusKey);
+    el?.focus({ preventScroll: true });
+    if (sel && el instanceof HTMLTextAreaElement) el.setSelectionRange(sel[0], sel[1]);
+  }
+}
+
 export function render() {
   persistDraft();
   const root = $("app");
@@ -67,7 +89,7 @@ export function render() {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
     }[S.tab]()}</main>`;
   window.scrollTo(0, y);
-  $("sheet-root").innerHTML = renderSheet();
+  drawSheet();
   for (const s of document.querySelectorAll<HTMLElement>("[data-strip]")) {
     const left = strips.get(s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""));
     if (left) { s.scrollLeft = left; syncStrip(s); }
@@ -209,11 +231,11 @@ async function openSheet(id: string) {
   render();
   ($("close-sheet") as HTMLButtonElement | null)?.focus();
   if (S.places.length && !routes.has(id)) {
-    api.commuteRoutes(id).then((r) => { routes.set(id, r); if (S.openId === id) $("sheet-root").innerHTML = renderSheet(); }, () => routes.set(id, {}));
+    api.commuteRoutes(id).then((r) => { routes.set(id, r); if (S.openId === id) drawSheet(); }, () => routes.set(id, {}));
   }
   if (!history.has(id)) {
     try { history.set(id, await api.priceHistory(id)); } catch { history.set(id, []); }
-    if (S.openId === id) $("sheet-root").innerHTML = renderSheet();
+    if (S.openId === id) drawSheet();
   }
 }
 
@@ -392,7 +414,7 @@ document.addEventListener("click", (e) => {
       case "more": S.shown += 40; break;
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
-      case "bdwho": S.bdWho = v as "me" | "partner"; $("sheet-root").innerHTML = renderSheet(); return;
+      case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "move": setStage(id, v as Stage); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
       case "kind": draftById(id).kind = v as Criterion["kind"]; break;
