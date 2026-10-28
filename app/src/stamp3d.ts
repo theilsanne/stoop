@@ -35,6 +35,7 @@ const MAX_SWING = 0.55;
 // where a card's first seal sits, from the photo's bottom-left corner: matches .impressions in styles.css
 const SEAL_LEFT = 6, SEAL_BOTTOM = 4, SEAL_R = 39;
 const SHEET_R = 46;                  // the sheet's seals are bigger
+const PRESS_TILT = { x: -0.5, y: 0.32 }; // how far the die is tipped as it comes down, before it rocks flat
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -319,12 +320,12 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
 
   const cardAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-stamp-id]") ?? null;
 
-  /** Where your seal goes: bottom left of a card's photo, or the right end of the sheet's paper, after the partner's. */
+  /** Where your seal goes: bottom left of a card's photo, or the middle of your empty slot on the sheet. */
   function spotOf(card: HTMLElement) {
-    const paper = card.querySelector<HTMLElement>("[data-seal-spot]");
-    if (paper) {
-      const p = paper.getBoundingClientRect();
-      return { x: p.right - 8 - SHEET_R, y: p.top + p.height / 2 };
+    const slot = card.querySelector<HTMLElement>("[data-seal-spot]");
+    if (slot) {
+      const r = slot.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
     const r = (card.querySelector(".ph") ?? card).getBoundingClientRect();
     return { x: r.left + SEAL_LEFT + SEAL_R, y: r.bottom - SEAL_BOTTOM - SEAL_R };
@@ -340,6 +341,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     if (card) {
       const s = spotOf(card), [x, y] = world(s.x, s.y);
       aimRing.position.set(x, y, 0.5);
+      aimRing.scale.setScalar(card.querySelector("[data-seal-spot]") ? SHEET_R / SEAL_R : 1);
     }
   }
 
@@ -348,8 +350,8 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     const tight = m === "held" || m === "press";
     sx.k = sy.k = tight ? 900 : m === "fly" ? 260 : 190;
     sx.c = sy.c = tight ? 62 : m === "fly" ? 30 : 26;
-    sz.k = m === "press" ? 2600 : 320;
-    sz.c = m === "press" ? 70 : 30;
+    sz.k = m === "press" ? 900 : 320;
+    sz.c = m === "press" ? 55 : 30;
     if (m !== "held") aim(null);
     wake();
   }
@@ -387,10 +389,15 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         if (Math.hypot(press!.x - sx.x, press!.y - sy.x) < 3) setMode("press");
         break;
       case "press": {
-        // over the spot and upright first, then straight down
-        sx.to = press!.x; sy.to = press!.y; tx.to = ty.to = 0;
-        const over = Math.hypot(press!.x - sx.x, press!.y - sy.x) < 4 && Math.abs(tx.x) + Math.abs(ty.x) < 0.08;
-        sz.to = over || press!.touched ? -6 : AIM_Z * scale;
+        // it comes down over the spot tipped, the way a hand stamp is held, and the tilt eases
+        // as the die nears the paper; touchDown() rocks it flat on contact
+        sx.to = press!.x; sy.to = press!.y;
+        if (press!.touched) break;
+        const over = Math.hypot(press!.x - sx.x, press!.y - sy.x) < 4;
+        const high = clamp(sz.x / (AIM_Z * scale), 0, 1); // 1 in the air, 0 at the paper
+        tx.to = PRESS_TILT.x * (0.3 + 0.7 * high);
+        ty.to = PRESS_TILT.y * (0.3 + 0.7 * high);
+        sz.to = over ? -6 : AIM_Z * scale;
         break;
       }
       case "lift":
@@ -424,6 +431,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     }
     sq.snap(1);
     sq.to = 0.9; // the handle gives into the press
+    tx.to = ty.to = 0; // and the die rocks flat onto the paper
     sq.v = -4;
     navigator.vibrate?.(14);
     onStamp(p.id, p.x, p.y);

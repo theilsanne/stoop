@@ -477,11 +477,12 @@ img.av{object-fit:cover;background:var(--surface-2)}
 
 /* on the listing sheet: the seals on a slip of paper, then who stamped it when */
 .stamp-band{flex-direction:row;align-items:center;flex-wrap:wrap;gap:16px}
-.stamp-band .paper{display:flex;align-items:center;padding:8px;min-width:210px;border-radius:10px;isolation:isolate;
-  background:#f4eee2 radial-gradient(circle at 30% 20%,rgba(255,255,255,.55),transparent 60%);
-  box-shadow:inset 0 0 0 1px rgba(60,40,20,.08),0 1px 3px rgba(0,0,0,.14)}
-.stamp-band .paper .seal{mix-blend-mode:multiply}
-.stamp-band .paper .seal + .seal{margin-left:-24px}
+/* two slots, the partner's then yours: a seal once stamped, a dashed ring until then */
+.stamp-band .slots{display:flex;align-items:center;gap:14px;flex:none}
+.slot-wrap{display:inline-grid;border-radius:50%}
+.stamp-band .slot{display:inline-grid;place-items:center;width:92px;height:92px;border-radius:50%;
+  border:1.5px dashed var(--line);color:var(--ink-2);font-size:22px;font-weight:600;letter-spacing:.02em}
+.stamp-band .slot-wrap .seal{display:block}
 .stamp-lines{flex:1 1 220px;display:grid;gap:4px;min-width:0;font-size:14px;color:var(--ink-2)}
 .stamp-lines b{color:var(--ink)}
 

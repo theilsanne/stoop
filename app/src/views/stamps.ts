@@ -96,12 +96,17 @@ export function cardStamp(id: string) {
 export function sheetStamp(id: string) {
   const seals = placed(id), them = partner();
   const mine = seals.find((x) => x.mine), theirs = seals.find((x) => !x.mine);
-  // the paper always shows, so there's always a spot to print on: yours goes after the partner's
+  // two slots, the partner's then yours: a seal once stamped, a dashed ring until then. Yours is where a drop prints.
+  const slot = (p: Face, s: Stamp | undefined, mine: boolean) => s
+    ? seal(p, { size: 92, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })
+    : `<span class="slot" aria-hidden="true">${esc(initials(p.display_name))}</span>`;
   return `<div class="box stamp-band">
-    <div class="paper" data-seal-spot>${seals.slice().reverse().map(({ p, s, mine }) =>
-      seal(p, { size: 92, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })).join("")}</div>
+    <div class="slots">
+      ${them ? `<span class="slot-wrap">${slot(them, theirs?.s, false)}</span>` : ""}
+      <span class="slot-wrap" data-seal-spot>${slot(myFace(), mine?.s, true)}</span>
+    </div>
     <div class="stamp-lines">
-      <span>${mine ? `<b>You</b> stamped it${mine.s.stamped_at ? ` on ${fmtDay(mine.s.stamped_at)}` : ""}` : "Not stamped by you yet. Drag your stamp onto the paper, or onto this listing."}</span>
+      <span>${mine ? `<b>You</b> stamped it${mine.s.stamped_at ? ` on ${fmtDay(mine.s.stamped_at)}` : ""}` : "Not stamped by you yet. Drag your stamp onto your slot, or onto this listing."}</span>
       ${them ? `<span>${theirs ? `<b>${esc(partnerName())}</b> stamped it${theirs.s.stamped_at ? ` on ${fmtDay(theirs.s.stamped_at)}` : ""}` : `${esc(partnerName())} hasn't stamped it yet`}</span>` : ""}
     </div>
   </div>`;
