@@ -29,6 +29,7 @@ export function enterView(main: Element | null, newSection = true) {
     }
     return;
   }
+  growBars(main);
   const head = [...main.children].filter((c) => !items.some((i) => c.contains(i) || c === i)).slice(0, 4);
   if (head.length) {
     animate(head, { opacity: [0, 1], y: [6, 0] }, { duration: 0.22, ease: "easeOut" })
@@ -126,8 +127,44 @@ export function slideHighlight(el: HTMLElement, dx: number, sx: number) {
     .finished.then(tidy([el], ["transform"]), () => {});
 }
 
-/** The step you just picked gives a small press. */
-export function press(el: Element | null) {
-  if (!el || reduced()) return;
-  animate(el, { scale: [0.92, 1] }, { type: "spring", stiffness: 600, damping: 18 }).finished.then(tidy([el], ["transform"]), () => {});
+/**
+ * A row you just set on the Criteria ladder: the step presses in, the little stairs rise,
+ * the row washes with its color, and a dealbreaker lands with a thunk. (The wash is CSS.)
+ */
+export function picked(row: Element | null, level: string) {
+  if (!row || reduced()) return;
+  const step = row.querySelector('.ladder button[aria-pressed="true"]');
+  if (step) animate(step, { scale: [0.92, 1] }, { type: "spring", stiffness: 600, damping: 18 }).finished.then(tidy([step], ["transform"]), () => {});
+  const bars = [...row.querySelectorAll(".steps i")];
+  if (bars.length) animate(bars, { scaleY: [0.2, 1] }, { type: "spring", stiffness: 500, damping: 16, delay: stagger(0.05) }).finished.then(tidy(bars, ["transform"]), () => {});
+  if (level === "dealbreaker") animate(row, { x: [0, -4, 4, -2, 0] }, { duration: 0.28 }).finished.then(tidy([row], ["transform"]), () => {});
+  row.classList.add("flash");
+  row.addEventListener("animationend", () => row.classList.remove("flash"), { once: true });
+}
+
+/** Histogram bars grow up from the floor, left to right. */
+export function growBars(scope: ParentNode | null) {
+  const bars = scope ? [...scope.querySelectorAll<HTMLElement>(".hist .hb")] : [];
+  if (!bars.length || reduced()) return;
+  for (const b of bars) b.style.transformOrigin = "bottom";
+  animate(bars, { scaleY: [0, 1] }, { ...SOFT, delay: stagger(0.018) }).finished.then(tidy(bars, ["transform", "transform-origin"]), () => {});
+}
+
+/**
+ * The live bar on Criteria. The count rolls like an odometer from its old digits to its new ones,
+ * photos that just joined the face-pile spring in, a verdict that just changed stamps down, and a
+ * nudge that just appeared drops in. The markup marks what's new (data-from / data-new).
+ */
+export function liveBar(scope: ParentNode) {
+  if (reduced()) return;
+  for (const w of scope.querySelectorAll<HTMLElement>(".wheel[data-from]")) {
+    const from = Number(w.dataset.from), to = Number(w.dataset.to), strip = w.firstElementChild;
+    if (strip && from !== to) animate(strip, { transform: [`translateY(${-from}em)`, `translateY(${-to}em)`] }, { duration: 0.7, ease: [0.2, 0, 0, 1] });
+  }
+  const faces = [...scope.querySelectorAll<HTMLElement>(".face[data-new]")];
+  if (faces.length) animate(faces, { scale: [0.3, 1], opacity: [0, 1] }, { ...SPRING, delay: stagger(0.045) }).finished.then(tidy(faces, ["transform", "opacity"]), () => {});
+  const stamp = scope.querySelector<HTMLElement>(".stamp[data-new]");
+  if (stamp) animate(stamp, { scale: [1.7, 1], opacity: [0, 1], rotate: [-14, -3] }, { type: "spring", stiffness: 520, damping: 22 }).finished.then(tidy([stamp], ["transform", "opacity"]), () => {});
+  const nudge = scope.querySelector<HTMLElement>(".nudge[data-new]");
+  if (nudge) animate(nudge, { opacity: [0, 1], y: [-8, 0] }, SPRING).finished.then(tidy([nudge], ["transform", "opacity"]), () => {});
 }

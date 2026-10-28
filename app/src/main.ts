@@ -3,7 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, press, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { closeSheetMotion, enterView, growBars, land, liveBar, openSheetMotion, picked, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -14,7 +14,7 @@ import {
 import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import type { Level } from "./criteria-edit.ts";
-import { changeLog, refreshBars, renderCriteria } from "./views/criteria.ts";
+import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
@@ -92,6 +92,12 @@ function drawSheet() {
   }
 }
 
+/** The sticky tab bar's height, so the Criteria bar can stick right beneath it. */
+function syncTabsHeight() {
+  const nav = document.querySelector<HTMLElement>("nav.tabs");
+  if (nav) document.documentElement.style.setProperty("--tabs-h", `${nav.offsetHeight}px`);
+}
+
 export function render() {
   persistDraft();
   const root = $("app");
@@ -119,6 +125,7 @@ export function render() {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
     }[S.tab]()}</main>`;
   placeIndicators(root, inds);
+  syncTabsHeight();
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);
@@ -131,6 +138,7 @@ export function render() {
     if (left) { s.scrollLeft = left; syncStrip(s); }
   }
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
+  if (!S.loading && S.tab === "criteria") liveBar(root);
 
   const key = viewKey();
   if (key !== lastView && !S.loading) {
@@ -480,7 +488,7 @@ document.addEventListener("click", (e) => {
       case "closeviewer": closeViewer(); return;
       case "tab":
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
-        if (v === "criteria" && changeLog.rows == null) loadLog();
+        if (v === "criteria") { resetLive(); if (changeLog.rows == null) loadLog(); }
         break;
       case "why": {
         const opening = !S.whyOpen.has(id);
@@ -500,8 +508,8 @@ document.addEventListener("click", (e) => {
         setLevel(key ? { key } : { id }, v as Level);
         render();
         const now = row?.dataset.row ? document.querySelector(`.pick[data-row="${CSS.escape(row.dataset.row)}"]`) : null;
-        if (wasSkip) unfold(now?.querySelector(".detail") ?? null);
-        press(now?.querySelector('.ladder button[aria-pressed="true"]') ?? null);
+        if (wasSkip) { unfold(now?.querySelector(".detail") ?? null); growBars(now); }
+        picked(now, v);
         return;
       }
       case "critfilter": S.critFilter = v as "all" | "picks"; save("critFilter", v); break;
@@ -555,7 +563,7 @@ document.addEventListener("keydown", (e) => {
     const keys = TABS.map(([k]) => k), i = keys.indexOf(tab.dataset.v as Tab);
     const next = e.key === "Home" ? 0 : e.key === "End" ? keys.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + keys.length) % keys.length;
     S.tab = keys[next]; save("tab", S.tab); S.shown = 40; window.scrollTo(0, 0);
-    if (S.tab === "criteria" && changeLog.rows == null) loadLog();
+    if (S.tab === "criteria") { resetLive(); if (changeLog.rows == null) loadLog(); }
     render();
     document.getElementById(`tab-${S.tab}`)?.focus();
     return;
@@ -676,7 +684,7 @@ initDrag((id, stage) => setStage(id, stage as Stage));
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
-window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => placeIndicators()); });
-document.fonts?.ready.then(() => placeIndicators());
+window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); }); });
+document.fonts?.ready.then(() => { placeIndicators(); syncTabsHeight(); });
 
 boot();

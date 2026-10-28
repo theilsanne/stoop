@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Criterion, ScorableListing } from "../supabase/functions/_shared/scoring.ts";
-import { biggestCut, coverage, dropCount, fitCount, histogram, preview, verdict } from "../app/src/criteria-impact.ts";
+import { biggestCut, coverage, dropCount, fitCount, histogram, mood, preview, verdict } from "../app/src/criteria-impact.ts";
 
 const crit = (o: Partial<Criterion>): Criterion => ({
   id: o.id ?? "c", owner_id: "you", label: "c", kind: "dealbreaker", field: "price",
@@ -97,4 +97,12 @@ test("histogram over a given range lines up with a slider and keeps every value"
   assert.equal(bins[0].lo, 2800);
   assert.equal(bins[5].hi, 4400);
   assert.equal(bins.reduce((a, b) => a + b.n, 0), 3);
+});
+
+test("mood gives the stamp a word and a tone", () => {
+  assert.deepEqual(mood(30, 40), { word: "Wide open", tone: "good" });
+  assert.equal(mood(14, 40).tone, "good");
+  assert.deepEqual(mood(5, 40), { word: "Picky", tone: "warn" });
+  assert.equal(mood(1, 40).word, "Unicorn hunting");
+  assert.deepEqual(mood(0, 40), { word: "Nothing fits", tone: "bad", hint: "Loosen a dealbreaker." });
 });

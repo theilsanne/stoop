@@ -69,12 +69,22 @@ export function preview(mine: Criterion[], partner: Criterion[], listings: Scora
   return { total: listings.length, fit, near, both, top: passing.slice(0, top).map((x) => x.id) };
 }
 
-/** One line on how picky a list is: the share of listings that still fit. */
-export function verdict(fit: number, total: number): string {
-  if (!total) return "No listings yet.";
-  if (!fit) return "Nothing fits. Loosen a dealbreaker.";
+export interface Mood { word: string; tone: "good" | "warn" | "bad"; hint?: string }
+
+/** How picky a list is, from the share of listings that still fit. */
+export function mood(fit: number, total: number): Mood {
+  if (!total) return { word: "No listings yet", tone: "warn" };
+  if (!fit) return { word: "Nothing fits", tone: "bad", hint: "Loosen a dealbreaker." };
   const share = fit / total;
-  return share >= 0.6 ? "Wide open." : share >= 0.25 ? "Choosy." : share >= 0.08 ? "Picky." : "Unicorn hunting.";
+  if (share >= 0.6) return { word: "Wide open", tone: "good" };
+  if (share >= 0.25) return { word: "Choosy", tone: "good" };
+  return share >= 0.08 ? { word: "Picky", tone: "warn" } : { word: "Unicorn hunting", tone: "warn" };
+}
+
+/** The mood as a sentence. */
+export function verdict(fit: number, total: number): string {
+  const m = mood(fit, total);
+  return `${m.word}.${m.hint ? " " + m.hint : ""}`;
 }
 
 export interface Bin { lo: number; hi: number; n: number }

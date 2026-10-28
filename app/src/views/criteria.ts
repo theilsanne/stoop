@@ -1,7 +1,8 @@
 import { icon } from "../icons.ts";
 import { PARENT_HOOD, defFor, type FieldDef } from "../catalog.ts";
 import { LEVELS, type Level, levelOf } from "../criteria-edit.ts";
-import { biggestCut, coverage, dropCount, histogram, preview, verdict } from "../criteria-impact.ts";
+import { biggestCut, coverage, dropCount, histogram, mood, preview } from "../criteria-impact.ts";
+import { liveBar } from "../motion.ts";
 import type { ScorableListing } from "../../../supabase/functions/_shared/scoring.ts";
 import { S, allFields, criterionFor, draftDirty, nameOf, neighborhoods, partnerCriteria, partnerName, scorableRows } from "../state.ts";
 import type { CriteriaChange, Criterion, FeedRow } from "../types.ts";
@@ -150,6 +151,9 @@ function ladder(r: Row) {
     `<button data-action="level" ${target} data-v="${l.key}" aria-pressed="${r.level === l.key}">${l.label}</button>`).join("")}</div>`;
 }
 
+/** How many of the three little stairs a step fills. */
+const STEPS: Record<Level, number> = { skip: 0, nice: 1, important: 2, dealbreaker: 3 };
+
 function pick(r: Row, listings: ScorableListing[]) {
   const c = r.c;
   const numeric = c && (c.operator === "lte" || c.operator === "gte" || c.operator === "within_minutes");
@@ -160,6 +164,7 @@ function pick(r: Row, listings: ScorableListing[]) {
       : "",
   ].join("") : "";
   return `<div class="pick" data-level="${r.level}" data-row="${esc(r.key)}">
+    <span class="steps" data-n="${STEPS[r.level]}" aria-hidden="true"><i></i><i></i><i></i></span>
     <div class="pick-head">
       <h3 class="lbl">${esc(r.label)}</h3>
       ${r.def ? "" : `<button class="iconbtn remove" data-action="remove" data-id="${r.key}" aria-label="Remove ${esc(r.label)}" title="Remove">${icon("trash", { size: 18 })}</button>`}
@@ -172,26 +177,39 @@ function pick(r: Row, listings: ScorableListing[]) {
 
 // ---------- the live bar ----------
 
-let shownFit: number | null = null; // the count the bar last showed, so a tap can show what it changed
+/** What the live bar showed last, so the next draw can say what's new: a rolling digit, a new face, a changed verdict. */
+const live: { fit: number | null; mood: string; faces: string[]; nudge: string } = { fit: null, mood: "", faces: [], nudge: "" };
 
-const face = (r: FeedRow) => r.photos?.[0]
-  ? `<img class="face" src="${esc(r.photos[0])}" alt="" loading="lazy" title="${esc(r.address ?? "")}">`
-  : `<span class="face" title="${esc(r.address ?? "")}">${esc((r.neighborhood ?? "?").charAt(0))}</span>`;
+/** Forget it, so arriving at the tab rolls and springs everything in from scratch. */
+export function resetLive() { live.fit = null; live.mood = ""; live.faces = []; live.nudge = ""; }
 
-/** How many listings fit, a face-pile of the best, and what the last tap changed. */
+/** A number as odometer wheels, each starting on the digit it showed before. */
+function wheels(n: number, from: number) {
+  const to = String(n), prev = String(from).padStart(to.length, "0").slice(-to.length);
+  return [...to].map((d, i) => `<span class="wheel" data-from="${prev[i]}" data-to="${d}"><span class="strip" style="--d:${d}">${[..."0123456789"].map((x) => `<i>${x}</i>`).join("")}</span></span>`).join("");
+}
+
+/** A listing's photo (or its neighborhood's initial) as a round button that opens it. */
+const face = (r: FeedRow, fresh: boolean) =>
+  `<button type="button" class="face" data-open="${r.id}" aria-label="Open ${esc(r.address ?? "listing")}" title="${esc(r.address ?? "")}"${fresh ? " data-new" : ""}>${
+    r.photos?.[0] ? `<img src="${esc(r.photos[0])}" alt="" loading="lazy">` : esc((r.neighborhood ?? "?").charAt(0))}</button>`;
+
+/** How many listings fit (rolling), a face-pile of the best, a stamped verdict, and what the last tap changed. */
 export function impactHTML() {
   const listings = scorableRows();
   const p = preview(S.draft, partnerCriteria(), listings);
-  const delta = shownFit != null && shownFit !== p.fit ? p.fit - shownFit : 0;
-  shownFit = p.fit;
+  const delta = live.fit != null && live.fit !== p.fit ? p.fit - live.fit : 0;
+  const m = mood(p.fit, p.total);
   const byId = new Map(S.feed.map((r) => [r.id, r]));
-  const faces = p.top.map((id) => byId.get(id)).filter((r): r is FeedRow => !!r).map(face).join("");
+  const faces = p.top.map((id) => byId.get(id)).filter((r): r is FeedRow => !!r).map((r) => face(r, !live.faces.includes(r.id))).join("");
   const more = p.fit > p.top.length ? `<span class="face rest">+${p.fit - p.top.length}</span>` : "";
   const cut = p.total && p.fit / p.total < 0.25 ? biggestCut(S.draft, listings) : null;
-  return `<div class="fit"><div class="big"><b>${p.fit}</b> of ${p.total} fit you${delta ? `<span class="delta ${delta > 0 ? "up" : "down"}">${delta > 0 ? "+" : "−"}${Math.abs(delta)}</span>` : ""}</div>
-      ${faces || more ? `<div class="faces" role="img" aria-label="Your best matches right now">${faces}${more}</div>` : ""}</div>
-    <div class="sub">${verdict(p.fit, p.total)}${p.fit || p.near ? ` ${p.near} near miss${p.near === 1 ? "" : "es"}. ${p.both} fit you both.` : ""}</div>
-    ${cut ? `<div class="nudge"><b>${esc(cut.c.label)}</b> keeps out ${cut.n}. <button class="linkish" data-action="level" data-id="${cut.c.id}" data-v="important">Make it Important</button></div>` : ""}`;
+  const html = `<div class="fit"><div class="big"><b><span class="sr">${p.fit}</span><span class="odo" aria-hidden="true">${wheels(p.fit, live.fit ?? 0)}</span></b> of ${p.total} fit you${delta ? `<span class="delta ${delta > 0 ? "up" : "down"}">${delta > 0 ? "+" : "−"}${Math.abs(delta)}</span>` : ""}</div>
+      ${faces || more ? `<div class="faces" role="group" aria-label="Your best matches right now">${faces}${more}</div>` : ""}</div>
+    <div class="sub"><span class="stamp" data-tone="${m.tone}"${m.word !== live.mood ? " data-new" : ""}>${m.word}</span>${m.hint ? ` ${m.hint}` : ""}${p.fit || p.near ? ` ${p.near} near miss${p.near === 1 ? "" : "es"}. ${p.both} fit you both.` : ""}</div>
+    ${cut ? `<div class="nudge"${cut.c.id !== live.nudge ? " data-new" : ""}><b>${esc(cut.c.label)}</b> keeps out ${cut.n}. <button class="linkish" data-action="level" data-id="${cut.c.id}" data-v="important">Make it Important</button></div>` : ""}`;
+  Object.assign(live, { fit: p.fit, mood: m.word, faces: p.top, nudge: cut?.c.id ?? "" });
+  return html;
 }
 
 /** The bar at the bottom of the page, shown only while there are unsaved edits. */
@@ -206,7 +224,7 @@ export function savebarHTML() {
  */
 export function refreshBars() {
   const impact = document.getElementById("impact"), bar = document.getElementById("savebar");
-  if (impact) impact.innerHTML = impactHTML();
+  if (impact) { impact.innerHTML = impactHTML(); liveBar(impact); }
   if (bar) bar.innerHTML = savebarHTML();
   const listings = scorableRows(), all = rows();
   for (const el of document.querySelectorAll<HTMLElement>("[data-stat]")) {

@@ -113,8 +113,7 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .hint{font-size:13px;color:var(--ink-2);margin:0 0 12px}
 
 /* criteria */
-.critbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:10px;background:var(--bg)}
-.critbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 50px);z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow)}
+.critbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--tabs-h,50px));z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow)}
 .impact{padding:10px 14px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
@@ -550,10 +549,22 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .delta.down{color:var(--bad);background:var(--bad-soft)}
 @keyframes delta{0%{opacity:0;transform:translateY(5px) scale(.9)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
 .faces{display:flex;flex:none;padding-left:8px}
-.face{width:30px;height:30px;margin-left:-8px;border-radius:50%;object-fit:cover;border:2px solid var(--surface);background:var(--surface-2);
-  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink-2)}
+.face{position:relative;width:30px;height:30px;margin-left:-8px;padding:0;overflow:hidden;border-radius:50%;border:2px solid var(--surface);background:var(--surface-2);
+  display:inline-flex;align-items:center;justify-content:center;font:700 12px var(--body);color:var(--ink-2);transition:transform .15s var(--ease)}
+.face img{width:100%;height:100%;object-fit:cover;display:block}
+button.face{cursor:pointer}
+button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .face.rest{font-family:var(--mono);font-size:11px;font-weight:600}
-.sub{margin-top:2px;font-size:13px;color:var(--ink-2)}
+.odo{display:inline-flex;height:1em;overflow:hidden;vertical-align:top}
+.wheel{display:block;width:.62em;height:1em;overflow:hidden}
+.strip{display:block;transform:translateY(calc(var(--d) * -1em))}
+.strip i{display:block;height:1em;line-height:1;font-style:normal;text-align:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sub{margin-top:6px;font-size:13px;color:var(--ink-2)}
+.stamp{display:inline-block;margin:0 9px 0 4px;padding:1px 7px;border:1.5px solid currentColor;border-radius:5px;outline:1px solid currentColor;outline-offset:2px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);transform:rotate(-3deg)}
+.stamp[data-tone="warn"]{color:var(--warn)}
+.stamp[data-tone="bad"]{color:var(--bad)}
 .nudge{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--warn-soft);font-size:13px}
 .critfilter{display:flex;margin-bottom:16px}
 .seg .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:4px}
@@ -561,7 +572,19 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 /* ---- one row per feature: the name and what the market has, then one control for how much it matters ---- */
 .picks:empty{display:none}
 .picks{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);overflow:hidden}
-.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 18px;padding:10px 14px;border-top:1px solid var(--line)}
+.pick{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:8px 14px;padding:10px 14px;border-top:1px solid var(--line);--lvl:var(--line)}
+.pick[data-level="nice"]{--lvl:color-mix(in srgb,var(--accent) 55%,var(--line));--wash:var(--accent-soft)}
+.pick[data-level="important"]{--lvl:var(--accent);--wash:var(--accent-soft)}
+.pick[data-level="dealbreaker"]{--lvl:var(--ink);--wash:color-mix(in srgb,var(--ink) 12%,transparent)}
+.pick.flash::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--wash);animation:wash .75s ease-out forwards}
+@keyframes wash{from{opacity:1}to{opacity:0}}
+/* three little stairs by each name: none for Skip, up to all three for a Dealbreaker. Your picks read as a staircase down the page. */
+.steps{display:flex;align-items:flex-end;gap:2px;height:16px;align-self:start;margin-top:3px}
+.steps i{display:block;width:5px;border-radius:1.5px 1.5px 0 0;background:var(--line);transform-origin:bottom}
+.steps i:nth-child(1){height:6px}
+.steps i:nth-child(2){height:11px}
+.steps i:nth-child(3){height:16px}
+.steps[data-n="1"] i:nth-child(-n+1),.steps[data-n="2"] i:nth-child(-n+2),.steps[data-n="3"] i{background:var(--lvl)}
 .pick:first-child{border-top:0}
 .pick-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 10px;min-width:0}
 .pick-head .lbl{margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
@@ -572,7 +595,7 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .theirs{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
 .theirs.same{background:var(--accent-soft);color:var(--accent)}
 .pick-head .iconbtn{margin:-6px 0}
-.pick .detail{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
+.pick .detail{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
 
 /* the ladder: Skip, Nice, Important, Dealbreaker. The highlight darkens as the step gets stronger. */
 .seg.ladder > button{padding:0 12px;font-size:13px}
@@ -583,8 +606,9 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .seg.ladder[data-level="dealbreaker"] > .ind{background:var(--ink)}
 .seg.ladder[data-level="dealbreaker"] > button[aria-pressed="true"]{color:var(--surface)}
 @media (max-width:620px){
-  .pick{grid-template-columns:minmax(0,1fr)}
-  .seg.ladder{display:grid;grid-template-columns:1fr 1fr 1.25fr 1.5fr;width:100%}
+  .pick{grid-template-columns:18px minmax(0,1fr)}
+  .pick .detail{grid-column:1 / -1}
+  .seg.ladder{display:grid;grid-column:1 / -1;grid-template-columns:1fr 1fr 1.25fr 1.5fr;width:100%}
   .seg.ladder > button{padding:0 2px;font-size:12.5px;white-space:nowrap}
   .face{width:26px;height:26px}
 }
@@ -599,7 +623,7 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .writein{display:flex;gap:8px;margin-top:10px}
 .writein input{flex:1;min-width:0}
 
-@media (prefers-reduced-motion:reduce){.delta{animation:none}}
+@media (prefers-reduced-motion:reduce){.delta,.pick.flash::after{animation:none}button.face:hover{transform:none}}
 
 /* ---- the save bar sits at the bottom of the page, and only shows while there are unsaved edits ---- */
 #savebar{position:sticky;bottom:0;z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}
