@@ -31,6 +31,7 @@ Layout:
 4. **Hand over with steps the user can run**, then wait for them to say it's done. Self-checks are due diligence, not sign-off.
 5. **Ask** when a choice changes what the two of you see or how scoring works. Decide how things are built.
 6. **Open a PR only when asked.**
+7. **Merging to `main` is the user's call, every time, autonomous agents included.** A PR merges on the user's go, given after they've seen the hand-off. The adversarial-merge review loop runs only when the user invokes it.
 
 ## Commands
 
@@ -52,3 +53,5 @@ Things the two of you and any agent must follow go in this file or a skill. How 
 |-------|--------------|
 | [swe](.claude/skills/swe/SKILL.md) | changing the app or any TypeScript outside `supabase/` |
 | [backend](.claude/skills/backend/SKILL.md) | changing migrations, RLS, Edge Functions, secrets or auth |
+| [subagents](.claude/skills/subagents/SKILL.md) | spawning any subagent: model choice, self-contained prompts, verification |
+| [adversarial-merge](.claude/skills/adversarial-merge/SKILL.md) | reviewing a PR before merge, when the user invokes the review loop by name |
