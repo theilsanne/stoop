@@ -3,7 +3,7 @@
   --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7ece9; --ink:#15201a; --ink-2:#56645c; --line:#d3dcd6;
   --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2;
   --good:#1b7a44; --good-soft:#dcf0e3; --warn:#9a5c00; --warn-soft:#fbecd2; --bad:#bb3227; --bad-soft:#f9dfdc;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06);
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06); --lift:0 2px 4px rgba(20,32,26,.08),0 10px 26px rgba(20,32,26,.16);
   --display:'Archivo','Arial Narrow',system-ui,sans-serif;
   --body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -12,12 +12,12 @@
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.45),0 12px 28px rgba(0,0,0,.6); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.45),0 12px 28px rgba(0,0,0,.6); color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
@@ -115,7 +115,7 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 /* criteria */
 /* Sticks a little below the tabs. The gap is real: listings scroll up through it and are cut off by the tab bar's bottom line, which sits above them. */
 .critstick{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--tabs-h,50px) + 10px);z-index:4;margin-bottom:18px}
-.critbar{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.critbar{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--lift)}
 .impact{padding:10px 14px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
