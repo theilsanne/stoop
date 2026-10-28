@@ -179,7 +179,11 @@ export class DemoApi implements Api {
     return p;
   }
   async removePlace(id: string) { this.placeRows = this.placeRows.filter((p) => p.id !== id); }
-  async commute() { return { computed: 0, failed: 0, remaining: 0, errors: [] }; }
+  async commute(_redo?: boolean) { return { computed: 0, failed: 0, remaining: 0, errors: [] }; }
+  async commuteRoutes(id: string): Promise<Record<string, string>> {
+    const lines = [["A", "C"], ["2", "3"], ["G", "L"], ["Q"], ["B44", "L"]][Number(id.replace(/\D/g, "")) % 5];
+    return Object.fromEntries((await this.places()).map((p) => [p.id, ["Walk 5", ...lines, "Walk 6"].join(" → ")]));
+  }
   async enrich(_retry?: boolean) { return { geocoded: 0, unmatched: 0, buildings_checked: 0, remaining: 0, errors: [] }; }
   async rescore() {
     const f = await this.feed();

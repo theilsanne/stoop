@@ -14,7 +14,7 @@ import type { Criterion, Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
-import { history, renderSheet } from "./views/detail.ts";
+import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
 import { mountMap, showSubway } from "./views/map.ts";
@@ -208,6 +208,9 @@ async function openSheet(id: string) {
   S.bdWho = "me";
   render();
   ($("close-sheet") as HTMLButtonElement | null)?.focus();
+  if (S.places.length && !routes.has(id)) {
+    api.commuteRoutes(id).then((r) => { routes.set(id, r); if (S.openId === id) $("sheet-root").innerHTML = renderSheet(); }, () => routes.set(id, {}));
+  }
   if (!history.has(id)) {
     try { history.set(id, await api.priceHistory(id)); } catch { history.set(id, []); }
     if (S.openId === id) $("sheet-root").innerHTML = renderSheet();
@@ -329,13 +332,13 @@ async function lookUpBuildings() {
 }
 
 // Commute times come back in batches (gentle on a free service); keep going while there's progress.
-async function workOutCommutes() {
+async function workOutCommutes(redo = false) {
   S.busy.add("commute");
   render();
   let done = 0;
   try {
     for (let i = 0; i < 30; i++) {
-      const r = await api.commute();
+      const r = await api.commute(redo && i === 0); // redo: clear every saved time first
       done += r.computed;
       if (r.errors?.length) console.warn("Commute lookups:", r.errors);
       if (!r.remaining || !r.computed) {
@@ -416,6 +419,7 @@ document.addEventListener("click", (e) => {
       case "rescore": rescoreAll(); return;
       case "enrich": lookUpBuildings(); return;
       case "commute": workOutCommutes(); return;
+      case "recommute": routes.clear(); workOutCommutes(true); return;
       case "alerts-on": alertsAction(async () => {
         await turnOnAlerts(api);
         toast("Alerts are on. Sending a test…");

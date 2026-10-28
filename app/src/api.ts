@@ -38,7 +38,9 @@ export interface Api {
   addPlace(label: string, address: string): Promise<Place>;
   removePlace(id: string): Promise<void>;
   /** Work out transit times to places (one batch). */
-  commute(): Promise<CommuteResult>;
+  commute(redo?: boolean): Promise<CommuteResult>;
+  /** The route behind each commute time for one listing, by place id ("Walk 4 → A → Walk 6"). */
+  commuteRoutes(listingId: string): Promise<Record<string, string>>;
 
   /** Phone alerts: the server's public key to subscribe with, saving this phone, and a test. */
   alertsKey(): Promise<string>;
@@ -259,8 +261,14 @@ export class SupabaseApi implements Api {
     fail("Removing the place", error);
   }
 
-  async commute() {
-    const { data, error } = await this.sb.functions.invoke("commute", { method: "POST" });
+  async commuteRoutes(listingId: string) {
+    const { data, error } = await this.sb.from("commutes").select("place_id,mode").eq("listing_id", listingId);
+    fail("Loading commute routes", error);
+    return Object.fromEntries((data as { place_id: string; mode: string }[]).filter((r) => r.mode && r.mode !== "transit").map((r) => [r.place_id, r.mode]));
+  }
+
+  async commute(redo = false) {
+    const { data, error } = await this.sb.functions.invoke("commute", { body: { redo } });
     fail("Working out commute times", error);
     return data as CommuteResult;
   }

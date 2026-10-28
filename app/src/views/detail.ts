@@ -5,6 +5,7 @@ import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
 
 export const history = new Map<string, PricePoint[]>(); // filled lazily when a sheet opens
+export const routes = new Map<string, Record<string, string>>(); // commute routes, same
 
 const AMENITY_LABELS: Record<string, string> = {
   laundry_in_unit: "In-unit laundry", laundry_in_building: "Laundry in building", dishwasher: "Dishwasher",
@@ -94,9 +95,11 @@ export function renderSheet() {
     ${S.places.length ? `<div class="box"><h3>Commute</h3>
       <ul class="bd-list">${S.places.map((p) => {
         const m = row.commutes?.[p.id];
-        return `<li><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by transit`}</span></li>`;
+        const route = routes.get(row.id)?.[p.id];
+        return `<li class="commute-li"><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by transit`}</span>${
+          route ? `<span class="route">${esc(route)}</span>` : ""}</li>`;
       }).join("")}</ul>
-      <p class="small">Arriving by 9am on a Tuesday. Transit times by <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a>, from public schedule data.</p>
+      <p class="small">The fastest trip leaving between 8:15 and 8:45am on a Tuesday, door to door. Transit times by <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a>, from public schedule data.</p>
     </div>` : ""}
 
     <div class="box"><h3>Building record</h3>

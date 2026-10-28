@@ -8,7 +8,7 @@ import {
 } from "./scoring.ts";
 import { normalize } from "./normalize.ts";
 import { type Fetch, lookupBbl, lookupBuilding } from "./buildings.ts";
-import { lookupCommute, nextTuesdayNineAm } from "./commute.ts";
+import { lookupCommute, morningDeparture } from "./commute.ts";
 
 export function serviceClient() {
   return createClient(
@@ -107,10 +107,12 @@ const COMMUTE_FRESH_DAYS = 45; // schedules change seasonally; re-ask occasional
  * with no answer yet (or an old one) are asked, at most `limit` per call, a few at
  * a time to stay gentle on a free service. A failed lookup is skipped, not stored.
  */
-export async function computeCommutes(db: DB, ids: string[] | null, limit = 40) {
+export async function computeCommutes(db: DB, ids: string[] | null, limit = 40, redo = false) {
   const places = (check(await db.from("places").select("id, lat, lng"), "load places") as
     { id: string; lat: number | null; lng: number | null }[]).filter((p) => p.lat != null && p.lng != null);
   if (!places.length) return { computed: 0, failed: 0, remaining: 0, errors: [] as string[] };
+  // start over: drop every saved time, so all are worked out again with the current method
+  if (redo) check(await db.from("commutes").delete().gte("computed_at", "1970-01-01"), "clear commutes");
 
   type L = { id: string; lat: number | null; lng: number | null };
   const listings: L[] = [];
@@ -135,15 +137,16 @@ export async function computeCommutes(db: DB, ids: string[] | null, limit = 40) 
   const todo = located.flatMap((l) => places.filter((p) => !known.has(l.id + "|" + p.id)).map((p) => ({ l, p })));
   const batch = todo.slice(0, limit);
 
-  const arriveBy = nextTuesdayNineAm();
+  const departAt = morningDeparture();
   const errors: string[] = [];
   let computed = 0, failed = 0;
   for (const part of chunk(batch, 3)) {
     const rows = await Promise.all(part.map(async ({ l, p }) => {
       try {
-        const minutes = await lookupCommute(fetch as unknown as Fetch, { lat: l.lat!, lng: l.lng! }, { lat: p.lat!, lng: p.lng! }, arriveBy);
-        if (minutes == null) { failed++; return null; }
-        return { listing_id: l.id, place_id: p.id, minutes, mode: "transit", computed_at: new Date().toISOString() };
+        const trip = await lookupCommute(fetch as unknown as Fetch, { lat: l.lat!, lng: l.lng! }, { lat: p.lat!, lng: p.lng! }, departAt);
+        if (trip == null) { failed++; return null; }
+        // mode holds the route, e.g. "Walk 4 → A → Walk 6"
+        return { listing_id: l.id, place_id: p.id, minutes: trip.minutes, mode: trip.route || "transit", computed_at: new Date().toISOString() };
       } catch (e) {
         failed++; errors.push(e instanceof Error ? e.message : String(e));
         return null;

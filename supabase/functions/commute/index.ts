@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
   if (error || !data.user) return json({ error: "Sign in first" }, 401);
 
   try {
-    const result = await computeCommutes(db, null, 40);
+    const { redo } = await req.json().catch(() => ({ redo: false }));
+    const result = await computeCommutes(db, null, 40, !!redo);
     if (result.computed) await scoreAndStore(db, null);
     return json(result);
   } catch (e) {

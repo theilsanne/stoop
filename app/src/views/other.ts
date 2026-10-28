@@ -45,7 +45,8 @@ export function renderSettings() {
       ${S.places.length ? (() => {
         const missing = S.feed.filter((r) => S.places.some((p) => r.commutes?.[p.id] == null)).length;
         return `<p class="small">${missing ? `${missing} listings still need commute times.` : "Every listing has its commute times."} New listings are worked out as they arrive.</p>
-          ${missing ? `<div><button class="btn" data-action="commute" ${S.busy.has("commute") ? "disabled" : ""}>${S.busy.has("commute") ? "Working out…" : "Work out commute times"}</button></div>` : ""}`;
+          <div class="btnrow">${missing ? `<button class="btn" data-action="commute" ${S.busy.has("commute") ? "disabled" : ""}>${S.busy.has("commute") ? "Working out…" : "Work out commute times"}</button>` : ""}
+            <button class="btn" data-action="recommute" ${S.busy.has("commute") ? "disabled" : ""} title="Throw away every saved time and work them all out again">Redo all commute times</button></div>`;
       })() : ""}
     </section>
     ${alertsPanel(me?.notify_threshold ?? 70)}

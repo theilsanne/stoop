@@ -120,7 +120,7 @@ Run each file in `supabase/migrations/` in order in the SQL Editor. After the fi
 
 ### Commute times
 
-Each of you adds places in **Settings → Places** (name + NYC street address, located with NYC GeoSearch). Every listing gets a transit time to each place, planned to arrive by 9am on a Tuesday, from [Transitous](https://transitous.org/api/). Its usage policy: non-commercial, open-source projects only, identify the app (we send a User-Agent), and keep load light (more than ~720 route requests a day counts as heavy). Times are asked once per listing per place and refreshed every 45 days; a backfill goes 40 at a time. Criteria: **Commute to <place> within N min**, one per place.
+Each of you adds places in **Settings → Places** (name + NYC street address, located with NYC GeoSearch). Every listing gets a transit time to each place, the fastest trip leaving 8:15–8:45am on a Tuesday (its route is kept too, e.g. "Walk 4 → A → Walk 6"), from [Transitous](https://transitous.org/api/). Its usage policy: non-commercial, open-source projects only, identify the app (we send a User-Agent), and keep load light (more than ~720 route requests a day counts as heavy). Times are asked once per listing per place and refreshed every 45 days; a backfill goes 40 at a time. Criteria: **Commute to <place> within N min**, one per place.
 
 ### Building records
 
