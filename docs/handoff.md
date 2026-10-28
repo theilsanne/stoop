@@ -1,6 +1,6 @@
 # Handoff: profile photos, stamps, branch previews
 
-Branch: `th-/great-fermi-9u0pes` (head `c64002d` when this was written). Not merged. No PR.
+Branch: `th-/great-fermi-9u0pes`. Not merged. No PR. Last updated 2026-10-28 by the session that tried to apply the migrations (see "Session log").
 
 ## Where things stand
 
@@ -30,33 +30,51 @@ Branch: `th-/great-fermi-9u0pes` (head `c64002d` when this was written). Not mer
 
 ## Blocked: applying the migrations from the cloud session
 
-- Stoop's Supabase project ref: `jjrjswxakuneoxipdswd` (region `ca-central-1`). The Supabase connector in this session can't see it. Only the "Shared Screen" org with `tv-app-prod` and `tv-app-dev` is visible.
-- The environment has `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` set. The Supabase CLI (`npx supabase@2`) can link the project.
-- `supabase migration list --linked` fails. The database hosts don't resolve from the sandbox:
-  - `aws-0-ca-central-1.pooler.supabase.com`
-  - `db.jjrjswxakuneoxipdswd.supabase.co`
-- These were added to the environment's allowed domains, but the change didn't reach the session it was made in. A new session may pick it up.
+Stoop's Supabase project ref is `jjrjswxakuneoxipdswd` (region `ca-central-1`). Two routes were tried. Both are blocked as of 2026-10-28.
+
+**Route 1: the Supabase connector.** Blocked by access, not by the network.
+- `list_projects` shows only `tv-app-prod` and `tv-app-dev`, in the "Shared Screen" org (`wjzneobvqysecsrhrsea`). Stoop's project isn't in the list.
+- `get_project`, `list_migrations` and `execute_sql` all return "You do not have permission to perform this action" for `jjrjswxakuneoxipdswd`.
+- The user is an admin of the Stoop project, but the connector is signed in to a different org. Fix: reconnect the Supabase connector with the account or org that owns Stoop, so `list_projects` shows it.
+- Nothing was applied to `tv-app-prod` or `tv-app-dev`. They belong to another project and must not be touched for Stoop.
+
+**Route 2: the Supabase CLI.** Blocked by the sandbox network.
+- The environment has `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` set. `npx supabase@2` can link the project once the hosts resolve.
+- In the session of 2026-10-28, these resolved: `aws-0-ca-central-1.pooler.supabase.com` and `api.supabase.com`.
+- `db.jjrjswxakuneoxipdswd.supabase.co` did not resolve. The user then added that exact host under Network access (Allowed domains), and asked for a new session so the change applies. Not yet verified.
+
+## Session log
+
+**2026-10-28**
+- The session started on `th-/elegant-ptolemy-3tbn2y`. Switched to `th-/great-fermi-9u0pes` (`git checkout -B th-/great-fermi-9u0pes origin/th-/great-fermi-9u0pes`). The working tree was clean.
+- DNS check: the pooler and `api.supabase.com` resolve. The `db.` host did not.
+- Supabase connector: blocked, as above. Admin rights on the project didn't change this.
+- Nothing applied, nothing merged, no preview check (it would show the expected red error).
+- The user added `db.jjrjswxakuneoxipdswd.supabase.co` to Network access and started a new session.
 
 ## Next steps
 
-1. In the new session, check the hosts resolve:
+Run these in the new session, in order. Stop and report at the first failure.
+
+1. Check the hosts resolve:
    ```bash
    getent hosts aws-0-ca-central-1.pooler.supabase.com
    getent hosts db.jjrjswxakuneoxipdswd.supabase.co
    ```
-2. Link and check the history:
+2. Try the Supabase connector first: `list_projects`. If `jjrjswxakuneoxipdswd` is listed, check `list_migrations` for that project. If it isn't listed, use the CLI route.
+3. Link and check the history (CLI):
    ```bash
    cd /home/user/stoop
    npx --yes supabase@2 link --project-ref jjrjswxakuneoxipdswd
    npx --yes supabase@2 migration list --linked
    ```
-3. Apply the two new migrations only if the history shows the earlier ones (`20261006000000` through `20261028010000`) as applied. Otherwise, apply them in the SQL editor in order, as CLAUDE.md describes.
+4. Apply the two new migrations only if the history shows the earlier ones (`20261006000000` through `20261028010000`) as applied. Otherwise stop: the history doesn't match, and a person should decide how to reconcile it. Don't apply out of order.
    ```bash
    npx --yes supabase@2 db push --linked
    ```
-4. Confirm the `avatars` bucket and `rentals.stamps` table exist, and that the RLS policies are present.
-5. Reload the preview, and confirm the red error is gone. Then ask the user to test stamping, the sheet pill, and adding a photo.
-6. Add the preview redirect URL in Supabase (step above).
+5. Confirm the `avatars` bucket and `rentals.stamps` table exist, and that the RLS policies are present.
+6. Reload the preview, and confirm the red error is gone. Then ask the user to test stamping, the sheet pill, and adding a photo.
+7. Add the preview redirect URL in Supabase (see "Not yet done").
 
 ## Things to know
 
