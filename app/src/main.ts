@@ -521,6 +521,12 @@ document.addEventListener("click", (e) => {
         break;
       }
       case "unmark": markWriteIn(id, null); return;
+      case "history": {
+        S.historyOpen = !S.historyOpen; save("historyOpen", S.historyOpen);
+        render();
+        if (S.historyOpen) unfold(document.getElementById("history-list"));
+        return;
+      }
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
       case "rescore": rescoreAll(); return;

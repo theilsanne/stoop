@@ -36,6 +36,7 @@ export interface State {
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
+  historyOpen: boolean;    // Criteria → Change history expanded (remembered on this device)
   preset: string;          // the criterion picked in Criteria's "add" picker ("__write" = write your own)
   alerts: AlertState;      // phone alerts on this device
 }
@@ -77,7 +78,7 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", preset: "",
+    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", preset: "", historyOpen: store<boolean>("historyOpen", false),
   } satisfies State);
 }
 

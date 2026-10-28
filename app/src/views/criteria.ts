@@ -97,6 +97,19 @@ export function impactHTML() {
     <div class="acts"><button class="btn" data-action="discard" ${dirty && !S.saving ? "" : "disabled"}>Discard</button><button class="btn primary" data-action="savecrit" ${dirty && !S.saving ? "" : "disabled"}>${S.saving ? "Saving…" : "Save and re-score"}</button></div>`;
 }
 
+/** Change history: a heading with the number of changes; the list opens when you tap it. */
+function historySection(log: CriteriaChange[] | null) {
+  const items = (log ?? []).flatMap((ch) => { const t = changeText(ch); return t ? [{ ch, t }] : []; });
+  const open = S.historyOpen;
+  return `<section class="sect history">
+    <h2><button class="disclose" data-action="history" aria-expanded="${open}" aria-controls="history-list">${icon("caret-right", { size: 18 })}Change history${
+      log ? `<span class="n">${items.length}</span>` : ""}</button></h2>
+    ${!open ? "" : log == null ? '<p class="small">Loading…</p>' : items.length
+      ? `<ul class="log" id="history-list">${items.map(({ ch, t }) => `<li><time>${new Date(ch.changed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time><span class="by">${ch.changed_by ? esc(nameOf(ch.changed_by)) : "Setup"}</span><span>${esc(t)}</span></li>`).join("")}</ul>`
+      : '<p class="small" id="history-list">No changes yet. Saved edits from both of you show here.</p>'}
+  </section>`;
+}
+
 function changeText(ch: CriteriaChange) {
   const b = ch.before, a = ch.after;
   if (!b && a) return `Added ${a.kind}: ${a.label}${valueText(a) ? " (" + valueText(a) + ")" : ""}`;
@@ -139,9 +152,5 @@ export function renderCriteria() {
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       <div class="crit-list" data-section="want">${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</div></section>
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
-    <section class="sect"><h2>Change history</h2>
-      ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
-        const t = changeText(ch);
-        return t ? `<li><time>${new Date(ch.changed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time><span class="by">${ch.changed_by ? esc(nameOf(ch.changed_by)) : "Setup"}</span><span>${esc(t)}</span></li>` : "";
-      }).join("")}</ul>` : '<p class="small">No changes yet. Saved edits from both of you show here.</p>'}</section>`;
+    ${historySection(log)}`;
 }
