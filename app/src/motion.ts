@@ -111,3 +111,17 @@ export function viewerOut(el: Element | null, done: () => void) {
   if (!el || reduced()) { done(); return; }
   animate(el, { opacity: 0 }, { duration: 0.15 }).finished.then(done, done);
 }
+
+/**
+ * A tab or switch highlight moving to the newly chosen option: it starts dx pixels
+ * away at scale sx (its old spot and width) and springs into place. Transform only,
+ * so nothing is laid out again while it moves.
+ */
+export function slideHighlight(el: HTMLElement, dx: number, sx: number) {
+  if (reduced()) return;
+  el.style.transformOrigin = "0 50%";
+  // start exactly where it was, this frame (the animation itself begins next frame)
+  el.style.transform = `translateX(${dx}px) scaleX(${sx})`;
+  animate(el, { x: [dx, 0], scaleX: [sx, 1] }, { type: "spring", stiffness: 520, damping: 40, mass: 0.9 })
+    .finished.then(tidy([el], ["transform"]), () => {});
+}

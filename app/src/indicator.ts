@@ -2,12 +2,11 @@
 // tabs get one highlight element that sits behind the chosen option; when the choice
 // changes, it slides (and resizes) from the old option to the new one instead of
 // jumping. The app redraws with innerHTML, so we note where each highlight was before
-// a redraw and animate from there afterwards.
+// a redraw and animate from there afterwards. The animation itself is in motion.ts.
 
-import { animate } from "motion";
+import { slideHighlight } from "./motion.ts";
 
 const SELECTOR = ".seg, nav.tabs";
-const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Spot = { x: number; w: number };
 
@@ -25,16 +24,12 @@ export function noteIndicators(scope: ParentNode = document): Map<string, Spot> 
   const out = new Map<string, Spot>();
   for (const c of scope.querySelectorAll<HTMLElement>(SELECTOR)) {
     const ind = c.querySelector<HTMLElement>(":scope > .ind");
-    if (ind && ind.offsetWidth) out.set(keyOf(c), { x: ind.offsetLeft + currentX(ind), w: ind.offsetWidth });
+    if (!ind || !ind.offsetWidth) continue;
+    // where it is on screen right now, mid-slide included (scroll-independent, like offsetLeft)
+    const r = ind.getBoundingClientRect(), cr = c.getBoundingClientRect();
+    out.set(keyOf(c), { x: r.left - cr.left - c.clientLeft + c.scrollLeft, w: r.width });
   }
   return out;
-}
-
-/** Translate x currently applied (mid-animation), so a quick second tap starts from where it is. */
-function currentX(el: HTMLElement) {
-  const m = getComputedStyle(el).transform;
-  if (!m || m === "none") return 0;
-  return new DOMMatrixReadOnly(m).m41;
 }
 
 /** Put each highlight behind its chosen option; slide from `before` if it moved. */
@@ -55,12 +50,7 @@ export function placeIndicators(scope: ParentNode = document, before?: Map<strin
     ind.style.width = `${to.w}px`;
     ind.style.transform = "";
     const from = before?.get(keyOf(c));
-    if (!from || reduced() || (Math.abs(from.x - to.x) < 1 && Math.abs(from.w - to.w) < 1)) continue;
-    // start exactly where it was, this frame (the animation itself begins next frame)
-    ind.style.transform = `translateX(${from.x - to.x}px)`;
-    ind.style.width = `${from.w}px`;
-    animate(ind, { x: [from.x - to.x, 0], width: [`${from.w}px`, `${to.w}px`] },
-      { type: "spring", stiffness: 520, damping: 40, mass: 0.9 })
-      .finished.then(() => { ind!.style.transform = ""; });
+    if (!from || (Math.abs(from.x - to.x) < 1 && Math.abs(from.w - to.w) < 1)) continue;
+    slideHighlight(ind, from.x - to.x, from.w / to.w);
   }
 }
