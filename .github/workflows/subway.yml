@@ -1,0 +1,34 @@
+# Builds the subway network Stoop uses for commute times (stations, rides between
+# them, typical waits and transfers) from the MTA's published subway timetable.
+# Runs on the 1st of each month and on demand; commits the result if it changed.
+name: Update subway network
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 1 * *"
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Download the MTA subway timetable
+        run: |
+          curl -sSfL -o gtfs_subway.zip https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip
+          mkdir gtfs && unzip -q gtfs_subway.zip -d gtfs && ls -la gtfs
+      - name: Keep a copy of the raw timetable
+        uses: actions/upload-artifact@v4
+        with: { name: gtfs-subway, path: gtfs_subway.zip, retention-days: 7 }
+      - name: Build the network
+        if: hashFiles('scripts/build-subway.mjs') != ''
+        run: node scripts/build-subway.mjs gtfs supabase/functions/_shared/subway-graph.json
+      - name: Commit if changed
+        if: hashFiles('scripts/build-subway.mjs') != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/_shared/subway-graph.json
+          git diff --cached --quiet || git commit -m "Update subway network from MTA timetable" && git push
