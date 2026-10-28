@@ -29,13 +29,6 @@ export function enterView(main: Element | null) {
   }
 }
 
-/** The tab you just picked: its icon gives a little bounce. */
-export function popTab(nav: Element | null) {
-  if (!nav || reduced()) return;
-  const ic = nav.querySelector('[aria-selected="true"] .ic');
-  if (ic) animate(ic, { scale: [0.7, 1] }, { type: "spring", stiffness: 600, damping: 14 });
-}
-
 /** The listing sheet slides in from the right (from the bottom on a phone). */
 export function openSheetMotion(root: Element) {
   if (reduced()) return;

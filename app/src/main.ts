@@ -1,10 +1,10 @@
 import "./styles.css";
-import { icon, type IconName } from "./icons.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, popTab, toastIn, toastOut, unfold } from "./motion.ts";
+import { icon } from "./icons.ts";
+import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold } from "./motion.ts";
 import { SupabaseApi, type Api } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
-  S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, persistDraft, ratingOf, resetDraft,
+  S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
   type Filter, type Lens, type Tab,
 } from "./state.ts";
@@ -29,9 +29,7 @@ initState(api);
 const $ = (id: string) => document.getElementById(id)!;
 
 // ---------- rendering ----------
-const TABS: [Tab, string, IconName][] = [
-  ["feed", "Feed", "house"], ["pipeline", "Pipeline", "kanban"], ["criteria", "Criteria", "sliders-horizontal"], ["compare", "Compare", "scales"],
-];
+const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"], ["compare", "Compare"]];
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
@@ -42,7 +40,7 @@ function tabCount(t: Tab) {
 }
 
 // what screen is showing; when it changes, the new content animates in
-let lastView = "", lastTab = "", sheetShown = false;
+let lastView = "", sheetShown = false;
 const viewKey = () => [S.loading, S.tab, S.feedView, S.filter, S.sort, S.lens].join("|");
 
 export function render() {
@@ -55,10 +53,10 @@ export function render() {
   const y = window.scrollY;
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
-      <button class="who" data-action="tab" data-v="settings" aria-label="Settings">${esc(S.profiles.find((p) => p.id === myId())?.display_name || S.me.email)} &amp; ${esc(partnerName())} ${icon("gear", { size: 16 })}</button>
+      <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
     </header>
-    <nav class="tabs" role="tablist">${TABS.map(([k, t, ic]) =>
-      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${icon(ic, { fill: S.tab === k, size: 18 })}<span class="tl">${t}</span><span class="n">${tabCount(k)}</span>${
+    <nav class="tabs" role="tablist">${TABS.map(([k, t]) =>
+      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main>${S.loading ? '<div class="loading">Loading listings…</div>' : {
@@ -70,8 +68,7 @@ export function render() {
 
   const key = viewKey();
   if (key !== lastView && !S.loading) enterView(root.querySelector("main"));
-  if (S.tab !== lastTab && lastTab) popTab(root.querySelector("nav.tabs"));
-  lastView = key; lastTab = S.tab;
+  lastView = key;
   const open = !!S.openId;
   if (open && !sheetShown) openSheetMotion($("sheet-root"));
   sheetShown = open;

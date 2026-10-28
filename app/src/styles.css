@@ -110,20 +110,10 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .critbar .addrow select{max-width:100%;min-width:0;flex:1 1 160px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
-.ic{flex:none;display:inline-block;vertical-align:-0.18em}
-nav.tabs button{display:inline-flex;align-items:center;gap:6px}
-nav.tabs button .ic{opacity:.75}
-nav.tabs button[aria-selected="true"] .ic{opacity:1;color:var(--accent)}
-button.who{display:inline-flex;align-items:center;gap:6px}
-.vbtn,.seg button,.btn,.close,.whybtn,.x,.badge,.comm,.box h3,.panel h2{display:inline-flex;align-items:center;gap:6px}
-.vbtn[aria-pressed="true"] .ic{transform:scale(1.05)}
-.comm{gap:6px;flex-wrap:nowrap}
-.comm>span{min-width:0}
-.badge .ic{margin-left:-2px}
-.mini-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
-.mini .grip{color:var(--ink-2);opacity:.5;margin-top:1px}
-.mv button{display:inline-flex;align-items:center;justify-content:center}
-@media (max-width:480px){nav.tabs button .ic{display:none}}
+.ic{flex:none;display:block}
+.vbtn{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px}
+button.who{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0 !important;border-radius:50% !important}
+button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 @media (max-width:620px){
   .critbar .impact{padding:8px 12px;gap:6px}
   .critbar .impact .nums{font-size:12.5px}

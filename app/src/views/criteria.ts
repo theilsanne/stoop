@@ -1,5 +1,4 @@
 import { PARENT_HOOD, defFor } from "../catalog.ts";
-import { icon } from "../icons.ts";
 import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts } from "../state.ts";
 import type { CriteriaChange, Criterion } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
@@ -75,7 +74,7 @@ function row(c: Criterion) {
       ${control(c)}
       ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label><input type="range" min="0" max="10" id="w-${c.id}" data-edit="weight" data-id="${c.id}" value="${c.weight}"><span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
       ${c.kind === "dealbreaker" && numeric ? `<div class="ctl"><label for="m-${c.id}">Near-miss margin</label><input type="range" min="0" max="15" id="m-${c.id}" data-edit="margin" data-id="${c.id}" value="${margin}"><span class="val" id="ml-${c.id}">${margin}%</span></div>` : ""}
-      <button class="x" data-action="remove" data-id="${c.id}">${icon("trash", { size: 15 })}Remove</button>
+      <button class="x" data-action="remove" data-id="${c.id}">Remove</button>
     </div></div>`;
 }
 
@@ -120,7 +119,7 @@ export function renderCriteria() {
     <div class="critbar">
       <div class="impact" id="impact">${impactHTML()}</div>
       <div class="addrow"><label for="preset" class="small">Add</label><select class="sm" id="preset">${options}</select>
-        <button class="btn sm-btn" data-action="add" data-v="dealbreaker">${icon("plus", { size: 14 })}Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">${icon("plus", { size: 14 })}Want</button></div>
+        <button class="btn sm-btn" data-action="add" data-v="dealbreaker">+ Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">+ Want</button></div>
     </div>
     <section class="sect"><h2>Dealbreakers</h2><p class="lede">A listing that fails any of these drops out of your feed. Give a number a near-miss margin and listings that miss it by a little show up under Near misses instead.</p>
       ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
