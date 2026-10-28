@@ -1,24 +1,46 @@
-// Pure rules for editing a criteria list: the three weight levels, and moving a
-// criterion between Dealbreakers and Wants. No DOM here, so the tests can import it.
+// How much a criterion matters, as one ladder: Skip, Nice, Important, Dealbreaker.
+// The stored shape is still kind + weight + active (scoring only reads those), so
+// this maps the ladder onto them and back. Pure, so the tests can import it.
 
 import type { Criterion } from "./types.ts";
 
-/** The three weights a want can be set to. Scoring only ever sees the number. */
-export const WEIGHT_LEVELS = [
-  { key: "nice", label: "Nice to have", weight: 2 },
-  { key: "important", label: "Important", weight: 5 },
-  { key: "must", label: "Must have", weight: 8 },
-] as const;
+export type Level = "skip" | "nice" | "important" | "dealbreaker";
 
-/** The level a weight is set to, or null for a custom number (a want saved before levels existed). */
-export const levelOf = (weight: number) => WEIGHT_LEVELS.find((l) => l.weight === weight) ?? null;
+export const LEVELS: { key: Level; label: string }[] = [
+  { key: "skip", label: "Skip" },
+  { key: "nice", label: "Nice" },
+  { key: "important", label: "Important" },
+  { key: "dealbreaker", label: "Dealbreaker" },
+];
 
-/** Move one criterion to the other list, after the last one already there. Returns the list unchanged if nothing moves. */
-export function moveToSection(list: Criterion[], id: string, kind: Criterion["kind"]): Criterion[] {
-  const i = list.findIndex((c) => c.id === id);
-  if (i < 0 || list[i].kind === kind) return list;
-  const rest = list.filter((c) => c.id !== id);
-  const last = rest.map((c) => c.kind).lastIndexOf(kind);
-  rest.splice(last < 0 ? rest.length : last + 1, 0, { ...list[i], kind });
-  return rest;
+/** The weights behind the two want levels. */
+export const NICE_WEIGHT = 2;
+export const IMPORTANT_WEIGHT = 5;
+
+type Settings = Pick<Criterion, "kind" | "weight" | "active">;
+
+/**
+ * Where a criterion sits on the ladder. A want weighted 4 or more reads as Important,
+ * which includes the 8 that "Must have" used to save. A turned-off or zero-weight want is Skip.
+ */
+export function levelOf(c: Settings | null | undefined): Level {
+  if (!c || !c.active) return "skip";
+  if (c.kind === "dealbreaker") return "dealbreaker";
+  const w = Number(c.weight);
+  return w <= 0 ? "skip" : w >= 4 ? "important" : "nice";
+}
+
+/**
+ * The criterion, set to a level. One already reading that level comes back untouched, so a
+ * saved weight of 8 stays 8 until you pick a different step. nearMiss is the margin a new
+ * numeric dealbreaker starts with when it has none.
+ */
+export function withLevel(c: Criterion, level: Level, nearMiss: number | null = null): Criterion {
+  if (levelOf(c) === level) return c;
+  switch (level) {
+    case "skip": return { ...c, active: false };
+    case "nice": return { ...c, kind: "want", weight: NICE_WEIGHT, active: true };
+    case "important": return { ...c, kind: "want", weight: IMPORTANT_WEIGHT, active: true };
+    case "dealbreaker": return { ...c, kind: "dealbreaker", active: true, near_miss_margin: c.near_miss_margin ?? nearMiss };
+  }
 }

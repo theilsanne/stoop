@@ -113,8 +113,9 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .hint{font-size:13px;color:var(--ink-2);margin:0 0 12px}
 
 /* criteria */
+.critbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:10px;background:var(--bg)}
 .critbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 50px);z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow)}
-.impact{padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.impact{padding:10px 14px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
 .brand h1{display:inline-flex;align-items:center;gap:8px}
@@ -125,26 +126,16 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 button.who{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0 !important;border-radius:50% !important}
 button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 @media (max-width:620px){
-  .critbar .impact{padding:8px 12px;gap:6px}
-  .critbar .impact .nums{font-size:12.5px}
-  .critbar .impact .nums b{font-size:14px}
+  .impact{padding:8px 12px}
   .btn.sm-btn{padding:6px 8px;white-space:nowrap}
 }
 .toast{cursor:pointer}
-.impact .nums{font-size:14px;color:var(--ink-2)}
-.impact .nums b{font-family:var(--mono);color:var(--ink);font-size:16px}
-.impact .arrow{color:var(--accent);font-weight:700}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn:disabled{opacity:.45;cursor:default}
 .sect{margin-bottom:26px}
 .sect h2{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:22px;text-transform:uppercase;margin:0 0 2px}
 .sect p.lede{margin:0 0 12px;color:var(--ink-2);font-size:14px;max-width:62ch}
-.crit{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
-.crit.off{opacity:.55}
-.crit-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.crit-head input.lbl{flex:1 1 200px;min-width:0;border:0;border-bottom:1px dashed var(--line);background:transparent;font-weight:600;font-size:15px;padding:4px 0}
-.crit-body{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
 .ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ctl input[type=number],.ctl input[type=date]{width:150px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px}
 .ctl input[type=range]{width:150px;accent-color:var(--accent)}
@@ -434,7 +425,7 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .hchip:active{transform:scale(.96)}
 
 /* ---- cards ---- */
-.card,.mini,.panel,.box,.crit,.tblwrap,.critbar,.lens,.empty,.col{border-radius:var(--r-card)}
+.card,.mini,.panel,.box,.picks,.tblwrap,.critbar,.lens,.empty,.col{border-radius:var(--r-card)}
 .card{transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .15s}
 .card:active{transform:scale(.995)}
 .mini{padding:12px;transition:border-color .15s,box-shadow .15s}
@@ -472,9 +463,6 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .ctl input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
 .ctl input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
 .ctl label{color:var(--ink-2)}
-.crit-head input.lbl{border-bottom:1px dashed transparent;border-radius:0;transition:border-color .15s}
-.crit-head input.lbl:hover{border-bottom-color:var(--line)}
-.crit-head input.lbl:focus{border-bottom:1px solid var(--accent)}
 
 /* ---- Compare: one row per criterion (or listing). Phone: name and difference on top,
    the two of you side by side below. Wider: four columns, like a table. ---- */
@@ -531,15 +519,6 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .c-route .bullet{width:22px;height:22px;font-size:12.5px}
 .small-link{font-size:13px;align-self:flex-start}
 
-/* ---- criteria: drag to reorder; a pending move to the other section ---- */
-.crit{position:relative}
-.grip{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:-4px -4px -4px -8px;
-  border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:grab;touch-action:none;transition:background-color .15s,color .15s}
-.grip:hover{background:var(--hover);color:var(--ink)}
-.crit.dragging{pointer-events:none;z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.16),var(--shadow);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
-.crit.dragging .grip,body.sorting,body.sorting *{cursor:grabbing !important}
-body.sorting{user-select:none;-webkit-user-select:none}
-@media (pointer:coarse){.grip::after{content:"";position:absolute;inset:-6px}.grip{position:relative}}
 /* a slider's label sits above it, and its value stays on the same line as the track */
 .ctl:has(> input[type=range]){display:grid;grid-template-columns:minmax(0,220px) auto auto;column-gap:10px;row-gap:2px;align-items:center;justify-content:start}
 .ctl:has(> input[type=range]) > label{grid-column:1 / -1}
@@ -553,8 +532,6 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .iconbtn:active{transform:scale(.92)}
 @media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
 @media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
-.crit-body:not(:has(*)){display:none}
-.crit-head h3.lbl{flex:1 1 0;min-width:0;margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
 
 .ctl.words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;width:100%}
 .ctl.words input{width:100%}
@@ -563,31 +540,66 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .writeins li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
 .writeins .switch{font-size:14.5px;color:var(--ink);gap:10px}
 
-/* ---- the add menu: every criterion by group, a Dealbreaker and a Want button on each row ---- */
-.addmenu{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px 20px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:22px;box-shadow:var(--shadow)}
-.addgroup h3{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);margin:0 0 6px}
-.addgroup ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.addgroup li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;min-height:var(--h-sm);font-size:14px;color:var(--ink)}
-.addgroup li > span.small{white-space:nowrap}
-.addgroup li:has(input){grid-template-columns:minmax(0,1fr)}
-.addgroup input.text{min-width:0;width:100%;height:var(--h-sm);font-size:14px}
-.addbtns{display:inline-flex;gap:6px;flex:none}
+/* ---- the live bar: how many listings fit, the best of them as faces, what the last tap changed ---- */
+.lede{margin:0 0 12px;color:var(--ink-2);font-size:14px;max-width:62ch}
+.fit{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.big{font-size:15px;color:var(--ink-2);display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.big b{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.delta{font-family:var(--mono);font-size:13px;font-weight:600;padding:1px 8px;border-radius:999px;animation:delta 2.6s ease-out forwards}
+.delta.up{color:var(--good);background:var(--good-soft)}
+.delta.down{color:var(--bad);background:var(--bad-soft)}
+@keyframes delta{0%{opacity:0;transform:translateY(5px) scale(.9)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+.faces{display:flex;flex:none;padding-left:8px}
+.face{width:30px;height:30px;margin-left:-8px;border-radius:50%;object-fit:cover;border:2px solid var(--surface);background:var(--surface-2);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink-2)}
+.face.rest{font-family:var(--mono);font-size:11px;font-weight:600}
+.sub{margin-top:2px;font-size:13px;color:var(--ink-2)}
+.nudge{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--warn-soft);font-size:13px}
+.critfilter{display:flex;margin-bottom:16px}
+.seg .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:4px}
+
+/* ---- one row per feature: the name and what the market has, then one control for how much it matters ---- */
+.picks:empty{display:none}
+.picks{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 18px;padding:10px 14px;border-top:1px solid var(--line)}
+.pick:first-child{border-top:0}
+.pick-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 10px;min-width:0}
+.pick-head .lbl{margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.pick[data-level="skip"] .lbl{font-weight:500;color:var(--ink-2)}
+.pick .stat{order:3;flex-basis:100%;display:flex;flex-wrap:wrap;gap:0 10px;font-size:12.5px;color:var(--ink-2);min-height:1.45em}
+.stat .faint{opacity:.7}
+.stat .cut{color:var(--bad);font-weight:600}
+.theirs{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.theirs.same{background:var(--accent-soft);color:var(--accent)}
+.pick-head .iconbtn{margin:-6px 0}
+.pick .detail{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
+
+/* the ladder: Skip, Nice, Important, Dealbreaker. The highlight darkens as the step gets stronger. */
+.seg.ladder > button{padding:0 12px;font-size:13px}
+.seg.ladder[data-level="nice"] > .ind{background:var(--accent-soft)}
+.seg.ladder[data-level="nice"] > button[aria-pressed="true"]{color:var(--accent)}
+.seg.ladder[data-level="important"] > .ind{background:var(--accent)}
+.seg.ladder[data-level="important"] > button[aria-pressed="true"]{color:var(--accent-ink)}
+.seg.ladder[data-level="dealbreaker"] > .ind{background:var(--ink)}
+.seg.ladder[data-level="dealbreaker"] > button[aria-pressed="true"]{color:var(--surface)}
 @media (max-width:620px){
-  .addmenu{grid-template-columns:1fr;padding:12px}
+  .pick{grid-template-columns:minmax(0,1fr)}
+  .seg.ladder{display:grid;grid-template-columns:1fr 1fr 1.25fr 1.5fr;width:100%}
+  .seg.ladder > button{padding:0 2px;font-size:12.5px;white-space:nowrap}
+  .face{width:26px;height:26px}
 }
 
-/* ---- weight levels: the same segmented control as the rest of the app, wrapping on a phone ---- */
-.seg.levels{flex-wrap:wrap;border-radius:12px}
-.seg.levels > button{border-radius:999px}
-.wlabel{color:var(--ink-2)}
+/* the bars behind a rent or size slider: where the current listings sit, and which the cap lets through */
+.ctl.market:has(> input[type=range]){display:block;width:100%;max-width:440px}
+.hist{display:flex;align-items:flex-end;gap:2px;height:44px;padding:0 10px}
+.hb{flex:1;min-height:3px;border-radius:2px 2px 0 0;background:var(--surface-2)}
+.hb.on{background:color-mix(in srgb,var(--accent) 55%,var(--surface))}
+.ctl.market input[type=range]{width:100%}
 
-/* ---- criteria that aren't saved yet: a New or Moved tag, and a faint accent border ---- */
-.pendtag{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;white-space:nowrap}
-.crit.pending{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.writein{display:flex;gap:8px;margin-top:10px}
+.writein input{flex:1;min-width:0}
 
-/* ---- drag between the two lists: the list under the pointer lights up ---- */
-.crit-list{min-height:56px;border-radius:12px;transition:background-color .15s}
-.crit-list.drop-target{background:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:4px}
+@media (prefers-reduced-motion:reduce){.delta{animation:none}}
 
 /* ---- the save bar sits at the bottom of the page, and only shows while there are unsaved edits ---- */
 #savebar{position:sticky;bottom:0;z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}

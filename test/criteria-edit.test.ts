@@ -2,47 +2,63 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Criterion } from "../supabase/functions/_shared/scoring.ts";
-import { levelOf, moveToSection } from "../app/src/criteria-edit.ts";
+import { levelOf, withLevel } from "../app/src/criteria-edit.ts";
 
-const crit = (id: string, kind: Criterion["kind"], weight = 5): Criterion => ({
-  id, owner_id: "you", label: id, kind, field: "beds", operator: "gte", value: 2,
-  weight, near_miss_margin: null, active: true,
+const crit = (o: Partial<Criterion> = {}): Criterion => ({
+  id: "c", owner_id: "you", label: "c", kind: "want", field: "beds", operator: "gte", value: 2,
+  weight: 5, near_miss_margin: null, active: true, ...o,
 });
 
-test("a weight maps to its level only when it is exactly one", () => {
-  assert.equal(levelOf(2)?.key, "nice");
-  assert.equal(levelOf(5)?.key, "important");
-  assert.equal(levelOf(8)?.key, "must");
-  assert.equal(levelOf(4), null);
-  assert.equal(levelOf(0), null);
+test("the ladder reads off kind, weight and active", () => {
+  assert.equal(levelOf(null), "skip");
+  assert.equal(levelOf(crit({ active: false })), "skip");
+  assert.equal(levelOf(crit({ kind: "dealbreaker" })), "dealbreaker");
+  assert.equal(levelOf(crit({ weight: 5 })), "important");
+  assert.equal(levelOf(crit({ weight: 2 })), "nice");
 });
 
-test("moving to the other list appends after the last criterion there", () => {
-  const list = [crit("a", "dealbreaker"), crit("b", "want"), crit("c", "dealbreaker"), crit("d", "want")];
-  const out = moveToSection(list, "a", "want");
-  assert.deepEqual(out.map((c) => [c.id, c.kind]), [["b", "want"], ["c", "dealbreaker"], ["d", "want"], ["a", "want"]]);
+test("a want weighted 4 or more is Important, including the 8 a Must have saved", () => {
+  assert.equal(levelOf(crit({ weight: 4 })), "important");
+  assert.equal(levelOf(crit({ weight: 8 })), "important");
+  assert.equal(levelOf(crit({ weight: 3 })), "nice");
 });
 
-test("moving into an empty list puts the criterion at the end", () => {
-  const list = [crit("a", "want"), crit("b", "want")];
-  const out = moveToSection(list, "a", "dealbreaker");
-  assert.deepEqual(out.map((c) => [c.id, c.kind]), [["b", "want"], ["a", "dealbreaker"]]);
+test("a want with no weight is Skip", () => {
+  assert.equal(levelOf(crit({ weight: 0 })), "skip");
 });
 
-test("moving to the list it is already in changes nothing", () => {
-  const list = [crit("a", "want"), crit("b", "dealbreaker")];
-  assert.equal(moveToSection(list, "a", "want"), list);
+test("each step sets the stored shape scoring reads", () => {
+  assert.deepEqual(
+    (({ kind, weight, active }) => ({ kind, weight, active }))(withLevel(crit({ kind: "dealbreaker" }), "nice")),
+    { kind: "want", weight: 2, active: true });
+  assert.deepEqual(
+    (({ kind, weight, active }) => ({ kind, weight, active }))(withLevel(crit({ weight: 2 }), "important")),
+    { kind: "want", weight: 5, active: true });
+  assert.equal(withLevel(crit(), "dealbreaker").kind, "dealbreaker");
+  assert.equal(withLevel(crit(), "skip").active, false);
 });
 
-test("an unknown id changes nothing, and the input is not mutated", () => {
-  const list = [crit("a", "want")];
-  assert.equal(moveToSection(list, "zzz", "dealbreaker"), list);
-  moveToSection(list, "a", "dealbreaker");
-  assert.equal(list[0].kind, "want");
+test("picking the level a criterion already reads leaves it alone, so a saved 8 stays 8", () => {
+  const eight = crit({ weight: 8 });
+  assert.equal(withLevel(eight, "important"), eight);
 });
 
-test("moving keeps the other fields, including the weight", () => {
-  const out = moveToSection([crit("a", "want", 8), crit("b", "dealbreaker")], "a", "dealbreaker");
-  assert.equal(out[1].weight, 8);
-  assert.equal(out[1].kind, "dealbreaker");
+test("Skip keeps the settings, so turning it back on finds them", () => {
+  const off = withLevel(crit({ value: 3600, kind: "dealbreaker", near_miss_margin: 0.05 }), "skip");
+  assert.equal(off.value, 3600);
+  assert.equal(off.near_miss_margin, 0.05);
+  assert.equal(levelOf(withLevel(off, "dealbreaker")), "dealbreaker");
+});
+
+test("a new dealbreaker takes the starting margin only when it has none", () => {
+  assert.equal(withLevel(crit(), "dealbreaker", 0.05).near_miss_margin, 0.05);
+  assert.equal(withLevel(crit({ near_miss_margin: 0.1 }), "dealbreaker", 0.05).near_miss_margin, 0.1);
+  assert.equal(withLevel(crit(), "dealbreaker").near_miss_margin, null);
+});
+
+test("withLevel does not change the criterion it was given", () => {
+  const c = crit();
+  withLevel(c, "dealbreaker", 0.05);
+  assert.equal(c.kind, "want");
+  assert.equal(c.near_miss_margin, null);
 });

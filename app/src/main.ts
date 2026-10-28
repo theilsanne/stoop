@@ -3,17 +3,17 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { initSort } from "./sort.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { closeSheetMotion, enterView, land, openSheetMotion, pop, press, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
-  S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
+  S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Tab, moveCriterion, moveInSection, reorderSection,
+  type Filter, type Lens, type Tab, setLevel,
 } from "./state.ts";
-import type { Criterion, Stage, Verdict } from "./types.ts";
+import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
+import type { Level } from "./criteria-edit.ts";
 import { changeLog, refreshBars, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
@@ -355,8 +355,8 @@ function testResult(r: TestResult) {
   console.warn("Test alert", r);
 }
 
-/** Add a write-in from the "Write your own…" box: "exposed brick" becomes a criterion that looks for those words. */
-function addWriteIn(kind: Criterion["kind"]) {
+/** Add a write-in from the "Add your own" box: "exposed brick" becomes an Important want that looks for those words. */
+function addWriteIn() {
   const box = document.getElementById("writein") as HTMLInputElement | null;
   const phrase = box?.value.trim().replace(/\s+/g, " ") ?? "";
   if (!phrase) { box?.focus(); toast("Type what to look for first, e.g. exposed brick"); return; }
@@ -364,7 +364,7 @@ function addWriteIn(kind: Criterion["kind"]) {
   if (S.draft.some((c) => c.field === "write_in:" + slug)) { toast(`You already have “${phrase}”`); return; }
   const newId = "new-" + Date.now();
   S.draft.push({
-    id: newId, owner_id: myId(), label: phrase[0].toUpperCase() + phrase.slice(1), kind,
+    id: newId, owner_id: myId(), label: phrase[0].toUpperCase() + phrase.slice(1), kind: "want",
     field: "write_in:" + slug, operator: "mentions", value: [phrase],
     weight: 5, near_miss_margin: null, active: true,
   });
@@ -495,28 +495,23 @@ document.addEventListener("click", (e) => {
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
-      case "level": draftById(id).weight = Number(v); break;
-      case "toggleadd": S.adding = !S.adding; break;
+      case "level": {
+        const row = a.closest<HTMLElement>(".pick"), wasSkip = row?.dataset.level === "skip";
+        setLevel(key ? { key } : { id }, v as Level);
+        render();
+        const now = row?.dataset.row ? document.querySelector(`.pick[data-row="${CSS.escape(row.dataset.row)}"]`) : null;
+        if (wasSkip) unfold(now?.querySelector(".detail") ?? null);
+        press(now?.querySelector('.ladder button[aria-pressed="true"]') ?? null);
+        return;
+      }
+      case "critfilter": S.critFilter = v as "all" | "picks"; save("critFilter", v); break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];
         c.value = list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
         break;
       }
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
-      case "writein": addWriteIn(v as Criterion["kind"]); return;
-      case "add": {
-        const def = allFields().find((d) => d.key === key);
-        if (!def) return;
-        const newId = "new-" + Date.now();
-        S.draft.push({
-          id: newId, owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
-          field: def.field, operator: def.operator,
-          // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
-          value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
-          weight: 5, near_miss_margin: def.unit === "money" ? 0.05 : null, active: true,
-        });
-        break;
-      }
+      case "writein": addWriteIn(); return;
       case "unmark": markWriteIn(id, null); return;
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
@@ -551,18 +546,8 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  // a criterion's grip: arrow keys move it up or down within its list; Shift+Up and Shift+Down
-  // move it to Dealbreakers (above) or Wants (below)
-  const grip = (e.target as HTMLElement).closest?.<HTMLElement>(".grip");
-  if (grip && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-    e.preventDefault();
-    const id = grip.dataset.id!;
-    const moved = e.shiftKey
-      ? moveCriterion(id, e.key === "ArrowUp" ? "dealbreaker" : "want")
-      : moveInSection(id, e.key === "ArrowUp" ? -1 : 1);
-    if (moved) { holdInPlace(grip); render(); }
-    return;
-  }
+  // the "add your own" box: Enter adds it
+  if (e.key === "Enter" && (e.target as HTMLElement).id === "writein") { e.preventDefault(); addWriteIn(); return; }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
   const tab = (e.target as HTMLElement).closest?.<HTMLElement>('nav.tabs [role="tab"]');
   if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
@@ -614,11 +599,19 @@ document.addEventListener("input", (e) => {
   if (t.type === "range") t.style.setProperty("--fill", `${Math.round(((+t.value - +t.min) / (+t.max - +t.min)) * 100)}%`);
   if (f === "label") c.label = t.value;
   else if (f === "words") c.value = t.value.split(",").map((w) => w.trim()).filter(Boolean);
-  else if (f === "active") { c.active = t.checked; render(); return; }
   else if (f === "margin") { c.near_miss_margin = +t.value ? +t.value / 100 : null; $("ml-" + c.id).textContent = t.value + "%"; }
   else if (f === "value") {
     if (c.operator === "before") c.value = t.value || c.value;
-    else if (t.value !== "") { c.value = +t.value; const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value; }
+    else if (t.value !== "") {
+      c.value = +t.value;
+      const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value;
+      // a box and the slider beside it show the same number
+      for (const twin of document.querySelectorAll<HTMLInputElement>(`[data-edit="value"][data-id="${CSS.escape(c.id)}"]`)) {
+        if (twin === t || twin.value === t.value) continue;
+        twin.value = t.value;
+        if (twin.type === "range") twin.style.setProperty("--fill", `${Math.round(((+twin.value - +twin.min) / (+twin.max - +twin.min)) * 100)}%`);
+      }
+    }
   }
   refreshBars();
   persistDraft();
@@ -680,10 +673,6 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
-initSort(
-  (section, ids) => { reorderSection(section as Criterion["kind"], ids); render(); },
-  (id, kind) => { moveCriterion(id, kind as Criterion["kind"]); render(); },
-);
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;

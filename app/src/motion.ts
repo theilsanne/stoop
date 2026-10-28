@@ -21,7 +21,7 @@ const tidy = (els: Element[], props: string[]) => () => {
  */
 export function enterView(main: Element | null, newSection = true) {
   if (!main || reduced()) return;
-  const items = [...main.querySelectorAll(".card, .mini, .panel, .crit, .cmp-sum > div, .tblwrap")].slice(0, 14);
+  const items = [...main.querySelectorAll(".card, .mini, .panel, .pick, .cmp-sum > div, .tblwrap")].slice(0, 14);
   if (!newSection) {
     if (items.length) {
       animate(items, { opacity: [0, 1] }, { duration: 0.18, ease: "easeOut", delay: stagger(0.02) })
@@ -126,18 +126,8 @@ export function slideHighlight(el: HTMLElement, dx: number, sx: number) {
     .finished.then(tidy([el], ["transform"]), () => {});
 }
 
-/** Rows sliding out of the way of a dragged one: each starts dy pixels off and slides home. */
-export function slideRows(moves: [HTMLElement, number][]) {
-  for (const [el, dy] of moves) {
-    if (reduced()) { el.style.transform = ""; continue; }
-    el.style.transform = `translateY(${dy}px)`;
-    animate(el, { y: [dy, 0] }, { duration: 0.18, ease: [0.2, 0, 0, 1] }).finished.then(tidy([el], ["transform"]), () => {});
-  }
-}
-
-/** A dragged row dropping into its slot from dy pixels away; then done(). */
-export function settleRow(el: HTMLElement, dy: number, done: () => void) {
-  if (reduced() || Math.abs(dy) < 1) { el.style.transform = ""; done(); return; }
-  animate(el, { y: [dy, 0] }, { type: "spring", stiffness: 500, damping: 38 })
-    .finished.then(() => { el.style.transform = ""; done(); }, done);
+/** The step you just picked gives a small press. */
+export function press(el: Element | null) {
+  if (!el || reduced()) return;
+  animate(el, { scale: [0.92, 1] }, { type: "spring", stiffness: 600, damping: 18 }).finished.then(tidy([el], ["transform"]), () => {});
 }

@@ -1,11 +1,9 @@
 import type { AlertState } from "./push.ts";
-import {
-  type ScorableListing, groupByOwner, scoreListing, scorePerson,
-} from "../../supabase/functions/_shared/scoring.ts";
+import type { ScorableListing } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
 import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Verdict } from "./types.ts";
 import { CATALOG, type FieldDef } from "./catalog.ts";
-import { moveToSection } from "./criteria-edit.ts";
+import { IMPORTANT_WEIGHT, type Level, withLevel } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
@@ -37,46 +35,11 @@ export interface State {
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
-  adding: boolean;         // the "Add a criterion" menu on the Criteria page is open
+  critFilter: "all" | "picks"; // Criteria shows every feature, or only the ones I've picked
   alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
-
-/** Put one list's criteria in the given order, leaving the other list where it is. */
-export function reorderSection(section: Criterion["kind"], ids: string[]) {
-  const slots = S.draft.flatMap((c, i) => (c.kind === section ? [i] : []));
-  const byId = new Map(S.draft.map((c) => [c.id, c]));
-  if (ids.length !== slots.length || ids.some((id) => !byId.has(id))) return;
-  slots.forEach((slot, k) => { S.draft[slot] = byId.get(ids[k])!; });
-}
-
-/** Move one criterion up (-1) or down (1) within its list. */
-export function moveInSection(id: string, dir: -1 | 1) {
-  const c = S.draft.find((x) => x.id === id);
-  if (!c) return false;
-  const ids = S.draft.filter((x) => x.kind === c.kind).map((x) => x.id);
-  const i = ids.indexOf(id), j = i + dir;
-  if (j < 0 || j >= ids.length) return false;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
-  reorderSection(c.kind, ids);
-  return true;
-}
-
-/** Switch a criterion to the other list (a dealbreaker or a want). Returns false if nothing changed. */
-export function moveCriterion(id: string, kind: Criterion["kind"]) {
-  const next = moveToSection(S.draft, id, kind);
-  if (next === S.draft) return false;
-  S.draft = next;
-  return true;
-}
-
-/** How a criterion differs from what's saved: "new" (not saved yet), "moved" (switched lists), or null. */
-export function pendingOf(c: Criterion): "new" | "moved" | null {
-  const saved = myCriteria().find((x) => x.id === c.id);
-  if (!saved) return "new";
-  return saved.kind !== c.kind ? "moved" : null;
-}
 
 export function initState(api: Api) {
   Object.assign(S, {
@@ -84,7 +47,8 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", adding: false,
+    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
+    critFilter: store<"all" | "picks">("critFilter", "all"),
   } satisfies State);
 }
 
@@ -180,18 +144,8 @@ function scorable(row: FeedRow): ScorableListing {
   return { ...row, amenities: row.amenities ?? {}, building, commutes: row.commutes ?? {} };
 }
 
-/** Score every listing locally with a candidate version of my criteria (for the editor preview). */
-export function previewCounts(mine: Criterion[]) {
-  const others = partnerCriteria().filter((c) => c.active);
-  const minePass = { pass: 0, near: 0 }, both = { pass: 0 };
-  const byOwner = groupByOwner([...mine.filter((c) => c.active).map((c) => ({ ...c, owner_id: myId() })), ...others]);
-  for (const row of S.feed) {
-    const p = scorePerson(mine.filter((c) => c.active), scorable(row));
-    if (p.passes) minePass.pass++; else if (p.near_miss) minePass.near++;
-    if (scoreListing(byOwner, scorable(row)).passes) both.pass++;
-  }
-  return { mine: minePass, both };
-}
+/** Every listing in my feed, in the shape scoring wants (for the Criteria page's live numbers). */
+export const scorableRows = (): ScorableListing[] => S.feed.map(scorable);
 
 // ---------- places ----------
 /** "Office", or "Noah's office" for the other person's place. */
@@ -214,3 +168,39 @@ export const neighborhoods = () => {
   for (const r of S.feed) if (r.neighborhood) counts.set(r.neighborhood, (counts.get(r.neighborhood) ?? 0) + 1);
   return counts;
 };
+
+// ---------- how much each feature matters ----------
+let newCount = 0;
+
+/** A criterion for a catalog feature, ready to go on my list. */
+function newCriterion(def: FieldDef): Criterion {
+  return {
+    id: `new-${Date.now()}-${newCount++}`, owner_id: myId(), label: def.label, kind: "want",
+    field: def.field, operator: def.operator,
+    // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
+    value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
+    weight: IMPORTANT_WEIGHT, near_miss_margin: null, active: true,
+  };
+}
+
+/** My criterion for a catalog feature, if I've picked it. */
+export const criterionFor = (def: Pick<FieldDef, "field" | "operator">) =>
+  S.draft.find((c) => c.field === def.field && c.operator === def.operator);
+
+/**
+ * Set how much a feature matters to me. A feature you haven't touched gets its criterion on the
+ * first pick. Skip turns a saved one off, keeping its settings; one that was never saved just goes.
+ * Name a catalog feature by its key, or one of your own by its criterion id.
+ */
+export function setLevel(target: { key?: string; id?: string }, level: Level) {
+  const def = target.key ? allFields().find((d) => d.key === target.key) : undefined;
+  let c = target.id ? S.draft.find((x) => x.id === target.id) : def && criterionFor(def);
+  if (!c) {
+    if (!def || level === "skip") return;
+    c = newCriterion(def);
+    S.draft.push(c);
+  }
+  const keep = c;
+  if (level === "skip" && !myCriteria().some((x) => x.id === keep.id)) { S.draft = S.draft.filter((x) => x !== keep); return; }
+  S.draft[S.draft.indexOf(keep)] = withLevel(keep, level, def?.unit === "money" ? 0.05 : null);
+}
