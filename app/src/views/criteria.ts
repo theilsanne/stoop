@@ -1,10 +1,10 @@
 import { icon } from "../icons.ts";
 import { PARENT_HOOD, defFor, type FieldDef } from "../catalog.ts";
-import { LEVELS, type Level, levelOf } from "../criteria-edit.ts";
+import { LEVELS, type Level, differ, levelOf } from "../criteria-edit.ts";
 import { biggestCut, coverage, dropCount, histogram, mood, preview } from "../criteria-impact.ts";
 import { liveBar } from "../motion.ts";
 import type { ScorableListing } from "../../../supabase/functions/_shared/scoring.ts";
-import { S, allFields, criterionFor, draftDirty, nameOf, neighborhoods, partnerCriteria, partnerName, scorableRows } from "../state.ts";
+import { S, THEIRS, allFields, criterionFor, draftDirty, nameOf, neighborhoods, partner, partnerCriteria, partnerName, personScore, scorableRows } from "../state.ts";
 import type { CriteriaChange, Criterion, FeedRow } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
@@ -29,7 +29,9 @@ function valueText(c: Partial<Criterion>): string {
 function hoodChips(c: Criterion) {
   const counts = neighborhoods();
   const chosen = new Set(c.value as string[]);
-  const names = [...new Set([...counts.keys(), ...chosen])];
+  const theirList = partnerCriteria().find((x) => x.field === c.field && x.operator === c.operator && x.active)?.value as string[] | undefined;
+  const theirs = new Set(theirList ?? []);
+  const names = [...new Set([...counts.keys(), ...chosen, ...theirs])];
   // group sub-neighborhoods under their parent, biggest groups first
   const groups = new Map<string, string[]>();
   for (const n of names) {
@@ -39,13 +41,13 @@ function hoodChips(c: Criterion) {
   const size = (ns: string[]) => ns.reduce((a, n) => a + (counts.get(n) ?? 0), 0);
   const ordered = [...groups.entries()].sort((a, b) => size(b[1]) - size(a[1]) || a[0].localeCompare(b[0]));
   const chip = (n: string) =>
-    `<button class="hchip" data-action="hood" data-id="${c.id}" data-v="${esc(n)}" aria-pressed="${chosen.has(n)}">${esc(n)} <span class="n">${counts.get(n) ?? 0}</span></button>`;
+    `<button class="hchip${theirs.has(n) ? " theirs" : ""}" data-action="hood" data-id="${c.id}" data-v="${esc(n)}" aria-pressed="${chosen.has(n)}"${theirs.has(n) ? ` title="${esc(partnerName())} picked this too"` : ""}>${esc(n)} <span class="n">${counts.get(n) ?? 0}</span></button>`;
   return `<div class="hgroups">${ordered.map(([parent, ns]) => {
     ns.sort((a, b) => (a === parent ? -1 : b === parent ? 1 : (counts.get(b) ?? 0) - (counts.get(a) ?? 0)));
     // a neighborhood with StreetEasy sub-areas stays together in one light pill
     return `<div class="hgroup${ns.length > 1 ? " multi" : ""}">${ns.map(chip).join("")}</div>`;
   }).join("")}</div>
-  <p class="small">Numbers are current listings. StreetEasy splits some areas: Stuyvesant Heights and Ocean Hill are part of Bed-Stuy, Weeksville is part of Crown Heights.</p>`;
+  <p class="small">Numbers are current listings. StreetEasy splits some areas: Stuyvesant Heights and Ocean Hill are part of Bed-Stuy, Weeksville is part of Crown Heights.${theirList ? ` A dot means ${esc(partnerName())} picked it too.` : ""}</p>`;
 }
 
 /** A slider, with its filled part drawn up to the current value. */
@@ -99,28 +101,45 @@ function control(c: Criterion, listings: ScorableListing[]) {
 
 // ---------- one row per feature ----------
 
-interface Row { key: string; group: string; label: string; info: string; def?: FieldDef; c: Criterion | null; level: Level }
+interface Row {
+  key: string; group: string; label: string; info: string; def?: FieldDef;
+  c: Criterion | null;        // mine
+  theirs: Criterion | null;   // my partner's, for the same feature
+  diff: "" | "level" | "line"; // how we differ
+  level: Level;
+}
 
 const GROUPS = ["Basics", "Apartment", "Building", "Commute"] as const;
 const WRITE_IN_INFO = "Looks for these words in each listing's description. If a listing mentions them but doesn't mean it, untick it on that listing and the score updates.";
 const OWN = "Your own";
 
-/** Every feature you can care about, with my criterion for it if I've picked one; then anything of my own. */
+/**
+ * Every feature you can care about, with my criterion and my partner's for it; then anything of my
+ * own; then anything of my partner's that I don't have yet, ready to pick up.
+ */
 function rows(): Row[] {
-  const used = new Set<string>();
+  const used = new Set<string>(), theirsOf = (f: Pick<Criterion, "field" | "operator">) =>
+    partnerCriteria().find((x) => x.field === f.field && x.operator === f.operator) ?? null;
+  const seen = new Set<string>();
+  const row = (r: Omit<Row, "diff" | "level">): Row => {
+    if (r.theirs) seen.add(r.theirs.id);
+    return { ...r, diff: differ(r.c, r.theirs), level: levelOf(r.c) };
+  };
   const out: Row[] = allFields().map((def) => {
     const c = criterionFor(def) ?? null;
     if (c) used.add(c.id);
-    return { key: def.key, group: def.group, label: c?.label ?? def.label, info: def.info, def, c, level: levelOf(c) };
+    return row({ key: def.key, group: def.group, label: c?.label ?? def.label, info: def.info, def, c, theirs: theirsOf(def) });
   });
-  for (const c of S.draft) if (!used.has(c.id)) out.push({ key: c.id, group: OWN, label: c.label, info: c.operator === "mentions" ? WRITE_IN_INFO : "", c, level: levelOf(c) });
+  for (const c of S.draft) if (!used.has(c.id)) out.push(row({ key: c.id, group: OWN, label: c.label, info: c.operator === "mentions" ? WRITE_IN_INFO : "", c, theirs: theirsOf(c) }));
+  for (const t of partnerCriteria()) if (!seen.has(t.id)) out.push(row({ key: THEIRS + t.id, group: OWN, label: t.label, info: t.operator === "mentions" ? WRITE_IN_INFO : "", c: null, theirs: t }));
   return out;
 }
 
 /** A criterion to measure the market with: mine if I have one, otherwise the feature at its starting value. */
 function probe(r: Row): Criterion | null {
   if (r.c) return r.c;
-  const d = r.def!;
+  if (!r.def) return r.theirs ? { ...r.theirs, id: "probe", active: true } : null;
+  const d = r.def;
   if (d.operator === "in") return null; // every neighborhood at once says nothing
   return { id: "probe", owner_id: "", label: d.label, kind: "want", field: d.field, operator: d.operator, value: structuredClone(d.value), weight: 5, near_miss_margin: null, active: true };
 }
@@ -136,14 +155,15 @@ function statHTML(r: Row, listings: ScorableListing[]) {
   return `<span>${fit} of ${total} ${what}</span>${known < total ? `<span class="faint">${total - known} unknown</span>` : ""}${cut ? `<span class="cut">drops ${cut}</span>` : ""}`;
 }
 
-/** What my partner picked for the same feature. */
+/** What my partner picked for the same feature: green where we agree, amber where we differ, with their number when it differs. */
 function theirsHTML(r: Row) {
-  const f = r.def ?? r.c;
-  const p = f && partnerCriteria().find((x) => x.field === f.field && x.operator === f.operator);
-  const lv = levelOf(p);
-  if (lv === "skip") return "";
+  if (!partner()) return "";
+  const lv = levelOf(r.theirs);
+  if (lv === "skip" && r.level === "skip") return "";
   const label = LEVELS.find((l) => l.key === lv)!.label;
-  return `<span class="theirs${lv === r.level ? " same" : ""}" title="${esc(partnerName())} picked ${label}${lv === r.level ? ", the same as you" : ""}">${esc(partnerName())}: ${label}</span>`;
+  const line = lv !== "skip" && r.diff ? valueText(r.theirs!) : "";
+  const text = `${partnerName()}: ${label}${line ? `, ${line}` : ""}`;
+  return `<span class="theirs ${r.diff ? "differ" : "same"}" title="${esc(text)}. ${r.diff ? "You differ." : "The same as you."}">${esc(text)}</span>`;
 }
 
 function ladder(r: Row) {
@@ -168,7 +188,7 @@ function pick(r: Row, listings: ScorableListing[]) {
     <span class="steps" data-n="${STEPS[r.level]}" aria-hidden="true"><i></i><i></i><i></i></span>
     <div class="pick-head">
       <h3 class="lbl">${esc(r.label)}</h3>${r.info ? `<button class="info" data-action="info" data-v="${esc(r.key)}" aria-expanded="${S.infoOpen.has(r.key)}" aria-label="About ${esc(r.label)}" title="What does this mean?">${icon("info", { size: 16 })}</button>` : ""}
-      ${r.def ? "" : `<button class="iconbtn remove" data-action="remove" data-id="${r.key}" aria-label="Remove ${esc(r.label)}" title="Remove">${icon("trash", { size: 18 })}</button>`}
+      ${r.def || !r.c ? "" : `<button class="iconbtn remove" data-action="remove" data-id="${r.key}" aria-label="Remove ${esc(r.label)}" title="Remove">${icon("trash", { size: 18 })}</button>`}
       <div class="stat" data-stat="${esc(r.key)}">${statHTML(r, listings)}</div>${theirsHTML(r)}
     </div>
     ${ladder(r)}
@@ -274,10 +294,34 @@ function changeText(ch: CriteriaChange) {
   return parts.length ? `${a.label}: ${parts.join(", ")}` : "";
 }
 
+/** Listings one of you would keep and the other wouldn't, or that you score 20 or more points apart: good ones to talk through. */
+function splitsSection() {
+  const splits = S.feed.map((row) => ({ row, me: personScore(row, "me"), them: personScore(row, "partner") }))
+    .filter((x) => x.me && x.them && (x.me.passes !== x.them.passes || (x.me.passes && Math.abs(x.me.score - x.them.score) >= 20)))
+    .sort((x, y) => Math.abs(y.me!.score - y.them!.score) - Math.abs(x.me!.score - x.them!.score));
+  const cell = (p: { passes: boolean; score: number }) => (p.passes ? `<b>${p.score}</b>` : '<span class="out">Out</span>');
+  const name = esc(partnerName());
+  return `<section class="sect"><h2>Listings you'd split on</h2><p class="lede">One of you would keep it and the other wouldn't, or your scores are 20 or more points apart. Good ones to talk through.${draftDirty() ? " Based on what's saved, not your unsaved edits." : ""}</p>
+    ${splits.length ? `<div class="pairs splits" role="table" aria-label="Listings you'd split on">
+    <div class="pair pair-head" role="row"><span role="columnheader">Listing</span><span role="columnheader">You</span><span role="columnheader">${name}</span><span role="columnheader">Why</span></div>
+    ${splits.slice(0, 40).map(({ row, me, them }) => {
+      const why = [...me!.failed.map((f) => "You: " + f), ...them!.failed.map((f) => partnerName() + ": " + f)];
+      return `<div class="pair" role="row">
+        <span class="pair-name" role="rowheader"><button class="linkish" data-open="${row.id}">${esc(row.address)}</button><span class="small">${esc(row.neighborhood)} · ${money(row.net_effective_rent ?? row.price)} net</span></span>
+        <span class="pair-a score-cell" role="cell"><span class="who">You</span>${cell(me!)}</span>
+        <span class="pair-b score-cell" role="cell"><span class="who">${name}</span>${cell(them!)}</span>
+        <span class="pair-how small" role="cell">${why.length ? esc(why.join("; ")) : "Different wants and weights"}</span>
+      </div>`;
+    }).join("")}</div>` : '<div class="empty">You agree on every listing right now.</div>'}</section>`;
+}
+
 export function renderCriteria() {
   const listings = scorableRows(), all = rows(), log = changeLog.rows;
+  const together = !!partner();
+  const mode = !together && S.critFilter === "differ" ? "all" : S.critFilter;
   const picked = all.filter((r) => r.level !== "skip").length;
-  const shown = S.critFilter === "picks" ? all.filter((r) => r.level !== "skip" || r.group === OWN) : all;
+  const cared = all.filter((r) => r.level !== "skip" || levelOf(r.theirs) !== "skip"), differs = cared.filter((r) => r.diff).length;
+  const shown = mode === "picks" ? all.filter((r) => r.level !== "skip" || r.group === OWN) : mode === "differ" ? all.filter((r) => r.diff) : all;
   const section = (g: string) => {
     const rs = shown.filter((r) => r.group === g);
     if (!rs.length && g !== OWN) return "";
@@ -287,9 +331,12 @@ export function renderCriteria() {
   };
   return `<div class="critbar"><div class="impact" id="impact">${impactHTML()}</div></div>
     <p class="lede">How much does each one matter? Skip it, call it Nice or Important, or make it a Dealbreaker, and listings without it drop out of your feed.</p>
-    <div class="critfilter"><div class="seg" role="group" aria-label="Show"><button data-action="critfilter" data-v="all" aria-pressed="${S.critFilter === "all"}">Everything</button><button data-action="critfilter" data-v="picks" aria-pressed="${S.critFilter === "picks"}">My picks <span class="n">${picked}</span></button></div></div>
-    ${S.critFilter === "picks" && !picked ? '<div class="empty">Nothing picked yet. Switch to Everything and tap a step on anything you care about.</div>' : ""}
+    <div class="critfilter"><div class="seg" role="group" aria-label="Show"><button data-action="critfilter" data-v="all" aria-pressed="${mode === "all"}">Everything</button><button data-action="critfilter" data-v="picks" aria-pressed="${mode === "picks"}">My picks <span class="n">${picked}</span></button>${together ? `<button data-action="critfilter" data-v="differ" aria-pressed="${mode === "differ"}">We differ <span class="n">${differs}</span></button>` : ""}</div>${together ? `
+      <span class="agree">You agree on ${cared.length - differs} of ${cared.length} picks.</span><button class="linkish" data-action="peek" data-v="partner">See the feed as ${esc(partnerName())}</button>` : ""}</div>
+    ${mode === "picks" && !picked ? '<div class="empty">Nothing picked yet. Switch to Everything and tap a step on anything you care about.</div>' : ""}
+    ${mode === "differ" && !differs ? `<div class="empty">You and ${esc(partnerName())} agree on everything either of you has picked.</div>` : ""}
     ${[...GROUPS, OWN].map(section).join("")}
+    ${together ? splitsSection() : ""}
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     ${historySection(log)}
     <div id="savebar">${savebarHTML()}</div>`;

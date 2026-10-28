@@ -113,6 +113,7 @@ export class DemoApi implements Api {
     C(PARTNER, "Dishwasher", "want", "amenities.dishwasher", "is_true", null, 7),
     C(PARTNER, "Outdoor space", "want", "amenities.outdoor_space", "is_true", null, 9),
     C(PARTNER, "Elevator", "want", "amenities.elevator", "is_true", null, 3),
+    C(PARTNER, "Exposed brick", "want", "write_in:exposed-brick", "mentions", ["exposed brick"], 6),
   ];
   private markRows = new Map<string, boolean>(); // "criterion|listing" -> met
   private ratingRows: Rating[] = [

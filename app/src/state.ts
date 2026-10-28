@@ -6,7 +6,7 @@ import { CATALOG, type FieldDef } from "./catalog.ts";
 import { IMPORTANT_WEIGHT, type Level, withLevel } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
 
-export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
+export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
 export type Filter = "passing" | "near" | "other";
 export type Sort = "score" | "newest" | "rent";
@@ -37,20 +37,26 @@ export interface State {
   sentLinkTo: string | null;
   historyOpen: boolean;    // Criteria → Change history expanded (remembered on this device)
   infoOpen: Set<string>;   // Criteria rows with their (i) explanation open, by row key
-  critFilter: "all" | "picks"; // Criteria shows every feature, or only the ones I've picked
+  critFilter: "all" | "picks" | "differ"; // Criteria shows every feature, only the ones I've picked, or only where we differ
   alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
 
+/** The tab to open on: the one used last, except Compare, which now lives inside Criteria. */
+function savedTab(): Tab {
+  const t = store<string>("tab", "feed");
+  return (t === "compare" ? "criteria" : t) as Tab;
+}
+
 export function initState(api: Api) {
   Object.assign(S, {
     api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
-    tab: store<Tab>("tab", "feed"), lens: "both",
+    tab: savedTab(), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
     loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
-    critFilter: store<"all" | "picks">("critFilter", "all"),
+    critFilter: store<"all" | "picks" | "differ">("critFilter", "all"),
     historyOpen: store<boolean>("historyOpen", false),
     infoOpen: new Set(),
   } satisfies State);
@@ -198,11 +204,15 @@ export const neighborhoods = () => {
 
 // ---------- how much each feature matters ----------
 let newCount = 0;
+const newId = () => `new-${Date.now()}-${newCount++}`;
+
+/** Prefix on the key of a row that is my partner's own criterion, with no match on my list yet. */
+export const THEIRS = "their:";
 
 /** A criterion for a catalog feature, ready to go on my list. */
 function newCriterion(def: FieldDef): Criterion {
   return {
-    id: `new-${Date.now()}-${newCount++}`, owner_id: myId(), label: def.label, kind: "want",
+    id: newId(), owner_id: myId(), label: def.label, kind: "want",
     field: def.field, operator: def.operator,
     // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
     value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
@@ -217,14 +227,18 @@ export const criterionFor = (def: Pick<FieldDef, "field" | "operator">) =>
 /**
  * Set how much a feature matters to me. A feature you haven't touched gets its criterion on the
  * first pick. Skip turns a saved one off, keeping its settings; one that was never saved just goes.
- * Name a catalog feature by its key, or one of your own by its criterion id.
+ * Name a catalog feature by its key, or one of your own by its criterion id. A THEIRS id picks up
+ * one of my partner's own criteria and puts a copy on my list.
  */
 export function setLevel(target: { key?: string; id?: string }, level: Level) {
   const def = target.key ? allFields().find((d) => d.key === target.key) : undefined;
-  let c = target.id ? S.draft.find((x) => x.id === target.id) : def && criterionFor(def);
+  const theirs = target.id?.startsWith(THEIRS) ? partnerCriteria().find((x) => THEIRS + x.id === target.id) : undefined;
+  let c = theirs ? undefined : target.id ? S.draft.find((x) => x.id === target.id) : def && criterionFor(def);
   if (!c) {
-    if (!def || level === "skip") return;
-    c = newCriterion(def);
+    if (level === "skip" || (!def && !theirs)) return;
+    c = theirs
+      ? { ...clone(theirs), id: newId(), owner_id: myId(), kind: "want", weight: IMPORTANT_WEIGHT, active: true }
+      : newCriterion(def!);
     S.draft.push(c);
   }
   const keep = c;

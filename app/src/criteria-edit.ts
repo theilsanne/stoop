@@ -44,3 +44,18 @@ export function withLevel(c: Criterion, level: Level, nearMiss: number | null = 
     case "dealbreaker": return { ...c, kind: "dealbreaker", active: true, near_miss_margin: c.near_miss_margin ?? nearMiss };
   }
 }
+
+const sorted = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : v ?? null);
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
+
+/**
+ * How my pick and my partner's differ on one feature. "" when we agree, or neither of us picked it;
+ * "level" when we care by different amounts (including one of us skipping it); "line" when we care
+ * the same amount about a different number, date or list.
+ */
+export function differ(mine: Criterion | null, theirs: Criterion | null): "" | "level" | "line" {
+  const a = levelOf(mine), b = levelOf(theirs);
+  if (a === "skip" && b === "skip") return "";
+  if (a !== b) return "level";
+  return sameValue(mine!.value, theirs!.value) ? "" : "line";
+}

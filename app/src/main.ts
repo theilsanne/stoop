@@ -15,7 +15,6 @@ import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import type { Level } from "./criteria-edit.ts";
 import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/criteria.ts";
-import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
@@ -33,13 +32,12 @@ initState(api);
 const $ = (id: string) => document.getElementById(id)!;
 
 // ---------- rendering ----------
-const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"], ["compare", "Compare"]];
+const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"]];
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
   if (t === "pipeline") return S.feed.filter((r) => r.stage !== "new" && r.stage !== "passed").length;
   if (t === "criteria") return S.draft.filter((c) => c.active).length;
-  if (t === "compare") return diffRows().filter((r) => r.how).length;
   return "";
 }
 
@@ -122,7 +120,7 @@ export function render() {
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
-      feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
+      feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, settings: renderSettings,
     }[S.tab]()}</main>`;
   placeIndicators(root, inds);
   syncTabsHeight();
@@ -523,7 +521,7 @@ document.addEventListener("click", (e) => {
         if (opening) unfold(document.querySelector(`.pick[data-row="${CSS.escape(v)}"] .about`));
         return;
       }
-      case "critfilter": S.critFilter = v as "all" | "picks"; save("critFilter", v); break;
+      case "critfilter": S.critFilter = v as typeof S.critFilter; save("critFilter", v); break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];
         c.value = list.includes(v) ? list.filter((x) => x !== v) : [...list, v];

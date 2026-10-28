@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Criterion } from "../supabase/functions/_shared/scoring.ts";
-import { levelOf, withLevel } from "../app/src/criteria-edit.ts";
+import { differ, levelOf, withLevel } from "../app/src/criteria-edit.ts";
 
 const crit = (o: Partial<Criterion> = {}): Criterion => ({
   id: "c", owner_id: "you", label: "c", kind: "want", field: "beds", operator: "gte", value: 2,
@@ -61,4 +61,34 @@ test("withLevel does not change the criterion it was given", () => {
   withLevel(c, "dealbreaker", 0.05);
   assert.equal(c.kind, "want");
   assert.equal(c.near_miss_margin, null);
+});
+
+test("two picks agree when the step and the line are the same", () => {
+  assert.equal(differ(crit({ value: 3600, kind: "dealbreaker" }), crit({ value: 3600, kind: "dealbreaker" })), "");
+});
+
+test("neither of you picking a feature is not a difference", () => {
+  assert.equal(differ(null, null), "");
+  assert.equal(differ(crit({ active: false }), null), "");
+});
+
+test("caring by different amounts differs, including one of you skipping", () => {
+  assert.equal(differ(crit({ kind: "dealbreaker" }), crit({ weight: 2 })), "level");
+  assert.equal(differ(crit(), null), "level");
+  assert.equal(differ(null, crit()), "level");
+  assert.equal(differ(crit(), crit({ active: false })), "level");
+});
+
+test("the same step on a different number is a different line", () => {
+  assert.equal(differ(crit({ kind: "dealbreaker", value: 3600 }), crit({ kind: "dealbreaker", value: 3800 })), "line");
+});
+
+test("two weights that both read as Important agree", () => {
+  assert.equal(differ(crit({ weight: 8 }), crit({ weight: 5 })), "");
+});
+
+test("neighborhood lists agree whatever order they were ticked in, and differ when the members do", () => {
+  const hood = (value: string[]) => crit({ kind: "dealbreaker", operator: "in", value });
+  assert.equal(differ(hood(["A", "B"]), hood(["B", "A"])), "");
+  assert.equal(differ(hood(["A", "B"]), hood(["A"])), "line");
 });

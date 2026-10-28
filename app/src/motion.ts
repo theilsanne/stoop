@@ -21,7 +21,7 @@ const tidy = (els: Element[], props: string[]) => () => {
  */
 export function enterView(main: Element | null, newSection = true) {
   if (!main || reduced()) return;
-  const items = [...main.querySelectorAll(".card, .mini, .panel, .pick, .cmp-sum > div, .tblwrap")].slice(0, 14);
+  const items = [...main.querySelectorAll(".card, .mini, .panel, .pick")].slice(0, 14);
   if (!newSection) {
     if (items.length) {
       animate(items, { opacity: [0, 1] }, { duration: 0.18, ease: "easeOut", delay: stagger(0.02) })
