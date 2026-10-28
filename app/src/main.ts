@@ -3,7 +3,8 @@ import { SupabaseApi, type Api } from "./api.ts";
 import { CATALOG } from "./catalog.ts";
 import { DemoApi } from "./demo.ts";
 import {
-  S, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, ratingOf, resetDraft, verdictOf,
+  S, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, persistDraft, ratingOf, resetDraft,
+  restoreDraft, verdictOf,
   type Filter, type Lens, type Sort, type Tab,
 } from "./state.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
@@ -37,6 +38,7 @@ function tabCount(t: Tab) {
 }
 
 export function render() {
+  persistDraft();
   const root = $("app");
   if (!S.me) {
     root.innerHTML = S.loading ? '<div class="loading">Loading…</div>' : renderSignIn();
@@ -78,7 +80,10 @@ async function load() {
   try {
     const [profiles, feed, ratings, criteria] = await Promise.all([api.profiles(), api.feed(), api.ratings(), api.criteria()]);
     Object.assign(S, { profiles, feed, ratings, criteria });
-    resetDraft();
+    resetDraft(false);
+    const restored = restoreDraft();
+    if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
+    if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
     S.error = null;
   } catch (e) {
     S.error = e instanceof Error ? e.message : String(e);
@@ -183,7 +188,7 @@ document.addEventListener("click", (e) => {
     switch (action) {
       case "closesheet": if (t === a) { S.openId = null; $("sheet-root").innerHTML = ""; } return;
       case "tab":
-        if (S.tab === "criteria" && v !== "criteria" && draftDirty()) toast("Your criteria edits aren't saved yet.");
+        if (S.tab === "criteria" && v !== "criteria" && draftDirty()) toast("Your criteria edits aren't saved yet. They're kept on this device until you save or discard them.");
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
         if (v === "criteria" && changeLog.rows == null) loadLog();
         break;
@@ -262,6 +267,7 @@ document.addEventListener("input", (e) => {
     else if (t.value !== "") { c.value = +t.value; const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value; }
   }
   refreshImpact();
+  persistDraft();
 });
 
 document.addEventListener("submit", async (e) => {

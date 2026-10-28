@@ -3,7 +3,7 @@ import {
 } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
 import type { Criterion, FeedRow, Me, PersonScore, Profile, Rating, Verdict } from "./types.ts";
-import { clone, store } from "./util.ts";
+import { clone, save, store } from "./util.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
 export type Lens = "both" | "me" | "partner";
@@ -55,7 +55,36 @@ export const nameOf = (id: string) => (id === myId() ? "You" : id === partnerId(
 export const myCriteria = () => S.criteria.filter((c) => c.owner_id === myId());
 export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === partnerId());
 export const draftDirty = () => JSON.stringify(myCriteria()) !== JSON.stringify(S.draft);
-export function resetDraft() { S.draft = clone(myCriteria()); }
+
+// ---------- unsaved criteria edits ----------
+// Kept on this device so they survive a reload, a new tab, or closing the app.
+interface StoredDraft { user: string; base: string; draft: Criterion[]; at: number }
+
+/** Start the draft over from what's saved. clearStored=false keeps any edits waiting on this device. */
+export function resetDraft(clearStored = true) {
+  S.draft = clone(myCriteria());
+  if (clearStored) save("draft", null);
+}
+
+/** Remember the current draft on this device (or forget it once it matches what's saved). */
+export function persistDraft() {
+  if (!S.me || S.loading) return;
+  save("draft", draftDirty()
+    ? ({ user: myId(), base: JSON.stringify(myCriteria()), draft: S.draft, at: Date.now() } satisfies StoredDraft)
+    : null);
+}
+
+/**
+ * On load, bring back unsaved edits from an earlier visit.
+ * "stale" = your saved criteria changed since (e.g. saved from another device), so the edits were dropped.
+ */
+export function restoreDraft(): "restored" | "stale" | null {
+  const d = store<StoredDraft | null>("draft", null);
+  if (!d || d.user !== myId()) return null;
+  if (d.base !== JSON.stringify(myCriteria())) { save("draft", null); return "stale"; }
+  S.draft = clone(d.draft);
+  return draftDirty() ? "restored" : null;
+}
 
 // ---------- ratings ----------
 export const ratingOf = (listingId: string, userId: string): Rating | undefined =>
