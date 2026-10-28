@@ -58,7 +58,7 @@ export function renderSheet() {
   const theirNote = ratingOf(row.id, partnerId())?.note;
   const pts = history.get(row.id);
 
-  return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}">
+  return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}" data-stamp-id="${row.id}">
     <div class="sheet-head">
       <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
         <div class="hood">${esc(row.neighborhood)}</div></div>

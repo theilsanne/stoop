@@ -19,7 +19,7 @@ import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
-import { dragStamp, inkDefs, inkOf, myFace } from "./views/stamps.ts";
+import { inkDefs, inkOf, myFace, seal } from "./views/stamps.ts";
 import { mountStamp } from "./stamp3d.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
@@ -119,10 +119,11 @@ export function render() {
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
-    }[S.tab]()}</main>${S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length ? dragStamp() : ""}`;
+    }[S.tab]()}</main>`;
   placeIndicators(root, inds);
-  stamp.setShown(S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0);
-  stamp.setFace(myFace(), inkOf(myId()));
+  // the stamp is at hand on the list, and while a listing's sheet is open, where you can stamp it
+  stamp.setShown((S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0) || !!S.openId);
+  stamp.setFace(myFace(), inkOf(myId()), seal(myFace(), { size: 72, tilt: -8 }));
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);

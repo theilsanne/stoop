@@ -1,7 +1,7 @@
 /* Layout: app shell — header + tab bar, then one working view at a time (feed grid, pipeline columns, criteria rows, alerts). Subway-bullet commute lines as the subject detail. */
 :root{
   --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7ece9; --ink:#15201a; --ink-2:#56645c; --line:#d3dcd6;
-  --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2;
+  --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2; --seal-0:#c23a2b; --seal-1:#24479a;
   --good:#1b7a44; --good-soft:#dcf0e3; --warn:#9a5c00; --warn-soft:#fbecd2; --bad:#bb3227; --bad-soft:#f9dfdc;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06);
   --display:'Archivo','Arial Narrow',system-ui,sans-serif;
@@ -10,12 +10,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
-  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
+  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
-  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
+  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
 
@@ -466,8 +466,10 @@ img.av{object-fit:cover;background:var(--surface-2)}
 /* ---- stamps: seals printed in ink on a listing. They stay. ---- */
 /* on a card's photo, bottom left. The ink multiplies into the photo like a real print.
    stamp3d.ts aims for the first seal's spot, so keep its SEAL_* numbers in step with these. */
-.impressions{position:absolute;left:6px;bottom:4px;z-index:2;display:flex;align-items:flex-end;mix-blend-mode:multiply;opacity:.92;pointer-events:none}
+.impressions{position:absolute;left:6px;bottom:4px;z-index:2;display:flex;align-items:flex-end;pointer-events:none}
 .impressions .seal + .seal{margin:0 0 10px -30px}
+/* each seal sits on a disc of the theme's surface, so the lettering reads over any photo */
+.impressions .seal{background:var(--surface);border-radius:50%;box-shadow:0 0 0 1px var(--line),0 2px 8px rgba(0,0,0,.28)}
 .seal{display:block;flex:none;rotate:var(--tilt,0deg);overflow:visible}
 .seal-ring{font-family:Archivo,"Arial Narrow",sans-serif;font-weight:800;font-stretch:75%;font-size:7.4px;letter-spacing:.15px}
 .seal-initials{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:33px}
@@ -475,7 +477,7 @@ img.av{object-fit:cover;background:var(--surface-2)}
 
 /* on the listing sheet: the seals on a slip of paper, then who stamped it when */
 .stamp-band{flex-direction:row;align-items:center;flex-wrap:wrap;gap:16px}
-.stamp-band .paper{display:flex;align-items:center;padding:8px 16px;border-radius:10px;isolation:isolate;
+.stamp-band .paper{display:flex;align-items:center;padding:8px;min-width:210px;border-radius:10px;isolation:isolate;
   background:#f4eee2 radial-gradient(circle at 30% 20%,rgba(255,255,255,.55),transparent 60%);
   box-shadow:inset 0 0 0 1px rgba(60,40,20,.08),0 1px 3px rgba(0,0,0,.14)}
 .stamp-band .paper .seal{mix-blend-mode:multiply}
@@ -485,7 +487,7 @@ img.av{object-fit:cover;background:var(--surface-2)}
 
 /* your stamp on its ink pad, bottom right in the list view. It's drawn in WebGL over this button
    (stamp3d.ts), which is the hit area; the button's width sets how big they're drawn. */
-.drag-stamp{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25;
+.drag-stamp{position:fixed;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25;
   display:grid;place-items:center;width:136px;height:136px;padding:0;border:0;border-radius:18px;background:none;color:inherit;
   cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 @media (max-width:600px){.drag-stamp{width:108px;height:108px}}
@@ -493,10 +495,12 @@ img.av{object-fit:cover;background:var(--surface-2)}
 .drag-stamp:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 /* with WebGL the flat seal is hidden: the stamp on its pad is what you see */
 .drag-stamp.gl > *{opacity:0}
+.drag-stamp[hidden]{display:none}
 /* the WebGL canvas over the page. It takes no clicks: the button under it does */
 .stamp-gl{position:fixed;inset:0;width:100%;height:100%;z-index:26;pointer-events:none}
 /* the listing your stamp is over while you carry it */
-.card.drop-target{box-shadow:0 0 0 2px var(--accent),var(--shadow);transform:translateY(-2px)}
+[data-stamp-id].drop-target{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.card.drop-target{transform:translateY(-2px)}
 
 /* ink thrown off where a stamp lands (inkBurst() in motion.ts) */
 .ink-fx{position:fixed;z-index:27;pointer-events:none;border-radius:50%}

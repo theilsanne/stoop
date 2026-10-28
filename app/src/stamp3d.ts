@@ -26,15 +26,15 @@ const PAD_W = 136, PAD_D = 96, PAD_H = 14;
 const REST_Z = PAD_H + 1.5;          // standing on the felt
 const GRIP = 96;                     // the top of the handle: where you hold it, and what it swings from
 // Seen from the front and above, like an object on a desk: the stamp stands up the screen with its
-// top tipped toward you. "Up" off the desk is this direction, so lifting it moves it up the screen.
+// top tipped toward you.
 const VIEW = -0.96;
-const UP = new THREE.Vector3(0, -Math.sin(VIEW), Math.cos(VIEW));
 const HOVER_Z = REST_Z + 12, CARRY_Z = 96, AIM_Z = 58, LIFT_Z = 42;
 const MOVE_PX = 6;                   // how far a press moves before it's a drag
 const SWING = 0.0011;                // radians of swing per px/s of movement
 const MAX_SWING = 0.55;
 // where a card's first seal sits, from the photo's bottom-left corner: matches .impressions in styles.css
 const SEAL_LEFT = 6, SEAL_BOTTOM = 4, SEAL_R = 39;
+const SHEET_R = 46;                  // the sheet's seals are bigger
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -190,6 +190,15 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
   canvas.setAttribute("aria-hidden", "true");
   canvas.hidden = true;
   document.body.append(canvas);
+  // the button under the pad: the hit area everywhere (the list and the sheet), and the flat seal when there's no WebGL
+  const stampBtn = document.createElement("button");
+  stampBtn.className = "drag-stamp";
+  stampBtn.dataset.dragStamp = "";
+  stampBtn.dataset.action = "stamphint";
+  stampBtn.setAttribute("aria-label", "Your stamp. Drag it onto a listing to stamp it, or focus a listing and press S");
+  stampBtn.title = "Drag it onto a listing to stamp it";
+  stampBtn.hidden = true;
+  document.body.append(stampBtn);
 
   let renderer: THREE.WebGLRenderer | null = null;
   try {
@@ -308,11 +317,15 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
   let justDragged = false;
   const pointer = { x: 0, y: 0 }, prev = { x: 0, y: 0 }, vel = { x: 0, y: 0 };
 
-  const hitButton = () => document.querySelector<HTMLElement>("[data-drag-stamp]");
   const cardAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-stamp-id]") ?? null;
 
-  /** Where your seal goes on a card: the first seal spot on its photo. */
+  /** Where your seal goes: bottom left of a card's photo, or the right end of the sheet's paper, after the partner's. */
   function spotOf(card: HTMLElement) {
+    const paper = card.querySelector<HTMLElement>("[data-seal-spot]");
+    if (paper) {
+      const p = paper.getBoundingClientRect();
+      return { x: p.right - 8 - SHEET_R, y: p.top + p.height / 2 };
+    }
     const r = (card.querySelector(".ph") ?? card).getBoundingClientRect();
     return { x: r.left + SEAL_LEFT + SEAL_R, y: r.bottom - SEAL_BOTTOM - SEAL_R };
   }
@@ -360,9 +373,8 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         break;
       case "held": {
         const x = pointer.x + grab!.dx, y = pointer.y + grab!.dy, card = cardAt(x, y);
-        // over a listing it's drawn toward the seal spot, so it hovers over where it'll print
-        const s = card ? spotOf(card) : { x, y };
-        sx.to = x + (s.x - x) * 0.55; sy.to = y + (s.y - y) * 0.55;
+        // it stays exactly under the cursor, wherever it's carried; the ring shows where it would print
+        sx.to = x; sy.to = y;
         aim(card);
         sz.to = (card ? AIM_Z : CARRY_Z) * scale;
         swingFrom(vel.x, vel.y);
@@ -425,18 +437,20 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
   function draw() {
     if (!renderer) {
       // no WebGL: the flat seal on the button moves instead
-      const hit = hitButton();
+      const hit = stampBtn;
       if (hit) hit.style.transform = mode === "rest" || mode === "hover" ? "" : `translate(${sx.x - rest.x}px, ${sy.x - rest.y}px)`;
       return;
     }
     const [x, y] = world(sx.x, sy.x);
-    rig.position.set(x, y, 0).addScaledVector(UP, sz.x);
+    // lifting moves it toward the camera only, so it never drifts off the cursor on screen
+    rig.position.set(x, y, sz.x);
     swing.rotation.set(tx.x, ty.x, 0);
     body.scale.z = sq.x;
     // over the pad its shadow falls on the felt; anywhere else, on the page
     const onPad = Math.abs(sx.x - rest.x) < (PAD_W / 2) * scale && Math.abs(sy.x - rest.y) < (PAD_D / 2) * Math.cos(VIEW) * scale;
-    const floor = onPad ? REST_Z * scale : 0, lift = Math.max(0, sz.x - floor);
-    foot.position.set(x, y, 0).addScaledVector(UP, floor + 0.3);
+    const floor = onPad ? PAD_H * scale : 0, lift = Math.max(0, sz.x - REST_Z * scale);
+    // the shadow falls down and to the right, further away the higher it's lifted
+    foot.position.set(x + lift * 0.35, y - lift * 0.35, floor + 0.3);
     foot.scale.setScalar(scale * (1 + lift / 140));
     footMat.opacity = clamp(1 - lift / 170, 0.25, 1);
     renderer.render(scene, camera);
@@ -474,7 +488,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
   function fit() {
     w = innerWidth;
     h = innerHeight;
-    const r = hitButton()?.getBoundingClientRect();
+    const r = stampBtn?.getBoundingClientRect();
     if (r) {
       // the pad sits at the bottom of the button, and the stamp stands up from it
       scale = r.width / PAD_W;
@@ -501,10 +515,11 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
 
   // ---- your seal on the label, and your ink in the pad, the die and the aim ring
   let faceKey = "";
-  function setFace(face: Face, ink: string) {
+  function setFace(face: Face, ink: string, flat: string) {
     const key = [face.id, face.avatar_url, face.display_name, ink].join("|");
     if (key === faceKey) return;
     faceKey = key;
+    stampBtn.innerHTML = flat; // the flat seal: what shows when there's no WebGL, and hidden under the 3D stamp otherwise
     felt.color.set(ink).multiplyScalar(0.22);
     felt.sheenColor.set(ink).multiplyScalar(0.55);
     rubber.color.set(ink).multiplyScalar(0.6);
@@ -586,8 +601,8 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
 
   /** Show the stamp over the list, or hide it. Called on every redraw: it only resets when it first appears. */
   function setShown(on: boolean) {
-    const hit = hitButton();
-    hit?.classList.toggle("gl", on && !!renderer);
+    stampBtn.hidden = !on;
+    stampBtn.classList.toggle("gl", on && !!renderer);
     canvas.hidden = !(on && renderer);
     const was = shown;
     shown = on;

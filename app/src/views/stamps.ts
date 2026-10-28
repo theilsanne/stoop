@@ -63,20 +63,13 @@ export function seal(p: Face, o: { size: number; at?: string; tilt?: number; cls
         clip-path="url(#seal-clip)" filter="url(#ink-photo-${ink})"/>`
     : `<text class="seal-initials" x="50" y="51" text-anchor="middle" dominant-baseline="central" stroke="none">${esc(initials(p.display_name))}</text>`;
   return `<svg class="seal ${o.cls ?? ""}" viewBox="0 0 100 100" width="${o.size}" height="${o.size}"
-    style="color:${INKS[ink]};--tilt:${o.tilt ?? 0}deg" ${o.label ? `role="img" aria-label="${esc(o.label)}"` : 'aria-hidden="true"'}>
+    style="color:var(--seal-${ink});--tilt:${o.tilt ?? 0}deg" ${o.label ? `role="img" aria-label="${esc(o.label)}"` : 'aria-hidden="true"'}>
     <g filter="url(#ink-rough)" fill="currentColor" stroke="currentColor">
       <circle cx="50" cy="50" r="46.5" fill="none" stroke-width="3"/>
       <circle cx="50" cy="50" r="31.5" fill="none" stroke-width="1.3"/>
       <text class="seal-ring" stroke="none" textLength="220" lengthAdjust="spacing"><textPath href="#seal-ring">${esc(ring)}</textPath></text>
       ${middle}
     </g></svg>`;
-}
-
-/** The stamp you carry, in the bottom right of the list. The 3D stamp and its pad are drawn over this button; without WebGL, this flat seal is the stamp. */
-export function dragStamp() {
-  return `<button class="drag-stamp" data-drag-stamp data-action="stamphint"
-    aria-label="Your stamp. Drag it onto a listing to stamp it, or focus a listing and press S"
-    title="Drag it onto a listing to stamp it">${seal(myFace(), { size: 72, tilt: -8 })}</button>`;
 }
 
 // who stamped a listing: you first, so your seal sits where your stamp comes down
@@ -103,11 +96,12 @@ export function cardStamp(id: string) {
 export function sheetStamp(id: string) {
   const seals = placed(id), them = partner();
   const mine = seals.find((x) => x.mine), theirs = seals.find((x) => !x.mine);
+  // the paper always shows, so there's always a spot to print on: yours goes after the partner's
   return `<div class="box stamp-band">
-    ${seals.length ? `<div class="paper">${seals.map(({ p, s, mine }) =>
-      seal(p, { size: 92, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })).join("")}</div>` : ""}
+    <div class="paper" data-seal-spot>${seals.slice().reverse().map(({ p, s, mine }) =>
+      seal(p, { size: 92, at: s.stamped_at, tilt: tiltOf(id, p.id), cls: mine ? "mine" : "them" })).join("")}</div>
     <div class="stamp-lines">
-      <span>${mine ? `<b>You</b> stamped it${mine.s.stamped_at ? ` on ${fmtDay(mine.s.stamped_at)}` : ""}` : "Not stamped by you yet. Drag your stamp onto it in the list."}</span>
+      <span>${mine ? `<b>You</b> stamped it${mine.s.stamped_at ? ` on ${fmtDay(mine.s.stamped_at)}` : ""}` : "Not stamped by you yet. Drag your stamp onto the paper, or onto this listing."}</span>
       ${them ? `<span>${theirs ? `<b>${esc(partnerName())}</b> stamped it${theirs.s.stamped_at ? ` on ${fmtDay(theirs.s.stamped_at)}` : ""}` : `${esc(partnerName())} hasn't stamped it yet`}</span>` : ""}
     </div>
   </div>`;
