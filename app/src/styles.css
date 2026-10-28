@@ -30,14 +30,21 @@ header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-
 .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .brand h1{margin:0;font-family:var(--display);font-stretch:72%;font-weight:800;font-size:30px;letter-spacing:-.01em;text-transform:uppercase}
 .tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:999px}
-.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px;gap:2px}
+.seg{position:relative;display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-2)}
-.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.seg button[aria-pressed="true"]{color:var(--ink)}
+.seg > button{position:relative;z-index:1;transition:color .2s}
+/* the sliding highlight (indicator.ts); falls back to a plain background if it isn't there */
+.seg:not(:has(> .ind)) > button[aria-pressed="true"]{background:var(--surface);box-shadow:var(--shadow)}
+.seg > .ind{position:absolute;top:3px;bottom:3px;left:0;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);pointer-events:none;z-index:0}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 
 nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:18px}
 nav.tabs button{border:0;background:none;padding:12px 14px 10px;font-family:var(--display);font-stretch:85%;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.02em;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
-nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs button[aria-selected="true"]{color:var(--ink)}
+nav.tabs button{transition:color .2s}
+nav.tabs:not(:has(> .ind)) button[aria-selected="true"]{border-bottom-color:var(--accent)}
+nav.tabs > .ind{position:absolute;bottom:0;left:0;height:3px;border-radius:3px 3px 0 0;background:var(--accent);pointer-events:none}
 nav.tabs .n{font-family:var(--mono);font-size:12px;margin-left:4px;color:var(--ink-2)}
 
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}

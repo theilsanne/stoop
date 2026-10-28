@@ -2,6 +2,7 @@ import "./styles.css";
 import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
+import { noteIndicators, placeIndicators } from "./indicator.ts";
 import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
@@ -78,7 +79,9 @@ function drawSheet() {
   const focusKey = inside?.id ? `#${CSS.escape(inside.id)}`
     : inside?.dataset.action ? `[data-action="${inside.dataset.action}"][data-v="${inside.dataset.v ?? ""}"]` : null;
   const sel = inside instanceof HTMLTextAreaElement ? [inside.selectionStart, inside.selectionEnd] as const : null;
+  const inds = noteIndicators(root);
   root.innerHTML = renderSheet();
+  placeIndicators(root, inds);
   const sheet = root.querySelector<HTMLElement>(".sheet");
   if (sheet) sheet.scrollTop = top;
   if (focusKey) {
@@ -100,6 +103,7 @@ export function render() {
   const focusKey = root.contains(document.activeElement) ? controlKey(document.activeElement) : null;
   const hold = anchor && performance.now() - anchor.at < 1000 ? anchor : null;
   anchor = null;
+  const inds = noteIndicators(root);
   // keep each photo strip on the photo you'd swiped to
   const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
   root.innerHTML = `<header class="top">
@@ -113,6 +117,7 @@ export function render() {
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
     }[S.tab]()}</main>`;
+  placeIndicators(root, inds);
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);
@@ -617,5 +622,10 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
+
+// highlights follow layout changes (rotating the phone, web fonts arriving)
+let resizeTick = 0;
+window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => placeIndicators()); });
+document.fonts?.ready.then(() => placeIndicators());
 
 boot();
