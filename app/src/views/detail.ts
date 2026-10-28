@@ -1,4 +1,5 @@
 import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf } from "../state.ts";
+import { icon } from "../icons.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
@@ -59,7 +60,7 @@ export function renderSheet() {
     <div class="sheet-head">
       <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
         <div class="hood">${esc(row.neighborhood)}</div></div>
-        <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>
+        <button class="close" data-action="closesheet" id="close-sheet">${icon("x", { size: 16 })}Close</button></div>
       <div class="stage-row"><label for="stage" class="small">Stage</label>
         <select class="sm" id="stage" data-change="stage" data-id="${row.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
     </div>
@@ -75,22 +76,22 @@ export function renderSheet() {
       <div><span>Listed</span><b>${ago(row.listed_at ?? row.first_seen_at)}</b></div>
     </div>
     ${amen.length ? `<div class="amen">${amen.map((a) => `<span class="pill">${esc(a)}</span>`).join("")}</div>` : ""}
-    ${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ↗</a>` : ""}</div>
+    ${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ${icon("arrow-square-out", { size: 16 })}</a>` : ""}</div>
 
-    <div class="box"><h3>Why it scores ${v.scored ? v.score : "–"} for both of you</h3>
+    <div class="box"><h3>${icon("scales", { size: 14 })}Why it scores ${v.scored ? v.score : "–"} for both of you</h3>
       <div class="seg" role="group" aria-label="Whose breakdown">${(["me", "partner"] as const).map((w) => {
         const p = personScore(row, w);
         return `<button data-action="bdwho" data-v="${w}" aria-pressed="${who === w}">${w === "me" ? "You" : esc(partnerName())} · ${p ? (p.passes ? p.score : "out") : "–"}</button>`;
       }).join("")}</div>
       ${breakdown}</div>
 
-    <div class="box"><h3>Your verdicts</h3>
+    <div class="box"><h3>${icon("chat-circle", { size: 14 })}Your verdicts</h3>
       <div class="vote" style="padding-top:0">${verdictButtons(row.id)}<span class="other">${esc(partnerName())}: ${verdictText(verdictOf(row.id, partnerId()))}</span></div>
       <label class="small" for="note">Your notes</label>
       <textarea id="note" data-note="${row.id}" placeholder="Light, noise, the landlord, anything worth remembering">${esc(myNote)}</textarea>
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
 
-    ${S.places.length ? `<div class="box"><h3>Commute</h3>
+    ${S.places.length ? `<div class="box"><h3>${icon("train-simple", { size: 14 })}Commute</h3>
       <ul class="bd-list">${S.places.map((p) => {
         const m = row.commutes?.[p.id];
         return `<li><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by transit`}</span></li>`;
@@ -98,13 +99,13 @@ export function renderSheet() {
       <p class="small">Arriving by 9am on a Tuesday. Transit times by <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a>, from public schedule data.</p>
     </div>` : ""}
 
-    <div class="box"><h3>Building record</h3>
+    <div class="box"><h3>${icon("buildings", { size: 14 })}Building record</h3>
       ${buildingLines(row).length
         ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>
            <p class="small">From NYC HPD and 311 records${row.building_checked_at ? `, checked ${ago(row.building_checked_at)}` : ""}.${row.bbl ? ` <a href="https://whoownswhat.justfix.org/bbl/${esc(row.bbl)}" target="_blank" rel="noopener">See the landlord and their other buildings ↗</a>` : ""}</p>`
         : `<p class="small">${row.bbl === "" ? "Couldn't match this address to a city building record." : "Not looked up yet. New listings are checked as they arrive; for older ones, use Settings → Look up building records."}</p>`}
     </div>
 
-    <div class="box"><h3>Price history</h3><div class="spark">${pts ? sparkline(pts) : '<span class="small">Loading…</span>'}</div></div>
+    <div class="box"><h3>${icon("chart-line", { size: 14 })}Price history</h3><div class="spark">${pts ? sparkline(pts) : '<span class="small">Loading…</span>'}</div></div>
   </div></div>`;
 }

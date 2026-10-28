@@ -1,3 +1,4 @@
+import { icon, type IconName } from "../icons.ts";
 import {
   S, isNewSinceVisit, placeName, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
   type Filter, type Lens, type Sort, type View,
@@ -6,10 +7,12 @@ import type { FeedRow, PersonScore, Verdict } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { renderMapShell } from "./map.ts";
 
+const VERDICT_ICON: Record<Verdict, IconName> = { yes: "thumbs-up", maybe: "question", no: "thumbs-down" };
+
 export function verdictButtons(id: string) {
   const mine = verdictOf(id, myId());
   return (["yes", "maybe", "no"] as Verdict[]).map((v) =>
-    `<button class="vbtn" data-action="rate" data-id="${id}" data-v="${v}" aria-pressed="${mine === v}">${v[0].toUpperCase() + v.slice(1)}</button>`,
+    `<button class="vbtn" data-action="rate" data-id="${id}" data-v="${v}" aria-pressed="${mine === v}">${icon(VERDICT_ICON[v], { fill: mine === v, size: 16 })}${v[0].toUpperCase() + v.slice(1)}</button>`,
   ).join("");
 }
 
@@ -23,7 +26,7 @@ function badges(row: FeedRow) {
   if (row.free_months) b.push(`<span class="badge">${row.free_months} mo free</span>`);
   if (verdictOf(row.id, myId()) === "yes" && verdictOf(row.id, partnerId()) === "yes") b.push('<span class="badge both">Both yes</span>');
   if ((row.hpd_class_c_open ?? 0) > 0 || (row.hpd_open_violations ?? 0) >= 10 || (row.complaints_311_12mo ?? 0) >= 25)
-    b.push('<span class="badge bldg" title="See Building record on the listing">Building issues</span>');
+    b.push(`<span class="badge bldg" title="See Building record on the listing">${icon("warning", { size: 13 })}Building issues</span>`);
   const me = personScore(row, "me"), them = personScore(row, "partner");
   if (S.lens === "both" && me?.passes && them?.passes && Math.abs(me.score - them.score) >= 20) b.push('<span class="badge gap">You disagree</span>');
   return b.join("");
@@ -65,7 +68,7 @@ export function commuteLine(row: FeedRow) {
     const m = row.commutes?.[p.id];
     return m == null ? [] : [`<b>${m} min</b> to ${esc(placeName(p))}`];
   });
-  return parts.length ? `<div class="comm">${parts.join(" · ")}</div>` : "";
+  return parts.length ? `<div class="comm">${icon("train-simple", { size: 15 })}<span>${parts.join(" · ")}</span></div>` : "";
 }
 
 export function parseSort(value: string): { sort: Sort; lens: Lens } {
@@ -91,7 +94,7 @@ export function card(row: FeedRow, v: View) {
       <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""} · Avail ${fmtDate(row.available_date)} · ${ago(row.listed_at ?? row.first_seen_at)}</div>
       ${commuteLine(row)}
       ${fails}
-      ${v.scored ? `<button class="whybtn" data-action="why" data-id="${row.id}" aria-expanded="${open}">${open ? "Hide why" : `Why ${v.passes ? v.score : "it's out"}?`}</button>` : ""}
+      ${v.scored ? `<button class="whybtn" data-action="why" data-id="${row.id}" aria-expanded="${open}">${icon("info", { size: 15 })}${open ? "Hide why" : `Why ${v.passes ? v.score : "it's out"}?`}</button>` : ""}
       ${open ? whyPanel(row) : ""}
       <div class="vote">${verdictButtons(row.id)}<span class="other">${esc(partnerName())}: ${verdictText(verdictOf(row.id, partnerId()))}</span></div>
     </div></article>`;
@@ -141,7 +144,7 @@ export function renderFeed() {
         <label class="summary" for="sort">${S.feedView === "map" ? "Show" : "Sort"} <select class="sm" id="sort" data-change="sort">${sortOptions.map(([k, t]) =>
           `<option value="${k}" ${current === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>
         <div class="seg" role="group" aria-label="View">${(["list", "map"] as const).map((k) =>
-          `<button data-action="feedview" data-v="${k}" aria-pressed="${S.feedView === k}">${k === "list" ? "List" : "Map"}</button>`).join("")}</div>
+          `<button data-action="feedview" data-v="${k}" aria-pressed="${S.feedView === k}">${icon(k === "list" ? "list" : "map-trifold", { size: 16 })}${k === "list" ? "List" : "Map"}</button>`).join("")}</div>
       </div>
     </div>
     ${S.feedView === "map" ? renderMapShell() : `<p class="summary"><b>${S.feed.length}</b> listings${newCount ? ` · <b>${newCount}</b> new since your last visit` : ""}${lastPull ? ` · last pulled ${ago(lastPull)}` : ""}</p>

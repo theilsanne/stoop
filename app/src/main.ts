@@ -1,4 +1,6 @@
 import "./styles.css";
+import { icon, type IconName } from "./icons.ts";
+import { closeSheetMotion, enterView, land, openSheetMotion, pop, popTab, toastIn, toastOut, unfold } from "./motion.ts";
 import { SupabaseApi, type Api } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -27,7 +29,9 @@ initState(api);
 const $ = (id: string) => document.getElementById(id)!;
 
 // ---------- rendering ----------
-const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"], ["compare", "Compare"]];
+const TABS: [Tab, string, IconName][] = [
+  ["feed", "Feed", "house"], ["pipeline", "Pipeline", "kanban"], ["criteria", "Criteria", "sliders-horizontal"], ["compare", "Compare", "scales"],
+];
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
@@ -36,6 +40,10 @@ function tabCount(t: Tab) {
   if (t === "compare") return diffRows().filter((r) => r.how).length;
   return "";
 }
+
+// what screen is showing; when it changes, the new content animates in
+let lastView = "", lastTab = "", sheetShown = false;
+const viewKey = () => [S.loading, S.tab, S.feedView, S.filter, S.sort, S.lens].join("|");
 
 export function render() {
   persistDraft();
@@ -47,10 +55,10 @@ export function render() {
   const y = window.scrollY;
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
-      <button class="who" data-action="tab" data-v="settings" aria-label="Settings">${esc(S.profiles.find((p) => p.id === myId())?.display_name || S.me.email)} &amp; ${esc(partnerName())} <span aria-hidden="true">⚙</span></button>
+      <button class="who" data-action="tab" data-v="settings" aria-label="Settings">${esc(S.profiles.find((p) => p.id === myId())?.display_name || S.me.email)} &amp; ${esc(partnerName())} ${icon("gear", { size: 16 })}</button>
     </header>
-    <nav class="tabs" role="tablist">${TABS.map(([k, t]) =>
-      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
+    <nav class="tabs" role="tablist">${TABS.map(([k, t, ic]) =>
+      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${icon(ic, { fill: S.tab === k, size: 18 })}<span class="tl">${t}</span><span class="n">${tabCount(k)}</span>${
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main>${S.loading ? '<div class="loading">Loading listings…</div>' : {
@@ -59,6 +67,20 @@ export function render() {
   window.scrollTo(0, y);
   $("sheet-root").innerHTML = renderSheet();
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
+
+  const key = viewKey();
+  if (key !== lastView && !S.loading) enterView(root.querySelector("main"));
+  if (S.tab !== lastTab && lastTab) popTab(root.querySelector("nav.tabs"));
+  lastView = key; lastTab = S.tab;
+  const open = !!S.openId;
+  if (open && !sheetShown) openSheetMotion($("sheet-root"));
+  sheetShown = open;
+}
+
+function closeSheet() {
+  if (!S.openId) return;
+  S.openId = null; sheetShown = false;
+  closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; });
 }
 
 function toast(text: string, opts: { ms?: number; action?: { label: string; run: () => void } } = {}) {
@@ -74,9 +96,12 @@ function toast(text: string, opts: { ms?: number; action?: { label: string; run:
     b.addEventListener("click", () => { n.remove(); opts.action!.run(); });
     n.append(b);
   }
-  n.addEventListener("click", () => n.remove()); // tap a notice to dismiss it
+  let gone = false;
+  const dismiss = () => { if (!gone) { gone = true; toastOut(n, () => n.remove()); } };
+  n.addEventListener("click", dismiss); // tap a notice to dismiss it
   $("toasts").prepend(n);
-  setTimeout(() => n.remove(), opts.ms ?? 3500);
+  toastIn(n);
+  setTimeout(dismiss, opts.ms ?? 3500);
 }
 
 // ---------- one-time "install the app" tip on phones ----------
@@ -157,6 +182,7 @@ async function rate(id: string, v: Verdict) {
   if (existing) existing.verdict = next;
   else S.ratings.push({ listing_id: id, user_id: myId(), verdict: next, note });
   render();
+  if (next) pop([...document.querySelectorAll(`.vbtn[data-id="${CSS.escape(id)}"][data-v="${next}"]`)]);
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
 }
 
@@ -174,6 +200,7 @@ async function setStage(id: string, stage: Stage) {
   const row = S.feed.find((r) => r.id === id);
   if (row) row.stage = stage;
   render();
+  land(document.querySelector(`.mini[data-drag-id="${CSS.escape(id)}"]`));
   try { await api.setStage(id, stage); } catch (e) { showError(e); }
 }
 
@@ -264,14 +291,17 @@ document.addEventListener("click", (e) => {
   if (a) {
     const { action, id = "", v = "" } = a.dataset;
     switch (action) {
-      case "closesheet": if (t === a) { S.openId = null; $("sheet-root").innerHTML = ""; } return;
+      case "closesheet": if (t === a) closeSheet(); return;
       case "tab":
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
         if (v === "criteria" && changeLog.rows == null) loadLog();
         break;
       case "why": {
-        if (S.whyOpen.has(id)) S.whyOpen.delete(id); else S.whyOpen.add(id);
-        break;
+        const opening = !S.whyOpen.has(id);
+        if (opening) S.whyOpen.add(id); else S.whyOpen.delete(id);
+        render();
+        if (opening) unfold(document.querySelector(`[data-open="${CSS.escape(id)}"] .why-panel`));
+        return;
       }
       case "filter": S.filter = v as Filter; S.shown = 40; break;
       case "more": S.shown += 40; break;
@@ -326,7 +356,7 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && S.openId) { S.openId = null; $("sheet-root").innerHTML = ""; }
+  if (e.key === "Escape" && S.openId) closeSheet();
   const t = e.target as HTMLElement;
   if ((e.key === "Enter" || e.key === " ") && t.matches(".card[data-open]")) { e.preventDefault(); openSheet(t.dataset.open!); }
 });

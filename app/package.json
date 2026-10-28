@@ -8,8 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "@supabase/supabase-js": "^2.58.0",
-    "leaflet": "1.9"
+    "leaflet": "1.9",
+    "motion": "^12.43.0"
   },
   "devDependencies": {
     "@types/leaflet": "1.9",
