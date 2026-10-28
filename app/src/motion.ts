@@ -125,3 +125,19 @@ export function slideHighlight(el: HTMLElement, dx: number, sx: number) {
   animate(el, { x: [dx, 0], scaleX: [sx, 1] }, { type: "spring", stiffness: 520, damping: 40, mass: 0.9 })
     .finished.then(tidy([el], ["transform"]), () => {});
 }
+
+/** Rows sliding out of the way of a dragged one: each starts dy pixels off and slides home. */
+export function slideRows(moves: [HTMLElement, number][]) {
+  for (const [el, dy] of moves) {
+    if (reduced()) { el.style.transform = ""; continue; }
+    el.style.transform = `translateY(${dy}px)`;
+    animate(el, { y: [dy, 0] }, { duration: 0.18, ease: [0.2, 0, 0, 1] }).finished.then(tidy([el], ["transform"]), () => {});
+  }
+}
+
+/** A dragged row dropping into its slot from dy pixels away; then done(). */
+export function settleRow(el: HTMLElement, dy: number, done: () => void) {
+  if (reduced() || Math.abs(dy) < 1) { el.style.transform = ""; done(); return; }
+  animate(el, { y: [dy, 0] }, { type: "spring", stiffness: 500, damping: 38 })
+    .finished.then(() => { el.style.transform = ""; done(); }, done);
+}

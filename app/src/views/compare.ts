@@ -19,6 +19,7 @@ function describe(c: Criterion | undefined) {
   } else if (c.operator === "before") v = "Before " + fmtDate(String(c.value));
   else if (c.operator === "within_minutes") v = `Within ${c.value} min`;
   else if (c.operator === "in") v = `${(c.value as string[]).length} neighborhoods`;
+  else if (c.operator === "mentions") v = "Mentions " + (c.value as string[]).map((w) => `“${esc(w)}”`).join(" or ");
   else v = "Has it";
   const k = c.kind === "dealbreaker" ? '<span class="kind db">Dealbreaker</span>' : `<span class="kind">Want</span>${weightBar(c.weight)}`;
   return `<div class="desc">${k}<span>${v}</span></div>`;

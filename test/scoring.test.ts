@@ -161,3 +161,24 @@ test("garden level lands in amenities as not_garden_level", () => {
   assert.equal(normalize({ id: 2, price: 3000, unit: "#4A", description: "Top floor" })!.amenities.not_garden_level, true);
   assert.equal("not_garden_level" in normalize({ id: 3, price: 3000 })!.amenities, false);
 });
+
+test("write-ins: the description, then your tick", async () => {
+  const { mentions } = await import("../supabase/functions/_shared/scoring.ts");
+  assert.equal(mentions("Gorgeous EXPOSED-brick walls and a dishwasher.", ["exposed brick"]), true);
+  assert.equal(mentions("Brick walls throughout", ["brick wall"]), true); // plural
+  assert.equal(mentions("Bricklayer's dream", ["brick"]), false); // whole words only
+  assert.equal(mentions("Café on the corner", ["cafe"]), true); // accents folded
+  assert.equal(mentions(null, ["x"]), false);
+  const c: Criterion = { id: "w1", owner_id: "me", label: "Exposed brick", kind: "dealbreaker", field: "write_in:exposed-brick",
+    operator: "mentions", value: ["exposed brick", "brick walls"], weight: 5, near_miss_margin: null, active: true };
+  const base = { id: "l", price: 3000, net_effective_rent: 3000, neighborhood: null, beds: 1, baths: 1, sqft: null,
+    no_fee: true, available_date: null, amenities: {} };
+  const said = evaluate(c, { ...base, description: "Original brick walls, high ceilings" });
+  assert.equal(said.known, true); assert.equal(said.pass, true); assert.equal(said.shown, "mentioned");
+  const silent = evaluate(c, { ...base, description: "Renovated kitchen" });
+  assert.equal(silent.known, false, "not mentioned is unknown, not a fail"); // a dealbreaker doesn't drop it
+  const ticked = evaluate(c, { ...base, description: "Renovated kitchen", marks: { w1: true } });
+  assert.equal(ticked.pass, true); assert.equal(ticked.shown, "you ticked it");
+  const unticked = evaluate(c, { ...base, description: "exposed brick!", marks: { w1: false } });
+  assert.equal(unticked.known, true); assert.equal(unticked.pass, false, "your untick beats the description");
+});

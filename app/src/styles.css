@@ -536,3 +536,45 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .c-route .sep{opacity:.6}
 .c-route .bullet{width:22px;height:22px;font-size:12.5px}
 .small-link{font-size:13px;align-self:flex-start}
+
+/* ---- criteria: drag to reorder; a pending move to the other section ---- */
+.crit{position:relative}
+.grip{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:-4px -4px -4px -8px;
+  border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:grab;touch-action:none;transition:background-color .15s,color .15s}
+.grip:hover{background:var(--hover);color:var(--ink)}
+.crit.dragging{z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.16),var(--shadow);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
+.crit.dragging .grip,body.sorting,body.sorting *{cursor:grabbing !important}
+body.sorting{user-select:none;-webkit-user-select:none}
+@media (pointer:coarse){.grip::after{content:"";position:absolute;inset:-6px}.grip{position:relative}}
+/* a slider's label sits above it, and its value stays on the same line as the track */
+.ctl:has(> input[type=range]){display:grid;grid-template-columns:minmax(0,220px) auto auto;column-gap:10px;row-gap:2px;align-items:center;justify-content:start}
+.ctl:has(> input[type=range]) > label{grid-column:1 / -1}
+.ctl:has(> input[type=range]) > input[type=range]{width:100%}
+
+/* small round icon button (e.g. remove a criterion) */
+.iconbtn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--h-sm);height:var(--h-sm);padding:0;border:0;border-radius:50%;
+  background:none;color:var(--ink-2);cursor:pointer;transition:background-color .15s,color .15s,transform .12s var(--ease)}
+.iconbtn:hover{background:var(--hover);color:var(--ink)}
+.iconbtn.remove:hover{background:var(--bad-soft);color:var(--bad)}
+.iconbtn:active{transform:scale(.92)}
+@media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
+@media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
+.crit-body:not(:has(*)){display:none}
+.crit-head h3.lbl{flex:1 1 200px;min-width:0;margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+
+/* ---- write-ins ---- */
+.critbar .addrow input.writein{flex:1 1 180px;width:auto;min-width:0;height:var(--h-sm);font-size:14px}
+.ctl.words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;width:100%}
+.ctl.words input{width:100%}
+.ctl.words .small{grid-column:2}
+.writeins{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.writeins li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
+.writeins .switch{font-size:14.5px;color:var(--ink);gap:10px}
+
+.critbar .addrow:has(.writein){display:grid;grid-template-columns:auto 1fr auto auto;gap:8px}
+.critbar .addrow:has(.writein) select{max-width:none}
+@media (max-width:620px){
+  .critbar .addrow:has(.writein){grid-template-columns:1fr 1fr}
+  .critbar .addrow:has(.writein) select,.critbar .addrow input.writein{grid-column:1 / -1}
+  .critbar .addrow:has(.writein) .btn{width:100%}
+}

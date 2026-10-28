@@ -18,7 +18,7 @@ export const CATALOG: FieldDef[] = [
   { key: "net", label: "Net effective rent", field: "net_effective_rent", operator: "lte", value: 3600, unit: "money", step: 50, group: "Basics" },
   { key: "ask", label: "Asking rent", field: "price", operator: "lte", value: 3800, unit: "money", step: 50, group: "Basics" },
   { key: "hoods", label: "Neighborhoods", field: "neighborhood", operator: "in", value: [], group: "Basics" },
-  { key: "avail", label: "Available before", field: "available_date", operator: "before", value: "2027-04-01", group: "Basics" },
+  { key: "avail", label: "Availability", field: "available_date", operator: "before", value: "2027-04-01", group: "Basics" },
   { key: "nofee", label: "No broker fee", field: "no_fee", operator: "is_true", value: null, group: "Basics" },
   { key: "beds", label: "Bedrooms", field: "beds", operator: "gte", value: 2, unit: "beds", step: 1, group: "Apartment" },
   { key: "baths", label: "Bathrooms", field: "baths", operator: "gte", value: 2, unit: "baths", step: 1, group: "Apartment" },

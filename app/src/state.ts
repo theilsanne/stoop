@@ -36,10 +36,40 @@ export interface State {
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
+  preset: string;          // the criterion picked in Criteria's "add" picker ("__write" = write your own)
   alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
+
+/** The section a criterion added since the last save was put in (it stays there until you save). */
+export const addedAs = new Map<string, Criterion["kind"]>();
+
+/** Put one section's criteria in the given order, leaving the other section where it is. */
+export function reorderSection(section: Criterion["kind"], ids: string[]) {
+  const slots = S.draft.flatMap((c, i) => (sectionOf(c) === section ? [i] : []));
+  const byId = new Map(S.draft.map((c) => [c.id, c]));
+  if (ids.length !== slots.length || ids.some((id) => !byId.has(id))) return;
+  slots.forEach((slot, k) => { S.draft[slot] = byId.get(ids[k])!; });
+}
+
+/** Move one criterion up (-1) or down (1) within its section. */
+export function moveInSection(id: string, dir: -1 | 1) {
+  const c = S.draft.find((x) => x.id === id);
+  if (!c) return false;
+  const ids = S.draft.filter((x) => sectionOf(x) === sectionOf(c)).map((x) => x.id);
+  const i = ids.indexOf(id), j = i + dir;
+  if (j < 0 || j >= ids.length) return false;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  reorderSection(sectionOf(c), ids);
+  return true;
+}
+
+/** Which section a criterion shows in: where it was when last saved, so switching
+ *  Dealbreaker/Want doesn't move it out from under you before you save. */
+export function sectionOf(c: Criterion): Criterion["kind"] {
+  return myCriteria().find((x) => x.id === c.id)?.kind ?? addedAs.get(c.id) ?? c.kind;
+}
 
 export function initState(api: Api) {
   Object.assign(S, {
@@ -47,7 +77,7 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
+    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking", preset: "",
   } satisfies State);
 }
 
@@ -79,6 +109,7 @@ interface StoredDraft { user: string; base: string; draft: Criterion[]; at: numb
 
 /** Start the draft over from what's saved. clearStored=false keeps any edits waiting on this device. */
 export function resetDraft(clearStored = true) {
+  addedAs.clear();
   S.draft = clone(myCriteria());
   if (clearStored) save("draft", null);
 }
