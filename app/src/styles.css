@@ -545,7 +545,6 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .crit.dragging{z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.16),var(--shadow);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
 .crit.dragging .grip,body.sorting,body.sorting *{cursor:grabbing !important}
 body.sorting{user-select:none;-webkit-user-select:none}
-.moving{margin:-4px 0 0;font-size:12.5px;font-weight:600;color:var(--warn)}
 @media (pointer:coarse){.grip::after{content:"";position:absolute;inset:-6px}.grip{position:relative}}
 /* a slider's label sits above it, and its value stays on the same line as the track */
 .ctl:has(> input[type=range]){display:grid;grid-template-columns:minmax(0,220px) auto auto;column-gap:10px;row-gap:2px;align-items:center;justify-content:start}

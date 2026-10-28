@@ -74,7 +74,6 @@ function control(c: Criterion) {
 function row(c: Criterion) {
   const numeric = c.operator === "lte" || c.operator === "gte" || c.operator === "within_minutes";
   const margin = Math.round((c.near_miss_margin ?? 0) * 100);
-  const moving = c.kind !== sectionOf(c);
   return `<div class="crit ${c.active ? "" : "off"}" data-crit="${c.id}">
     <div class="crit-head">
       <button class="grip" data-action="grip" data-id="${c.id}" aria-label="Reorder ${esc(c.label)}: drag, or use the up and down arrow keys" title="Drag to reorder">${icon("dots-six-vertical", { size: 18 })}</button>
@@ -83,7 +82,6 @@ function row(c: Criterion) {
       <label class="switch"><input type="checkbox" role="switch" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> ${c.active ? "On" : "Off"}</label>
       <button class="iconbtn remove" data-action="remove" data-id="${c.id}" aria-label="Remove ${esc(c.label)}" title="Remove">${icon("trash", { size: 18 })}</button>
     </div>
-    ${moving ? `<p class="moving">Moves to ${c.kind === "want" ? "Wants" : "Dealbreakers"} when you save</p>` : ""}
     <div class="crit-body">
       ${control(c)}
       ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label>${slider(`w-${c.id}`, "weight", c.id, 0, 10, c.weight)}<span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
