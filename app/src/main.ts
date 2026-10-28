@@ -10,7 +10,7 @@ import { DemoApi } from "./demo.ts";
 import {
   S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Tab, addedAs, moveInSection, reorderSection,
+  type Filter, type Lens, type Tab, addedAs, moveInSection, reorderSection, draftChanges,
 } from "./state.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
@@ -244,7 +244,11 @@ async function load() {
     Object.assign(S, { profiles, feed, ratings, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
-    if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
+    if (restored === "restored") {
+      toast(`Unsaved criteria edits from earlier: ${draftChanges() || "small changes"}. Save them in Criteria, or discard them.`, {
+        ms: 12000, action: { label: "Discard", run: () => { resetDraft(); render(); toast("Discarded"); } },
+      });
+    }
     if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
     S.error = null;
   } catch (e) {

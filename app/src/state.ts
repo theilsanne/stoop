@@ -96,13 +96,31 @@ export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === par
  * formats numbers, and the order neighborhoods were ticked in.
  */
 export function settingsOf(list: Criterion[]) {
-  const norm = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : typeof v === "number" ? Number(v) : v ?? null);
+  // titles aren't editable, so they're left out: a title can only change on the server (a rename), never as an edit of yours
   return JSON.stringify(list.map((c) => [
-    c.id, c.label.trim(), c.kind, c.field, c.operator, norm(c.value),
+    c.id, c.kind, c.field, c.operator, norm(c.value),
     Number(c.weight), Math.round(Number(c.near_miss_margin ?? 0) * 100), !!c.active,
   ]));
 }
+const norm = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : typeof v === "number" ? Number(v) : v ?? null);
 export const draftDirty = () => settingsOf(myCriteria()) !== settingsOf(S.draft);
+
+/** What the unsaved edits are, in words: "Availability changed, order changed, 1 added". */
+export function draftChanges(): string {
+  const saved = myCriteria(), byId = new Map(saved.map((c) => [c.id, c]));
+  const one = (c: Criterion) => settingsOf([c]);
+  const changed = S.draft.filter((c) => byId.has(c.id) && one(c) !== one(byId.get(c.id)!)).map((c) => c.label);
+  const added = S.draft.filter((c) => !byId.has(c.id)).length;
+  const removed = saved.filter((c) => !S.draft.some((d) => d.id === c.id)).length;
+  const kept = S.draft.filter((c) => byId.has(c.id)).map((c) => c.id);
+  const reordered = kept.join() !== saved.filter((c) => kept.includes(c.id)).map((c) => c.id).join();
+  return [
+    changed.length ? `${changed.join(", ")} changed` : "",
+    reordered ? "order changed" : "",
+    added ? `${added} added` : "",
+    removed ? `${removed} removed` : "",
+  ].filter(Boolean).join(", ");
+}
 
 // ---------- unsaved criteria edits ----------
 // Kept on this device so they survive a reload, a new tab, or closing the app.
@@ -135,8 +153,12 @@ export function restoreDraft(): "restored" | "stale" | null {
     // only worth mentioning if the dropped edits actually changed something
     return settingsOf(d.draft) !== d.base ? "stale" : null;
   }
-  S.draft = clone(d.draft);
-  return draftDirty() ? "restored" : null;
+  // titles always come from what's saved (they can be renamed on the server, never edited here)
+  const saved = new Map(myCriteria().map((c) => [c.id, c.label]));
+  S.draft = clone(d.draft).map((c) => (saved.has(c.id) ? { ...c, label: saved.get(c.id)! } : c));
+  if (draftDirty()) return "restored";
+  resetDraft(); // nothing real was waiting: start clean
+  return null;
 }
 
 // ---------- ratings ----------
