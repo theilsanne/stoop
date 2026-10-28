@@ -32,7 +32,8 @@ export interface State {
   bdWho: "me" | "partner";
   lastVisit: number;       // for "new since your last visit"
   loading: boolean;
-  saving: boolean;
+  saving: boolean;         // saving criteria or a place
+  busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
   alerts: AlertState;      // phone alerts on this device
@@ -46,7 +47,7 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, error: null, sentLinkTo: null, alerts: "checking",
+    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
   } satisfies State);
 }
 

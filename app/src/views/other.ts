@@ -45,7 +45,7 @@ export function renderSettings() {
       ${S.places.length ? (() => {
         const missing = S.feed.filter((r) => S.places.some((p) => r.commutes?.[p.id] == null)).length;
         return `<p class="small">${missing ? `${missing} listings still need commute times.` : "Every listing has its commute times."} New listings are worked out as they arrive.</p>
-          ${missing ? `<div><button class="btn" data-action="commute" ${S.saving ? "disabled" : ""}>${S.saving ? "Working out…" : "Work out commute times"}</button></div>` : ""}`;
+          ${missing ? `<div><button class="btn" data-action="commute" ${S.busy.has("commute") ? "disabled" : ""}>${S.busy.has("commute") ? "Working out…" : "Work out commute times"}</button></div>` : ""}`;
       })() : ""}
     </section>
     ${alertsPanel(me?.notify_threshold ?? 70)}
@@ -54,11 +54,11 @@ export function renderSettings() {
         const checked = S.feed.filter((r) => r.building_checked_at).length, total = S.feed.length;
         return `<b>${checked} of ${total}</b> current listings have a record.`;
       })()}</p>
-      <div><button class="btn" data-action="enrich" ${S.saving ? "disabled" : ""}>${S.saving ? "Looking up…" : "Look up building records"}</button></div>
+      <div><button class="btn" data-action="enrich" ${S.busy.has("enrich") ? "disabled" : ""}>${S.busy.has("enrich") ? "Looking up…" : "Look up building records"}</button></div>
     </section>
     <section class="panel"><h2>Scores</h2>
       <p>Listings are re-scored whenever either of you saves criteria, and new ones are scored as they arrive. If anything looks stale, re-score everything now.</p>
-      <div><button class="btn" data-action="rescore" ${S.saving ? "disabled" : ""}>${S.saving ? "Re-scoring…" : "Re-score all listings"}</button></div>
+      <div><button class="btn" data-action="rescore" ${S.busy.has("rescore") ? "disabled" : ""}>${S.busy.has("rescore") ? "Re-scoring…" : "Re-score all listings"}</button></div>
     </section>
   </div>`;
 }
@@ -73,7 +73,7 @@ function alertsPanel(threshold: number) {
     off: "Alerts are off on this phone.",
     on: "Alerts are on for this phone.",
   }[S.alerts];
-  const busy = S.saving ? "disabled" : "";
+  const busy = S.busy.has("alerts") ? "disabled" : "";
   return `<section class="panel" id="alerts"><h2>Alerts</h2>
     <p>A notification on this phone when a new listing passes both of your dealbreakers and scores at least
       <select class="sm inline" data-change="threshold" aria-label="Alert me at this score or higher">${[50, 60, 70, 80, 90].map((n) =>

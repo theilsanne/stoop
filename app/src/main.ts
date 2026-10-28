@@ -261,24 +261,24 @@ async function saveCriteria() {
 }
 
 async function rescoreAll() {
-  S.saving = true;
+  S.busy.add("rescore");
   render();
   try {
     const r = await api.rescore();
     S.feed = await api.feed();
     toast(`${r.rescored} listings re-scored.`);
   } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
-  S.saving = false;
+  S.busy.delete("rescore");
   render();
 }
 
 // Building records come back in batches; keep going while there's progress.
 async function alertsAction(run: () => Promise<void>) {
-  S.saving = true;
+  S.busy.add("alerts");
   render();
   try { await run(); } catch (e) { toast(e instanceof Error ? e.message : String(e), { ms: 8000 }); }
   S.alerts = await alertState(api).catch(() => "unsupported" as const);
-  S.saving = false;
+  S.busy.delete("alerts");
   render();
 }
 
@@ -294,7 +294,7 @@ function openFromLink() {
 }
 
 async function lookUpBuildings() {
-  S.saving = true;
+  S.busy.add("enrich");
   render();
   let found = 0, unmatched = 0;
   try {
@@ -308,13 +308,13 @@ async function lookUpBuildings() {
     S.feed = await api.feed();
     toast(`Building records updated: ${found} checked${unmatched ? `, ${unmatched} addresses couldn't be matched` : ""}.`, { ms: 6000 });
   } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
-  S.saving = false;
+  S.busy.delete("enrich");
   render();
 }
 
 // Commute times come back in batches (gentle on a free service); keep going while there's progress.
 async function workOutCommutes() {
-  S.saving = true;
+  S.busy.add("commute");
   render();
   let done = 0;
   try {
@@ -331,7 +331,7 @@ async function workOutCommutes() {
     S.feed = await api.feed();
     if (done) toast(`Commute times added for ${done} listing${done === 1 ? "" : "s"}.`, { ms: 5000 });
   } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
-  S.saving = false;
+  S.busy.delete("commute");
   render();
 }
 

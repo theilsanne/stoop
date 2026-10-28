@@ -346,7 +346,7 @@ button.score:hover{transform:scale(1.05)}
 .strip img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;scroll-snap-stop:always;display:block;user-select:none;-webkit-user-drag:none}
 .ph .strip{position:absolute;inset:0}
 .ph-count{position:absolute;right:10px;bottom:10px;z-index:1;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 7px;border-radius:999px;background:rgba(10,16,13,.62);color:#fff;pointer-events:none}
-.ph-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#14201a;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 0 3px;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:0;transition:opacity .15s}
+.ph-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#14201a;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:0;transition:opacity .15s}
 .ph-nav.prev{left:10px}.ph-nav.next{right:10px}
 .ph-nav[hidden]{display:none}
 .card:hover .ph-nav,.gallery:hover .ph-nav,.ph-nav:focus-visible,.viewer .ph-nav{opacity:1}
@@ -361,7 +361,7 @@ button.score:hover{transform:scale(1.05)}
 .slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;scroll-snap-stop:always}
 .slide img{width:100%;height:100%;object-fit:contain}
 .viewer-count{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto;left:16px;right:auto;font-size:13px}
-.viewer-close{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:2;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:18px}
+.viewer-close{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:2;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
 .viewer .ph-nav.prev{left:16px}.viewer .ph-nav.next{right:16px}
 @media (pointer:coarse){.viewer .ph-nav{display:none}}
 

@@ -2,6 +2,9 @@
 // and a full-screen viewer. Photos come straight from the listing site's CDN.
 
 import { esc } from "../util.ts";
+import { icon } from "../icons.ts";
+
+const PREV = icon("caret-left", { size: 18 }), NEXT = icon("caret-right", { size: 18 });
 
 /**
  * StreetEasy (Zillow) photos are saved at full size. Cards and the sheet ask for a
@@ -16,8 +19,8 @@ const img = (url: string, i: number, n: number, size: "medium" | "full", eager =
   `<img src="${esc(sized(url, size))}" alt="Photo ${i + 1} of ${n}" ${eager ? "" : 'loading="lazy"'} decoding="async" referrerpolicy="no-referrer" draggable="false">`;
 
 const arrows = (id: string, where: string) =>
-  `<button class="ph-nav prev" data-action="photo" data-id="${id}" data-v="prev" data-where="${where}" aria-label="Previous photo" hidden>‹</button>
-   <button class="ph-nav next" data-action="photo" data-id="${id}" data-v="next" data-where="${where}" aria-label="Next photo">›</button>`;
+  `<button class="ph-nav prev" data-action="photo" data-id="${id}" data-v="prev" data-where="${where}" aria-label="Previous photo" hidden>${PREV}</button>
+   <button class="ph-nav next" data-action="photo" data-id="${id}" data-v="next" data-where="${where}" aria-label="Next photo">${NEXT}</button>`;
 
 /** The photo strip at the top of a card (just the images; badges sit on top of it). */
 export function cardPhotos(id: string, photos: string[] | null | undefined) {
@@ -44,9 +47,9 @@ export function viewer(photos: string[], start: number) {
   return `<div class="viewer" role="dialog" aria-modal="true" aria-label="Photos">
     <div class="strip" data-strip="viewer" data-start="${start}">${list.map((p, i) => `<div class="slide">${img(p, i, list.length, "full", Math.abs(i - start) < 2)}</div>`).join("")}</div>
     <span class="ph-count viewer-count" aria-live="polite">${start + 1}/${list.length}</span>
-    <button class="viewer-close" data-action="closeviewer" id="close-viewer" aria-label="Close photos">✕</button>
-    ${list.length > 1 ? `<button class="ph-nav prev" data-action="photo" data-id="viewer" data-v="prev" data-where="viewer" aria-label="Previous photo">‹</button>
-      <button class="ph-nav next" data-action="photo" data-id="viewer" data-v="next" data-where="viewer" aria-label="Next photo">›</button>` : ""}
+    <button class="viewer-close" data-action="closeviewer" id="close-viewer" aria-label="Close photos">${icon("x", { size: 20 })}</button>
+    ${list.length > 1 ? `<button class="ph-nav prev" data-action="photo" data-id="viewer" data-v="prev" data-where="viewer" aria-label="Previous photo">${PREV}</button>
+      <button class="ph-nav next" data-action="photo" data-id="viewer" data-v="next" data-where="viewer" aria-label="Next photo">${NEXT}</button>` : ""}
   </div>`;
 }
 
