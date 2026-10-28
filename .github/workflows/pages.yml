@@ -15,6 +15,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  pull-requests: write
 
 # One deploy at a time, and never cancel one halfway: a cancelled deploy could leave the site half-written.
 concurrency:
@@ -24,8 +25,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The github-pages environment may only take deploys from main. Previews deploy through their own
+    # environment, which GitHub creates on first use with no branch restriction.
     environment:
-      name: github-pages
+      name: ${{ github.ref_name == 'main' && 'github-pages' || 'github-pages-previews' }}
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       # for a deleted branch, github.ref_name is the default branch, so take the name from the event
@@ -41,6 +44,7 @@ jobs:
           else
             echo "BASE=/stoop/previews/$slug/" >> "$GITHUB_ENV"
           fi
+          echo "PREVIEW_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/previews/$slug/" >> "$GITHUB_ENV"
 
       - name: Fetch the site so far (pages-previews branch)
         run: |
@@ -146,5 +150,25 @@ jobs:
           if [ "$REF_NAME" = main ]; then
             echo "Live app: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Preview: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/previews/$SLUG/" >> "$GITHUB_STEP_SUMMARY"
+            echo "Preview: $PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # Keeps one comment per branch's open pull request, and updates it on each push.
+      - name: Link the preview on its pull request
+        if: ${{ github.event_name != 'delete' && github.ref_name != 'main' }}
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ env.PREVIEW_URL }}
+        with:
+          script: |
+            const marker = "<!-- stoop-preview -->";
+            const branch = context.ref.replace("refs/heads/", "");
+            const { owner, repo } = context.repo;
+            const { data: pulls } = await github.rest.pulls.list({ owner, repo, state: "open", head: `${owner}:${branch}` });
+            const body = `${marker}\nPreview of this branch: ${process.env.PREVIEW_URL}\n\nIt's built from this commit (${context.sha.slice(0, 7)}) against the real database. It updates on each push, and it's removed when the branch is deleted.`;
+            for (const pr of pulls) {
+              const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: pr.number });
+              const mine = comments.find((c) => c.body && c.body.includes(marker));
+              if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+            }
