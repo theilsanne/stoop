@@ -1,7 +1,8 @@
 // Phosphor icons (https://phosphoricons.com), inlined as SVG so only the icons
 // used are bundled and they take the surrounding text color (currentColor).
-// Kept to a few on purpose: the verdict buttons and the settings button.
+// Kept to a few on purpose: the logomark, the verdict buttons and the settings button.
 
+import stairs from "@phosphor-icons/core/assets/bold/stairs-bold.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
 import thumbsUp from "@phosphor-icons/core/assets/regular/thumbs-up.svg?raw";
 import question from "@phosphor-icons/core/assets/regular/question.svg?raw";
@@ -10,17 +11,17 @@ import thumbsUpFill from "@phosphor-icons/core/assets/fill/thumbs-up-fill.svg?ra
 import questionFill from "@phosphor-icons/core/assets/fill/question-fill.svg?raw";
 import thumbsDownFill from "@phosphor-icons/core/assets/fill/thumbs-down-fill.svg?raw";
 
-const REGULAR = { gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown };
+const REGULAR = { stairs, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown };
 const FILL: Partial<Record<IconName, string>> = { "thumbs-up": thumbsUpFill, question: questionFill, "thumbs-down": thumbsDownFill };
 
 export type IconName = keyof typeof REGULAR;
 
 /** An icon as an SVG string. Decorative (hidden from screen readers) unless given a label. */
-export function icon(name: IconName, opts: { fill?: boolean; size?: number; label?: string } = {}) {
+export function icon(name: IconName, opts: { fill?: boolean; size?: number; label?: string; cls?: string } = {}) {
   const raw = (opts.fill && FILL[name]) || REGULAR[name];
   const size = opts.size ?? 18;
   const a11y = opts.label
     ? `role="img" aria-label="${opts.label.replace(/"/g, "&quot;")}"`
     : 'aria-hidden="true" focusable="false"';
-  return raw.replace("<svg ", `<svg class="ic" width="${size}" height="${size}" ${a11y} `);
+  return raw.replace("<svg ", `<svg class="ic${opts.cls ? " " + opts.cls : ""}" width="${size}" height="${size}" ${a11y} `);
 }

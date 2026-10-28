@@ -1,4 +1,5 @@
 import { S, myId, partner, partnerId, partnerName, placeName, verdictOf, viewOf } from "../state.ts";
+import { icon } from "../icons.ts";
 import { STAGES } from "../types.ts";
 import { esc, money } from "../util.ts";
 import { verdictText } from "./feed.ts";
@@ -66,7 +67,7 @@ export function renderSignIn() {
     return `<div class="signin"><h1>Check your email</h1><p>We sent a sign-in link to <b>${esc(S.sentLinkTo)}</b>. Open it on this device.</p>
       <button class="btn" data-action="resend">Use a different email</button></div>`;
   }
-  return `<form class="signin" id="signin"><h1>Stoop</h1><p>Your Brooklyn rental search. Sign in with the email you were invited with.</p>
+  return `<form class="signin" id="signin"><h1 class="brandmark">${icon("stairs", { size: 30, cls: "logo" })}Stoop</h1><p>Your Brooklyn rental search. Sign in with the email you were invited with.</p>
     <label for="email" class="small">Email</label>
     <input id="email" type="email" class="text" autocomplete="email" required placeholder="you@example.com">
     <button class="btn primary" type="submit">Email me a sign-in link</button>

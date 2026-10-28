@@ -110,6 +110,9 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .critbar .addrow select{max-width:100%;min-width:0;flex:1 1 160px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
+.brand h1{display:inline-flex;align-items:center;gap:8px}
+.brand .logo,.brandmark .logo{color:var(--accent)}
+.brandmark{display:flex;align-items:center;gap:10px}
 .ic{flex:none;display:block}
 .vbtn{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px}
 button.who{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0 !important;border-radius:50% !important}

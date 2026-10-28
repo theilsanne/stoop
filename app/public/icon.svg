@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="0" fill="#007a45"/>
-  <rect x="196" y="112" width="120" height="176" rx="60" ry="60" fill="#f2f5f3"/>
-  <rect x="196" y="200" width="120" height="88" fill="#f2f5f3"/>
-  <rect x="228" y="150" width="56" height="138" rx="28" fill="#007a45"/>
-  <rect x="228" y="200" width="56" height="88" fill="#007a45"/>
-  <rect x="160" y="288" width="192" height="40" fill="#f2f5f3"/>
-  <rect x="124" y="328" width="264" height="40" fill="#f2f5f3"/>
-  <rect x="88" y="368" width="336" height="40" fill="#f2f5f3"/>
+  <!-- Stairs from Phosphor Icons (MIT), white on Stoop green. Sized to sit inside the maskable safe zone. -->
+  <rect width="512" height="512" fill="#007a45"/>
+  <path transform="translate(64 64) scale(1.5)" fill="#f2f5f3" d="M200,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V40A20,20,0,0,0,200,20ZM152,148h44v16H116V148Zm12-24V108h32v16Zm32-80V84H152a12,12,0,0,0-12,12v28H104a12,12,0,0,0-12,12v28H60V44ZM60,212V188H196v24Z"/>
 </svg>

@@ -52,7 +52,7 @@ export function render() {
   }
   const y = window.scrollY;
   root.innerHTML = `<header class="top">
-      <div class="brand"><h1>Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
+      <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
     </header>
     <nav class="tabs" role="tablist">${TABS.map(([k, t]) =>
