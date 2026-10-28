@@ -13,6 +13,7 @@ import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
+import { initDrag } from "./drag.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
@@ -338,5 +339,7 @@ document.addEventListener("visibilitychange", () => {
 if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
   navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").catch(() => {});
 }
+
+initDrag((id, stage) => setStage(id, stage as Stage));
 
 boot();

@@ -5,13 +5,13 @@ import { verdictText } from "./feed.ts";
 
 export function renderPipeline() {
   const order = STAGES.map(([k]) => k);
-  return `<p class="hint">Move listings along as you tour and apply. To add one, open it from the feed and set its stage.</p>
+  return `<p class="hint">Drag a card to another column as you tour and apply (on a phone, press and hold first). To add one, open it from the feed and set its stage.</p>
   <div class="board">${STAGES.slice(1).map(([k, t]) => {
     const items = S.feed.filter((r) => r.stage === k);
-    return `<section class="col" aria-label="${t}"><h3>${t}<span>${items.length}</span></h3>
+    return `<section class="col" data-stage="${k}" aria-label="${t}"><h3>${t}<span>${items.length}</span></h3>
       ${items.map((r) => {
         const i = order.indexOf(k), v = viewOf(r);
-        return `<div class="mini"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
+        return `<div class="mini" data-drag-id="${r.id}"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
           <div class="row"><span>${money(r.net_effective_rent ?? r.price)} · ${esc(r.neighborhood)}</span><span class="val">${v.scored ? v.score : "–"}</span></div>
           <div class="row"><span>You ${verdictText(verdictOf(r.id, myId()))} · ${esc(partnerName())} ${verdictText(verdictOf(r.id, partnerId()))}</span>
             <span class="mv"><button data-action="move" data-id="${r.id}" data-v="${order[i - 1]}" ${i <= 1 ? "disabled" : ""} aria-label="Move back">←</button><button data-action="move" data-id="${r.id}" data-v="${order[i + 1]}" ${i >= order.length - 1 ? "disabled" : ""} aria-label="Move forward">→</button></span></div></div>`;
