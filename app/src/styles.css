@@ -595,6 +595,14 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .theirs{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
 .theirs.same{background:var(--accent-soft);color:var(--accent)}
 .pick-head .iconbtn{margin:-6px 0}
+/* the (i) beside a name opens a plain-language note under the row */
+.info{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;align-self:center;border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:pointer;
+  transition:background-color .15s,color .15s,transform .12s var(--ease)}
+.info:hover{background:var(--hover);color:var(--ink)}
+.info:active{transform:scale(.92)}
+.info[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent)}
+@media (pointer:coarse){.info{position:relative}.info::after{content:"";position:absolute;inset:-8px}}
+.pick .about{grid-column:2 / -1;margin:0;padding:8px 12px;border-radius:8px;background:var(--surface-2);color:var(--ink-2);font-size:13.5px;line-height:1.45;max-width:62ch}
 .pick .detail{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
 
 /* the ladder: Skip, Nice, Important, Dealbreaker. The highlight darkens as the step gets stronger. */
@@ -608,6 +616,7 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 @media (max-width:620px){
   .pick{grid-template-columns:18px minmax(0,1fr)}
   .pick .detail{grid-column:1 / -1}
+  .pick .about{grid-column:1 / -1}
   .seg.ladder{display:grid;grid-column:1 / -1;grid-template-columns:1fr 1fr 1.25fr 1.5fr;width:100%}
   .seg.ladder > button{padding:0 2px;font-size:12.5px;white-space:nowrap}
   .face{width:26px;height:26px}
@@ -623,7 +632,7 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .writein{display:flex;gap:8px;margin-top:10px}
 .writein input{flex:1;min-width:0}
 
-@media (prefers-reduced-motion:reduce){.delta,.pick.flash::after{animation:none}button.face:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){.delta,.pick.flash::after{animation:none}button.face:hover{transform:none}.info{transition:none}.info:active{transform:none}}
 
 /* ---- the save bar sits at the bottom of the page, and only shows while there are unsaved edits ---- */
 #savebar{position:sticky;bottom:0;z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}

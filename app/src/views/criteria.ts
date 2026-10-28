@@ -99,9 +99,10 @@ function control(c: Criterion, listings: ScorableListing[]) {
 
 // ---------- one row per feature ----------
 
-interface Row { key: string; group: string; label: string; def?: FieldDef; c: Criterion | null; level: Level }
+interface Row { key: string; group: string; label: string; info: string; def?: FieldDef; c: Criterion | null; level: Level }
 
 const GROUPS = ["Basics", "Apartment", "Building", "Commute"] as const;
+const WRITE_IN_INFO = "Looks for these words in each listing's description. If a listing mentions them but doesn't mean it, untick it on that listing and the score updates.";
 const OWN = "Your own";
 
 /** Every feature you can care about, with my criterion for it if I've picked one; then anything of my own. */
@@ -110,9 +111,9 @@ function rows(): Row[] {
   const out: Row[] = allFields().map((def) => {
     const c = criterionFor(def) ?? null;
     if (c) used.add(c.id);
-    return { key: def.key, group: def.group, label: c?.label ?? def.label, def, c, level: levelOf(c) };
+    return { key: def.key, group: def.group, label: c?.label ?? def.label, info: def.info, def, c, level: levelOf(c) };
   });
-  for (const c of S.draft) if (!used.has(c.id)) out.push({ key: c.id, group: OWN, label: c.label, c, level: levelOf(c) });
+  for (const c of S.draft) if (!used.has(c.id)) out.push({ key: c.id, group: OWN, label: c.label, info: c.operator === "mentions" ? WRITE_IN_INFO : "", c, level: levelOf(c) });
   return out;
 }
 
@@ -166,11 +167,12 @@ function pick(r: Row, listings: ScorableListing[]) {
   return `<div class="pick" data-level="${r.level}" data-row="${esc(r.key)}">
     <span class="steps" data-n="${STEPS[r.level]}" aria-hidden="true"><i></i><i></i><i></i></span>
     <div class="pick-head">
-      <h3 class="lbl">${esc(r.label)}</h3>
+      <h3 class="lbl">${esc(r.label)}</h3>${r.info ? `<button class="info" data-action="info" data-v="${esc(r.key)}" aria-expanded="${S.infoOpen.has(r.key)}" aria-label="About ${esc(r.label)}" title="What does this mean?">${icon("info", { size: 16 })}</button>` : ""}
       ${r.def ? "" : `<button class="iconbtn remove" data-action="remove" data-id="${r.key}" aria-label="Remove ${esc(r.label)}" title="Remove">${icon("trash", { size: 18 })}</button>`}
       <div class="stat" data-stat="${esc(r.key)}">${statHTML(r, listings)}</div>${theirsHTML(r)}
     </div>
     ${ladder(r)}
+    ${r.info && S.infoOpen.has(r.key) ? `<p class="about">${esc(r.info)}</p>` : ""}
     ${body.trim() ? `<div class="detail">${body}</div>` : ""}
   </div>`;
 }

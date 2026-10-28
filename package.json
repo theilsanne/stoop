@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --no-warnings --test test/scoring.test.ts test/buildings.test.ts test/commute.test.ts test/subway.test.ts test/criteria-edit.test.ts test/criteria-impact.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test test/scoring.test.ts test/buildings.test.ts test/commute.test.ts test/subway.test.ts test/criteria-edit.test.ts test/criteria-impact.test.ts test/catalog.test.ts"
   },
   "engines": { "node": ">=22.6" }
 }

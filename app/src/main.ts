@@ -516,6 +516,13 @@ document.addEventListener("click", (e) => {
         picked(now, v);
         return;
       }
+      case "info": {
+        const opening = !S.infoOpen.has(v);
+        if (opening) S.infoOpen.add(v); else S.infoOpen.delete(v);
+        render();
+        if (opening) unfold(document.querySelector(`.pick[data-row="${CSS.escape(v)}"] .about`));
+        return;
+      }
       case "critfilter": S.critFilter = v as "all" | "picks"; save("critFilter", v); break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];

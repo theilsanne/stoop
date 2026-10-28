@@ -36,6 +36,7 @@ export interface State {
   error: string | null;
   sentLinkTo: string | null;
   historyOpen: boolean;    // Criteria → Change history expanded (remembered on this device)
+  infoOpen: Set<string>;   // Criteria rows with their (i) explanation open, by row key
   critFilter: "all" | "picks"; // Criteria shows every feature, or only the ones I've picked
   alerts: AlertState;      // phone alerts on this device
 }
@@ -51,6 +52,7 @@ export function initState(api: Api) {
     loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
     critFilter: store<"all" | "picks">("critFilter", "all"),
     historyOpen: store<boolean>("historyOpen", false),
+    infoOpen: new Set(),
   } satisfies State);
 }
 
@@ -182,6 +184,7 @@ export function allFields(): FieldDef[] {
   const commutes: FieldDef[] = S.places.map((p) => ({
     key: "place:" + p.id, label: "Commute to " + placeName(p), field: "commute:" + p.id,
     operator: "within_minutes", value: 35, group: "Commute",
+    info: `The subway trip from the listing to ${placeName(p)}, door to door: the walk to a station, a wait of half the gap between trains, the ride, any transfers and the walk at the end, for a weekday morning. Listings without a time yet are skipped, not penalized.`,
   }));
   return [...CATALOG, ...commutes];
 }
