@@ -170,7 +170,13 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .overlay{position:fixed;inset:0;background:rgba(8,14,11,.5);z-index:20;display:flex;justify-content:flex-end}
 .sheet{background:var(--bg);width:min(560px,100%);height:100%;overflow-y:auto;padding:0 20px calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
 .sheet-head{position:sticky;top:0;z-index:2;background:var(--bg);margin:0 -20px;padding:calc(16px + env(safe-area-inset-top,0px)) 20px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
-.stage-row{display:flex;align-items:center;gap:10px}
+.stage-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stage-pill{appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:999px;background:var(--surface) var(--chev) no-repeat right 10px center;padding:6px 28px 6px 12px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;max-width:100%;field-sizing:content}
+.stage-pill:hover{border-color:var(--ink-2)}
+.stage-pill:not([data-stage="new"]){background-color:var(--accent-soft, var(--good-soft));border-color:var(--accent);color:var(--accent)}
+.head-vote{margin:0;padding:0;gap:6px;flex-wrap:nowrap}
+.head-vote .vbtn{padding:5px 9px}
+.head-vote .other{margin-left:4px;font-size:12px;white-space:nowrap}
 .sheet-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .sheet h2{margin:0;font-family:var(--display);font-stretch:80%;font-weight:800;font-size:26px;line-height:1.1}
 .close{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-weight:600}

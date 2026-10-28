@@ -61,8 +61,10 @@ export function renderSheet() {
       <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
         <div class="hood">${esc(row.neighborhood)}</div></div>
         <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>
-      <div class="stage-row"><label for="stage" class="small">Stage</label>
-        <select class="sm" id="stage" data-change="stage" data-id="${row.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+      <div class="stage-row">
+        <select class="stage-pill" id="stage" data-change="stage" data-id="${row.id}" data-stage="${row.stage}" aria-label="Stage" title="Stage">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+        <div class="vote head-vote">${verdictButtons(row.id)}<span class="other" title="${esc(partnerName())}'s verdict">${esc(partnerName())}: ${verdictOf(row.id, partnerId()) ? verdictText(verdictOf(row.id, partnerId())) : "—"}</span></div>
+      </div>
     </div>
     ${sheetPhotos(row.id, row.photos)}
     <div class="box"><div class="kv">
@@ -85,9 +87,7 @@ export function renderSheet() {
       }).join("")}</div>
       ${breakdown}</div>
 
-    <div class="box"><h3>Your verdicts</h3>
-      <div class="vote" style="padding-top:0">${verdictButtons(row.id)}<span class="other">${esc(partnerName())}: ${verdictText(verdictOf(row.id, partnerId()))}</span></div>
-      <label class="small" for="note">Your notes</label>
+    <div class="box"><h3><label for="note">Notes</label></h3>
       <textarea id="note" data-note="${row.id}" placeholder="Light, noise, the landlord, anything worth remembering">${esc(myNote)}</textarea>
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
 
