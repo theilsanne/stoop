@@ -113,8 +113,8 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .hint{font-size:13px;color:var(--ink-2);margin:0 0 12px}
 
 /* criteria */
-/* The wrapper is what sticks, right under the tabs. Its top strip is solid page color, so there's a clean gap above the card and nothing scrolls through it. */
-.critstick{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--tabs-h,50px));z-index:4;margin:-10px 0 18px;padding-top:10px;background:var(--bg)}
+/* Sticks a little below the tabs. The gap is real: listings scroll up through it and are cut off by the tab bar's bottom line, which sits above them. */
+.critstick{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--tabs-h,50px) + 10px);z-index:4;margin-bottom:18px}
 .critbar{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 .impact{padding:10px 14px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
