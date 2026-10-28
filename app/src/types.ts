@@ -64,7 +64,7 @@ export interface Place {
 export interface CommuteResult { computed: number; failed: number; remaining: number; errors: string[] }
 
 export interface EnrichResult {
-  geocoded: number; unmatched: number; buildings_checked: number; remaining: number; errors: string[];
+  geocoded: number; unmatched: number; lookup_failed?: number; buildings_checked: number; remaining: number; errors: string[];
 }
 
 export interface Profile {

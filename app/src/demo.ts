@@ -180,7 +180,7 @@ export class DemoApi implements Api {
   }
   async removePlace(id: string) { this.placeRows = this.placeRows.filter((p) => p.id !== id); }
   async commute() { return { computed: 0, failed: 0, remaining: 0, errors: [] }; }
-  async enrich() { return { geocoded: 0, unmatched: 0, buildings_checked: 0, remaining: 0, errors: [] }; }
+  async enrich(_retry?: boolean) { return { geocoded: 0, unmatched: 0, buildings_checked: 0, remaining: 0, errors: [] }; }
   async rescore() {
     const f = await this.feed();
     return { rescored: f.length, passing: f.filter((r) => r.passes).length };

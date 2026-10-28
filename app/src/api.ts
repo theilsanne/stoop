@@ -31,7 +31,7 @@ export interface Api {
   /** Re-score every active listing on the server. */
   rescore(): Promise<{ rescored: number; passing: number }>;
   /** Look up building records for listings that don't have them (one batch). */
-  enrich(): Promise<EnrichResult>;
+  enrich(retryUnmatched?: boolean): Promise<EnrichResult>;
 
   places(): Promise<Place[]>;
   /** Look the address up (NYC only) and save it as one of my places. */
@@ -265,8 +265,8 @@ export class SupabaseApi implements Api {
     return data as CommuteResult;
   }
 
-  async enrich() {
-    const { data, error } = await this.sb.functions.invoke("enrich", { method: "POST" });
+  async enrich(retryUnmatched = false) {
+    const { data, error } = await this.sb.functions.invoke("enrich", { body: { retry: retryUnmatched } });
     fail("Looking up building records", error);
     return data as EnrichResult;
   }

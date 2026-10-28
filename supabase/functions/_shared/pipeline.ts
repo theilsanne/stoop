@@ -39,12 +39,14 @@ const BUILDING_FRESH_DAYS = 14;
  * in the last two weeks. Pass ids to do specific listings (ingest), or null to
  * work through all active listings that need it (backfill), up to `limit` each.
  */
-export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100) {
+export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100, retryUnmatched = false) {
   const fetchFn = fetch as unknown as Fetch;
   const token = Deno.env.get("NYC_OPENDATA_TOKEN") || undefined;
   const cols = "id, address, bbl, zip:raw->>zipCode, zip2:raw->>propertyDetails_address_zipCode";
   type Row = { id: string; address: string | null; bbl: string | null; zip: string | null; zip2: string | null };
   const rows: Row[] = [];
+  // addresses that didn't match before get another go (the matching may have improved)
+  if (retryUnmatched) check(await db.from("listings").update({ bbl: null }).eq("bbl", "").eq("status", "active"), "reset unmatched");
   if (ids) {
     for (const part of chunk(ids)) rows.push(...check(await db.from("listings").select(cols).in("id", part), "load listings") as Row[]);
   } else {
@@ -57,15 +59,18 @@ export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100)
 
   // 1. address → BBL. bbl = "" marks an address the lookup couldn't match, so it isn't retried forever.
   const needBbl = rows.filter((r) => r.bbl == null && r.address).slice(0, limit);
-  let geocoded = 0, unmatched = 0;
+  let geocoded = 0, unmatched = 0, lookupFailed = 0;
+  const errors: string[] = [];
   for (const part of chunk(needBbl, 8)) {
     await Promise.all(part.map(async (r) => {
-      const bbl = await lookupBbl(fetchFn, r.address!, r.zip ?? r.zip2);
-      r.bbl = bbl ?? "";
-      if (bbl) geocoded++; else unmatched++;
+      const m = await lookupBbl(fetchFn, r.address!, r.zip ?? r.zip2);
+      if (m.error) { lookupFailed++; errors.push(`Address lookup failed: ${m.error}`); return; } // try again next time
+      r.bbl = m.bbl ?? "";
+      if (m.bbl) geocoded++; else { unmatched++; errors.push(`${r.address}: ${m.why}`); }
       check(await db.from("listings").update({ bbl: r.bbl }).eq("id", r.id), "save bbl");
     }));
   }
+  if (unmatched || lookupFailed) console.warn("enrich: address problems", JSON.stringify(errors.slice(0, 10)));
 
   // 2. BBL → building record, for buildings not checked recently
   const bbls = [...new Set(rows.map((r) => r.bbl).filter((b): b is string => !!b))];
@@ -76,7 +81,6 @@ export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100)
     for (const b of known) fresh.add(b.bbl);
   }
   const toCheck = bbls.filter((b) => !fresh.has(b)).slice(0, limit);
-  const errors: string[] = [];
   let checked = 0;
   for (const part of chunk(toCheck, 6)) {
     const records = await Promise.all(part.map((bbl) => lookupBuilding(fetchFn, bbl, token)));
@@ -88,10 +92,10 @@ export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100)
     checked += saveable.length;
   }
 
-  const remaining = rows.filter((r) => r.bbl == null && r.address).length
+  const remaining = (lookupFailed ? 0 : rows.filter((r) => r.bbl == null && r.address).length)
     + Math.max(0, bbls.filter((b) => !fresh.has(b)).length - toCheck.length);
   return {
-    geocoded, unmatched, buildings_checked: checked, remaining,
+    geocoded, unmatched, lookup_failed: lookupFailed, buildings_checked: checked, remaining,
     errors: [...new Set(errors)].slice(0, 5),
   };
 }

@@ -307,17 +307,21 @@ function openFromLink() {
 async function lookUpBuildings() {
   S.busy.add("enrich");
   render();
-  let found = 0, unmatched = 0;
+  let found = 0, unmatched = 0, failed = 0;
+  const why: string[] = [];
   try {
     for (let i = 0; i < 20; i++) {
-      const r = await api.enrich();
-      found += r.buildings_checked; unmatched += r.unmatched;
-      if (r.errors?.length) console.warn("Building lookups:", r.errors);
+      const r = await api.enrich(i === 0); // the first round retries addresses that didn't match before
+      found += r.buildings_checked; unmatched += r.unmatched; failed += r.lookup_failed ?? 0;
+      if (r.errors?.length) { why.push(...r.errors); console.warn("Building lookups:", r.errors); }
       if (!r.remaining || (!r.geocoded && !r.buildings_checked && !r.unmatched)) break;
       toast(`Looking up building records… ${r.remaining} to go`);
     }
     S.feed = await api.feed();
-    toast(`Building records updated: ${found} checked${unmatched ? `, ${unmatched} addresses couldn't be matched` : ""}.`, { ms: 6000 });
+    const parts = [`${found} checked`];
+    if (unmatched) parts.push(`${unmatched} address${unmatched === 1 ? "" : "es"} couldn't be matched`);
+    if (failed) parts.push(`${failed} lookup${failed === 1 ? "" : "s"} failed and will be retried`);
+    toast(`Building records: ${parts.join(", ")}.` + (!found && why.length ? ` First problem: ${why[0]}` : ""), { ms: found ? 6000 : 15000 });
   } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
   S.busy.delete("enrich");
   render();

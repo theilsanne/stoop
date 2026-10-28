@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
   if (error || !data.user) return json({ error: "Sign in first" }, 401);
 
   try {
-    const result = await enrichBuildings(db, null, 60);
+    const { retry } = await req.json().catch(() => ({ retry: false }));
+    const result = await enrichBuildings(db, null, 60, !!retry);
     if (result.geocoded || result.buildings_checked) await scoreAndStore(db, null);
     return json(result);
   } catch (e) {

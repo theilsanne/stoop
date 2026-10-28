@@ -32,20 +32,28 @@ export function geosearchUrl(street: string, zip: string | null, borough = "Broo
   return `${GEOSEARCH}?text=${encodeURIComponent(text)}&size=1`;
 }
 
-/** Pull a 10-digit BBL out of a GeoSearch response; null unless it's a confident address match. */
-export function bblFromGeosearch(body: unknown, zip: string | null): string | null {
+/** The BBL out of a GeoSearch response, or why there isn't one. */
+export function matchGeosearch(body: unknown, zip: string | null, street = ""): { bbl: string | null; why: string } {
   const f = (body as { features?: { properties?: Record<string, unknown> }[] })?.features?.[0];
   const p = f?.properties;
-  if (!p) return null;
-  const pad = (p.addendum as { pad?: { bbl?: string } } | undefined)?.pad;
-  const bbl = pad?.bbl ? String(pad.bbl) : null;
-  if (!bbl || !/^\d{10}$/.test(bbl)) return null;
-  // reject fuzzy matches (a street centroid, or the wrong ZIP)
-  if (typeof p.confidence === "number" && p.confidence < 0.8) return null;
-  if (zip && p.postalcode && String(p.postalcode) !== zip) return null;
-  if (p.layer && !["address", "pad"].includes(String(p.layer))) return null;
-  return bbl;
+  if (!p) return { bbl: null, why: "no result" };
+  const pad = (p.addendum as { pad?: { bbl?: string | number } } | undefined)?.pad;
+  const bbl = pad?.bbl != null ? String(pad.bbl) : null;
+  const seen = `matched "${p.label ?? p.name ?? "?"}" (${p.layer ?? "?"}, confidence ${p.confidence ?? "?"})`;
+  if (!bbl || !/^\d{10}$/.test(bbl)) return { bbl: null, why: `${seen}, no BBL` };
+  // the house number has to be right: otherwise it's a neighbor or the street
+  const want = streetOnly(street).match(/^\s*([\d-]+[a-z]?)\b/i)?.[1]?.toLowerCase();
+  const got = String(p.housenumber ?? String(p.name ?? p.label ?? "").match(/^\s*([\d-]+[a-z]?)\b/i)?.[1] ?? "").toLowerCase();
+  if (want && got && want !== got) return { bbl: null, why: `${seen}, different house number` };
+  if (p.layer && !["address", "pad", "venue"].includes(String(p.layer))) return { bbl: null, why: `${seen}, not a building` };
+  const sure = (want && got && want === got) || (typeof p.confidence === "number" ? p.confidence >= 0.8 : true);
+  if (!sure) return { bbl: null, why: `${seen}, not confident` };
+  if (zip && p.postalcode && String(p.postalcode) !== zip && !(want && want === got)) return { bbl: null, why: `${seen}, different ZIP` };
+  return { bbl, why: "" };
 }
+
+/** Just the BBL (null unless it's a solid address match). */
+export const bblFromGeosearch = (body: unknown, zip: string | null, street = "") => matchGeosearch(body, zip, street).bbl;
 
 /** Socrata query string with %20 for spaces (URLSearchParams would use "+"). */
 const soql = (params: Record<string, string>) =>
@@ -94,9 +102,15 @@ async function getJson(fetchFn: Fetch, url: string, token?: string): Promise<unk
   return res.json();
 }
 
-export async function lookupBbl(fetchFn: Fetch, street: string, zip: string | null): Promise<string | null> {
-  try { return bblFromGeosearch(await getJson(fetchFn, geosearchUrl(street, zip)), zip); }
-  catch { return null; }
+/**
+ * Address → BBL. bbl null with error set means the lookup itself failed (network,
+ * service down): try again later. bbl null without error means no building matched.
+ */
+export async function lookupBbl(fetchFn: Fetch, street: string, zip: string | null): Promise<{ bbl: string | null; why: string; error?: string }> {
+  let body: unknown;
+  try { body = await getJson(fetchFn, geosearchUrl(street, zip)); }
+  catch (e) { return { bbl: null, why: "", error: e instanceof Error ? e.message : String(e) }; }
+  return matchGeosearch(body, zip, street);
 }
 
 /** Both datasets for one building. Each part that fails stays null (unknown). */

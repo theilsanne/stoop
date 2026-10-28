@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  bblFromGeosearch, complaints311Url, count311, countHpd, geosearchUrl, hpdUrl, lookupBbl, lookupBuilding, streetOnly,
+  bblFromGeosearch, complaints311Url, matchGeosearch, count311, countHpd, geosearchUrl, hpdUrl, lookupBbl, lookupBuilding, streetOnly,
 } from "../supabase/functions/_shared/buildings.ts";
 
 const geo = (props: Record<string, unknown>) => ({ features: [{ properties: props }] });
@@ -15,14 +15,24 @@ test("street without the unit, and the GeoSearch query", () => {
   assert.match(url, /text=2683 Atlantic Avenue, Brooklyn, NY 11207&size=1$/);
 });
 
-test("BBL only from a confident, matching address result", () => {
-  const good = { layer: "address", confidence: 1, postalcode: "11207", addendum: { pad: { bbl: "3036690035", bin: "3083512" } } };
-  assert.equal(bblFromGeosearch(geo(good), "11207"), "3036690035");
-  assert.equal(bblFromGeosearch(geo({ ...good, confidence: 0.5 }), "11207"), null);      // fuzzy
-  assert.equal(bblFromGeosearch(geo({ ...good, postalcode: "11216" }), "11207"), null);  // wrong ZIP
-  assert.equal(bblFromGeosearch(geo({ ...good, layer: "street" }), "11207"), null);      // street, not a building
-  assert.equal(bblFromGeosearch(geo({ ...good, addendum: {} }), "11207"), null);
-  assert.equal(bblFromGeosearch({ features: [] }, "11207"), null);
+test("BBL only from a matching building result", () => {
+  const good = { layer: "address", confidence: 1, postalcode: "11207", housenumber: "2683", label: "2683 Atlantic Avenue, Brooklyn, NY, USA", addendum: { pad: { bbl: "3036690035", bin: "3083512" } } };
+  const S = "2683 Atlantic Avenue";
+  assert.equal(bblFromGeosearch(geo(good), "11207", S), "3036690035");
+  // the right house number is enough, even when the score or ZIP is off
+  assert.equal(bblFromGeosearch(geo({ ...good, confidence: 0.6 }), "11207", S), "3036690035");
+  assert.equal(bblFromGeosearch(geo({ ...good, postalcode: "11208" }), "11207", S), "3036690035");
+  // house number from the label when there's no housenumber field
+  assert.equal(bblFromGeosearch(geo({ ...good, housenumber: undefined }), "11207", S), "3036690035");
+  // a neighbor isn't the building
+  assert.equal(bblFromGeosearch(geo({ ...good, housenumber: "2685" }), "11207", S), null);
+  assert.equal(bblFromGeosearch(geo({ ...good, layer: "street" }), "11207", S), null);      // street, not a building
+  assert.equal(bblFromGeosearch(geo({ ...good, addendum: {} }), "11207", S), null);
+  assert.equal(bblFromGeosearch({ features: [] }, "11207", S), null);
+  // numeric BBLs work too
+  assert.equal(bblFromGeosearch(geo({ ...good, addendum: { pad: { bbl: 3036690035 } } }), "11207", S), "3036690035");
+  // and a failure says why
+  assert.match(matchGeosearch(geo({ ...good, housenumber: "2685" }), "11207", S).why, /different house number/);
 });
 
 test("HPD counts by class; 311 count", () => {
@@ -45,11 +55,14 @@ test("lookups fail soft", async () => {
     "geosearch": geo({ layer: "address", confidence: 1, postalcode: "11207", addendum: { pad: { bbl: "3036690035" } } }),
     "wvxf-dwi5": [{ class: "C", n: "2" }, { class: "B", n: "1" }],
   });
-  assert.equal(await lookupBbl(f, "2683 Atlantic Avenue", "11207"), "3036690035");
+  assert.equal((await lookupBbl(f, "2683 Atlantic Avenue", "11207")).bbl, "3036690035");
   const b = await lookupBuilding(f, "3036690035");
   assert.equal(b.hpd_open_violations, 3);
   assert.equal(b.hpd_class_c_open, 2);
   assert.equal(b.complaints_311_12mo, null); // 311 failed: unknown, not zero
   assert.equal(b.errors.length, 1);
-  assert.equal(await lookupBbl(fake({}), "1 Nowhere St", null), null);
+  // the lookup service failing is not "no match": it's retried later
+  const down = await lookupBbl(fake({}), "1 Nowhere St", null);
+  assert.equal(down.bbl, null);
+  assert.match(down.error ?? "", /HTTP 500/);
 });
