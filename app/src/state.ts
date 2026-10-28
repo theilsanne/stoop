@@ -9,7 +9,7 @@ import { clone, save, store } from "./util.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
 export type Lens = "both" | "me" | "partner";
-export type Filter = "passing" | "near" | "other";
+export type Filter = "passing" | "near" | "other" | "stamped";
 export type Sort = "score" | "newest" | "rent";
 
 export interface State {

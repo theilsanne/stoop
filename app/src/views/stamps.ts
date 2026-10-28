@@ -5,6 +5,15 @@ import { avatar } from "./avatar.ts";
 // Your own profile, or a stand-in if it hasn't loaded yet.
 const me = () => profileOf(myId()) ?? { id: myId(), display_name: "", avatar_url: null };
 
+/** Your picture as a stamp. With no photo yet, your initials stand in. */
+export const myMark = (size: number) => avatar(me(), size);
+
+/** The stamp you carry, bottom right in the list view: drag it onto a listing to stamp it. A tap just explains. */
+export function dragStamp() {
+  return `<button class="drag-stamp" data-drag-stamp data-action="stamphint" aria-label="Your stamp. Drag it onto a listing to stamp it"
+    title="Drag it onto a listing to stamp it">${myMark(56)}</button>`;
+}
+
 /** On a card's photo: your picture to stamp it, and the partner's once they've stamped it too. */
 export function cardStamp(id: string) {
   const mine = stampedBy(id, myId()), theirs = stampedBy(id, partnerId()), them = partner();

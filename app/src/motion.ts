@@ -113,6 +113,34 @@ export function stampLift(mark: Element | null) {
   animate(mark, { scale: [1, 0.88, 1] }, SOFT).finished.then(tidy([mark], ["transform"]));
 }
 
+/**
+ * Your stamp dropped on a listing lands big: your picture slams down over the spot, an
+ * accent ring bursts out, a few dots fly off, and the whole thing fades after a moment.
+ * Decorative: with reduced motion it's skipped, and the stamp itself still goes on.
+ */
+export function celebrate(x: number, y: number, mark: string) {
+  if (reduced()) return;
+  const el = document.createElement("div");
+  el.className = "celebrate";
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  el.innerHTML = `<div class="cel-mark">${mark}<span class="cel-ring"></span></div><b class="cel-word">Stamped</b>`;
+  document.body.append(el);
+  const pic = el.querySelector(".cel-mark")!, ring = el.querySelector(".cel-ring")!;
+  animate(pic, { scale: [2.8, 0.9, 1.05, 1], rotate: [-18, 4, -2, 0], opacity: [0, 1, 1, 1] }, { duration: 0.55, ease: [0.2, 0.9, 0.3, 1] });
+  animate(ring, { scale: [0.8, 2.6], opacity: [0.9, 0] }, { duration: 0.8, delay: 0.25, ease: "easeOut" });
+  const DOTS = 14;
+  for (let i = 0; i < DOTS; i++) {
+    const dot = document.createElement("span");
+    dot.className = "cel-dot";
+    pic.append(dot);
+    const a = (i / DOTS) * Math.PI * 2, d = 130 + (i % 3) * 45;
+    animate(dot, { x: [0, Math.cos(a) * d], y: [0, Math.sin(a) * d], opacity: [1, 0], scale: [1, 0.3] },
+      { duration: 0.8, delay: 0.2, ease: "easeOut" }).finished.then(() => dot.remove());
+  }
+  animate(el, { opacity: [1, 0] }, { duration: 0.5, delay: 1.4, ease: "easeIn" }).finished.then(() => el.remove());
+}
+
 /** A pipeline card that just changed columns settles into place. */
 export function land(el: Element | null) {
   if (!el || reduced()) return;

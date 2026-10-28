@@ -3,7 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, stampLift, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { celebrate, closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, stampLift, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -19,6 +19,7 @@ import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
+import { dragStamp, myMark } from "./views/stamps.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
@@ -117,7 +118,7 @@ export function render() {
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
-    }[S.tab]()}</main>`;
+    }[S.tab]()}</main>${S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length ? dragStamp() : ""}`;
   placeIndicators(root, inds);
   window.scrollTo(0, y);
   if (hold) {
@@ -296,10 +297,21 @@ async function rate(id: string, v: Verdict) {
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
 }
 
-/** Stamp the listing as one I really like, or take my stamp back. Shows at once; undone if the save fails. */
-async function toggleStamp(id: string) {
+/** Stamp the listing as one I really like, or take my stamp back. */
+function toggleStamp(id: string) {
+  return setStamp(id, !stampedBy(id, myId()));
+}
+
+/** Your stamp dropped on a listing: a big one lands over it. Stamping never takes a stamp back. */
+function dropStamp(id: string, x: number, y: number) {
+  if (stampedBy(id, myId())) { toast("You've already stamped this one"); return; }
+  celebrate(x, y, myMark(180));
+  void setStamp(id, true);
+}
+
+/** Put your stamp on a listing, or take it back. Shows at once; undone if the save fails. */
+async function setStamp(id: string, on: boolean) {
   const before = S.stamps;
-  const on = !stampedBy(id, myId());
   S.stamps = on
     ? [...S.stamps, { listing_id: id, user_id: myId() }]
     : S.stamps.filter((s) => !(s.listing_id === id && s.user_id === myId()));
@@ -488,6 +500,7 @@ document.addEventListener("click", (e) => {
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "stamp": toggleStamp(id); return;
+      case "stamphint": toast("Drag it onto a listing to stamp it"); return;
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
@@ -664,7 +677,7 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import
   navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").catch(() => {});
 }
 
-initDrag((id, stage) => setStage(id, stage as Stage));
+initDrag((id, stage) => setStage(id, stage as Stage), dropStamp);
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
