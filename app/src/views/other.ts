@@ -24,29 +24,35 @@ export function renderPipeline() {
 export function renderSettings() {
   const me = S.profiles.find((p) => p.id === myId());
   return `<div class="two">
-    <section class="panel"><h2>You</h2>
-      <p>Signed in as <b>${esc(S.me?.email)}</b>${S.api.demo ? " (demo)" : ""}.</p>
-      <div class="ctl"><label for="myname">Your name</label><input id="myname" class="text" value="${esc(me?.display_name ?? "")}" maxlength="40"></div>
-      <div><button class="btn" data-action="savename">Save name</button> <button class="btn" data-action="signout">Sign out</button></div>
-    </section>
-    <section class="panel"><h2>Your partner</h2>
-      ${partner() ? `<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p>`
-        : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
-    </section>
+    <section class="panel people"><div class="people-grid">
+      <div class="person">
+        <h2>You</h2>
+        <form id="nameform" class="inline-form">
+          <input id="myname" class="text" value="${esc(me?.display_name ?? "")}" maxlength="40" aria-label="Your name" placeholder="Your name">
+          <button class="btn" type="submit">Save</button>
+        </form>
+        <p class="small">${esc(S.me?.email)}${S.api.demo ? " (demo)" : ""} · <button class="x" data-action="signout">Sign out</button></p>
+      </div>
+      <div class="person">
+        <h2>${partner() ? esc(partnerName()) : "Your partner"}</h2>
+        <p class="small">${partner() ? "Signed up. Their criteria, ratings and notes show throughout the app."
+          : "Not signed up yet. Invite them from Supabase: Authentication → Users → Invite user."}</p>
+      </div>
+    </div></section>
     <section class="panel" id="places"><h2>Places</h2>
-      <p>Where you each go regularly: work, a studio, family. Every listing gets a subway commute time to each place (door to door, weekday mornings), and you can add criteria like “Commute to Office within 35 min”.</p>
+      <p class="small">Every listing gets a subway commute to each of these.</p>
       ${S.places.length ? `<ul class="places">${S.places.map((p) => `<li><div><b>${esc(placeName(p))}</b><div class="small">${esc(p.address)}</div></div>${
         p.user_id === myId() ? `<button class="x" data-action="removeplace" data-id="${p.id}">Remove</button>` : ""}</li>`).join("")}</ul>` : ""}
       <form id="addplace" class="placeform">
-        <input id="place-label" class="text" placeholder="Name, e.g. Office" maxlength="30" required aria-label="Place name">
-        <input id="place-address" class="text" placeholder="Street address, e.g. 111 8th Ave, Manhattan" required aria-label="Address">
-        <button class="btn primary" type="submit" ${S.saving ? "disabled" : ""}>Add place</button>
+        <input id="place-label" class="text" placeholder="Name" maxlength="30" required aria-label="Place name">
+        <input id="place-address" class="text" placeholder="Street address" required aria-label="Street address, e.g. 111 8th Ave, Manhattan" title="e.g. 111 8th Ave, Manhattan">
+        <button class="btn primary" type="submit" ${S.saving ? "disabled" : ""}>Add</button>
       </form>
       ${S.places.length ? (() => {
         const missing = S.feed.filter((r) => S.places.some((p) => r.commutes?.[p.id] == null)).length;
-        return `<p class="small">${missing ? `${missing} listings still need commute times.` : "Every listing has its commute times."} New listings are worked out as they arrive.</p>
-          <div class="btnrow">${missing ? `<button class="btn" data-action="commute" ${S.busy.has("commute") ? "disabled" : ""}>${S.busy.has("commute") ? "Working out…" : "Work out commute times"}</button>` : ""}
-            <button class="btn" data-action="recommute" ${S.busy.has("commute") ? "disabled" : ""} title="Throw away every saved time and work them all out again">Redo all commute times</button></div>`;
+        const busy = S.busy.has("commute");
+        return `<div class="panel-foot"><button class="btn sm-btn" data-action="recommute" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update commute times"}</button>${
+          missing ? `<span class="small">${missing} listing${missing === 1 ? "" : "s"} still need${missing === 1 ? "s" : ""} times</span>` : ""}</div>`;
       })() : ""}
     </section>
     ${alertsPanel(me?.notify_threshold ?? 70)}

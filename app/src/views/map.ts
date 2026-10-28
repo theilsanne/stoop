@@ -7,25 +7,12 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { S } from "../state.ts";
-import { beds, esc, money, save, store } from "../util.ts";
+import { beds, esc, money, save, store, LINE_COLORS } from "../util.ts";
 import { groups } from "./feed.ts";
 
 const SUBWAY_URL = "https://data.ny.gov/resource/s692-irgq.geojson?$limit=5000";
 const BROOKLYN: L.LatLngExpression = [40.68, -73.95];
 
-// Official MTA trunk-line colors, keyed by route letter/number.
-const LINE_COLORS: Record<string, string> = {
-  A: "#0039A6", C: "#0039A6", E: "#0039A6",
-  B: "#FF6319", D: "#FF6319", F: "#FF6319", M: "#FF6319",
-  G: "#6CBE45",
-  J: "#996633", Z: "#996633",
-  L: "#A7A9AC",
-  N: "#FCCC0A", Q: "#FCCC0A", R: "#FCCC0A", W: "#FCCC0A",
-  "1": "#EE352E", "2": "#EE352E", "3": "#EE352E",
-  "4": "#00933C", "5": "#00933C", "6": "#00933C",
-  "7": "#B933AD",
-  S: "#808183",
-};
 
 let map: L.Map | null = null;
 let subway: GeoJSON.FeatureCollection | null | "failed" = null;

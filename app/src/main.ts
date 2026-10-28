@@ -501,11 +501,6 @@ document.addEventListener("click", (e) => {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
         return;
       }
-      case "savename": {
-        const name = ($("myname") as HTMLInputElement).value.trim();
-        api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);
-        return;
-      }
       case "signout": api.signOut().then(() => { S.me = null; render(); }); return;
       case "resend": S.sentLinkTo = null; break;
       case "dismiss": S.error = null; break;
@@ -581,6 +576,12 @@ document.addEventListener("input", (e) => {
 
 document.addEventListener("submit", async (e) => {
   const form = e.target as HTMLFormElement;
+  if (form.id === "nameform") {
+    e.preventDefault();
+    const name = ($("myname") as HTMLInputElement).value.trim();
+    api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);
+    return;
+  }
   if (form.id === "addplace") {
     e.preventDefault();
     const label = ($("place-label") as HTMLInputElement).value.trim();

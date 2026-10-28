@@ -1,6 +1,6 @@
 import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
-import { ago, beds, esc, fmtDate, money } from "../util.ts";
+import { ago, beds, esc, fmtDate, money, routeHTML } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
 
@@ -93,20 +93,19 @@ export function renderSheet() {
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
 
     ${S.places.length ? `<div class="box"><h3>Commute</h3>
-      <ul class="bd-list">${S.places.map((p) => {
+      <ul class="commutes" title="Subway only, door to door, on a weekday morning: walk, wait, ride, any change, walk. From the MTA timetable.">${S.places.map((p) => {
         const m = row.commutes?.[p.id];
         const route = routes.get(row.id)?.[p.id];
-        return `<li class="commute-li"><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by subway`}</span>${
-          route ? `<span class="route">${esc(route)}</span>` : ""}</li>`;
+        return `<li><span class="c-place">${esc(placeName(p))}</span><span class="c-min">${m == null ? '<span class="small">Not worked out yet</span>' : `${m} min`}</span>${
+          route ? `<span class="c-route">${routeHTML(route)}</span>` : ""}</li>`;
       }).join("")}</ul>
-      <p class="small">Subway only, door to door: the walk to the station, the usual wait and ride on a weekday morning, any change of trains, and the walk at the end. From the MTA's timetable.</p>
     </div>` : ""}
 
-    <div class="box"><h3>Building record</h3>
+    <div class="box"><h3${row.building_checked_at ? ` title="NYC HPD and 311 records, checked ${esc(ago(row.building_checked_at))}"` : ""}>Building</h3>
       ${buildingLines(row).length
         ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>
-           <p class="small">From NYC HPD and 311 records${row.building_checked_at ? `, checked ${ago(row.building_checked_at)}` : ""}.${row.bbl ? ` <a href="https://whoownswhat.justfix.org/bbl/${esc(row.bbl)}" target="_blank" rel="noopener">See the landlord and their other buildings ↗</a>` : ""}</p>`
-        : `<p class="small">${row.bbl === "" ? "Couldn't match this address to a city building record." : "Not looked up yet. New listings are checked as they arrive; for older ones, use Settings → Look up building records."}</p>`}
+           ${row.bbl ? `<a class="linkish small-link" href="https://whoownswhat.justfix.org/bbl/${esc(row.bbl)}" target="_blank" rel="noopener">Landlord's other buildings ↗</a>` : ""}`
+        : `<p class="small">${row.bbl === "" ? "No city record matches this address." : "Not looked up yet."}</p>`}
     </div>
 
     <div class="box"><h3>Price history</h3><div class="spark">${pts ? sparkline(pts) : '<span class="small">Loading…</span>'}</div></div>

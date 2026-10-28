@@ -32,3 +32,33 @@ export function store<T>(key: string, fallback: T): T {
 export function save(key: string, v: unknown) {
   try { localStorage.setItem("stoop." + key, JSON.stringify(v)); } catch { /* private mode */ }
 }
+
+// Official MTA trunk-line colors, keyed by route letter/number.
+export const LINE_COLORS: Record<string, string> = {
+  A: "#0039A6", C: "#0039A6", E: "#0039A6",
+  B: "#FF6319", D: "#FF6319", F: "#FF6319", M: "#FF6319",
+  G: "#6CBE45",
+  J: "#996633", Z: "#996633",
+  L: "#A7A9AC",
+  N: "#FCCC0A", Q: "#FCCC0A", R: "#FCCC0A", W: "#FCCC0A",
+  "1": "#EE352E", "2": "#EE352E", "3": "#EE352E",
+  "4": "#00933C", "5": "#00933C", "6": "#00933C",
+  "7": "#B933AD",
+  S: "#808183",
+};
+
+/** A subway line as its round colored bullet, e.g. the blue A. Express variants (6X) use their line's color. */
+export function bullet(line: string) {
+  const base = line.replace(/X$/, "");
+  const bg = LINE_COLORS[base] ?? "#808183";
+  const dark = ["N", "Q", "R", "W"].includes(base);
+  return `<span class="bullet" style="background:${bg};color:${dark ? "#111" : "#fff"}" role="img" aria-label="${esc(line)} train">${esc(base)}</span>`;
+}
+
+/** "Walk 7 → A → C → Walk 2" as bullets with the walks in between: 7 min walk · (A)(C) · 2 min walk. */
+export function routeHTML(route: string) {
+  return route.split(" → ").map((part) => {
+    const w = part.match(/^Walk (\d+)$/);
+    return w ? `<span class="walk">${w[1]} min walk</span>` : bullet(part);
+  }).join('<span class="sep" aria-hidden="true">›</span>');
+}
