@@ -308,7 +308,7 @@ export function renderCriteria() {
       <div class="picks">${rs.map((r) => pick(r, listings)).join("")}</div>${g === OWN ? `
       <div class="writein"><input id="writein" class="text" maxlength="60" placeholder="Add your own, e.g. exposed brick" aria-label="Something else to look for in listings"><button class="btn sm-btn" data-action="writein">Add</button></div>` : ""}</section>`;
   };
-  return `<div class="critbar"><div class="impact" id="impact">${impactHTML()}</div></div>
+  return `<div class="critstick"><div class="critbar"><div class="impact" id="impact">${impactHTML()}</div></div></div>
     <p class="lede">How much does each one matter? Skip it, call it Nice or Important, or make it a Dealbreaker, and listings without it drop out of your feed.</p>
     <div class="critfilter"><div class="seg" role="group" aria-label="Show"><button data-action="critfilter" data-v="all" aria-pressed="${mode === "all"}">Everything</button><button data-action="critfilter" data-v="picks" aria-pressed="${mode === "picks"}">My picks <span class="n">${picked}</span></button>${together ? `<button data-action="critfilter" data-v="differ" aria-pressed="${mode === "differ"}">We differ <span class="n">${differs}</span></button>` : ""}</div>${together ? `
       <span class="agree">You agree on ${cared.length - differs} of ${cared.length} picks.</span><button class="linkish" data-action="peek" data-v="partner">See the feed as ${esc(partnerName())}</button>` : ""}</div>
