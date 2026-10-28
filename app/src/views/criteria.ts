@@ -78,13 +78,13 @@ function row(c: Criterion) {
       <input class="lbl" id="l-${c.id}" data-edit="label" data-id="${c.id}" value="${esc(c.label)}" aria-label="Criterion name">
       <div class="seg" role="group" aria-label="Type"><button data-action="kind" data-id="${c.id}" data-v="dealbreaker" aria-pressed="${c.kind === "dealbreaker"}">Dealbreaker</button><button data-action="kind" data-id="${c.id}" data-v="want" aria-pressed="${c.kind === "want"}">Want</button></div>
       <label class="switch"><input type="checkbox" role="switch" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> ${c.active ? "On" : "Off"}</label>
+      <button class="iconbtn remove" data-action="remove" data-id="${c.id}" aria-label="Remove ${esc(c.label)}" title="Remove">${icon("trash", { size: 18 })}</button>
     </div>
     ${moving ? `<p class="moving">Moves to ${c.kind === "want" ? "Wants" : "Dealbreakers"} when you save</p>` : ""}
     <div class="crit-body">
       ${control(c)}
       ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label>${slider(`w-${c.id}`, "weight", c.id, 0, 10, c.weight)}<span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
       ${c.kind === "dealbreaker" && numeric ? `<div class="ctl"><label for="m-${c.id}">Near-miss margin</label>${slider(`m-${c.id}`, "margin", c.id, 0, 15, margin)}<span class="val" id="ml-${c.id}">${margin}%</span></div>` : ""}
-      <button class="x" data-action="remove" data-id="${c.id}">Remove</button>
     </div></div>`;
 }
 

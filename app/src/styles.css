@@ -551,3 +551,12 @@ body.sorting{user-select:none;-webkit-user-select:none}
 .ctl:has(> input[type=range]){display:grid;grid-template-columns:minmax(0,220px) auto auto;column-gap:10px;row-gap:2px;align-items:center;justify-content:start}
 .ctl:has(> input[type=range]) > label{grid-column:1 / -1}
 .ctl:has(> input[type=range]) > input[type=range]{width:100%}
+
+/* small round icon button (e.g. remove a criterion) */
+.iconbtn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--h-sm);height:var(--h-sm);padding:0;border:0;border-radius:50%;
+  background:none;color:var(--ink-2);cursor:pointer;transition:background-color .15s,color .15s,transform .12s var(--ease)}
+.iconbtn:hover{background:var(--hover);color:var(--ink)}
+.iconbtn.remove:hover{background:var(--bad-soft);color:var(--bad)}
+.iconbtn:active{transform:scale(.92)}
+@media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
+@media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
