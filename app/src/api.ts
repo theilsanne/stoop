@@ -219,7 +219,7 @@ export class SupabaseApi implements Api {
   }
 
   async stamps() {
-    const { data, error } = await this.sb.from("stamps").select("listing_id,user_id");
+    const { data, error } = await this.sb.from("stamps").select("listing_id,user_id,stamped_at");
     fail("Loading stamps", error);
     return data as Stamp[];
   }

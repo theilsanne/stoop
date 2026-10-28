@@ -127,7 +127,9 @@ export class DemoApi implements Api {
   // profile photos: your own is whatever you pick here; the partner's is a sample drawing
   private photos: Record<string, string> = { [PARTNER]: samplePortrait() };
   private stampRows: Stamp[] = [
-    { listing_id: "d8", user_id: YOU }, { listing_id: "d4", user_id: PARTNER }, { listing_id: "d2", user_id: PARTNER },
+    { listing_id: "d8", user_id: YOU, stamped_at: new Date(Date.now() - 2 * 864e5).toISOString() },
+    { listing_id: "d4", user_id: PARTNER, stamped_at: new Date(Date.now() - 5 * 864e5).toISOString() },
+    { listing_id: "d2", user_id: PARTNER, stamped_at: new Date(Date.now() - 864e5).toISOString() },
   ];
 
   async me(): Promise<Me | null> { return this.signedIn ? { id: YOU, email: "you@example.com" } : null; }
@@ -171,7 +173,7 @@ export class DemoApi implements Api {
   async stamps() { return this.stampRows.map((s) => ({ ...s })); }
   async setStamp(listingId: string, stamped: boolean) {
     this.stampRows = this.stampRows.filter((s) => !(s.listing_id === listingId && s.user_id === YOU));
-    if (stamped) this.stampRows.push({ listing_id: listingId, user_id: YOU });
+    if (stamped) this.stampRows.push({ listing_id: listingId, user_id: YOU, stamped_at: new Date().toISOString() });
   }
   async setStage(listingId: string, stage: Stage) { this.stages.set(listingId, stage); }
   async priceHistory(listingId: string): Promise<PricePoint[]> {

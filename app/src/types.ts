@@ -78,6 +78,7 @@ export interface Profile {
 export interface Stamp {
   listing_id: string;
   user_id: string;
+  stamped_at?: string; // printed round the seal's ring
 }
 
 export interface Rating {

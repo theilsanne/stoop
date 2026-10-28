@@ -31,6 +31,12 @@ export function initials(name: string) {
   return letters.toUpperCase();
 }
 
+/** "Noah Semus" → "NOAH": the name a stamp's seal carries round its ring. */
+export const sealName = (name: string) => (name.trim().split(/\s+/)[0] || "Stamped").toUpperCase().slice(0, 12);
+
+/** "Oct 28": the day something happened, without the year. */
+export const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
 /** A color for someone without a photo, the same every time: from their id. */
 export const hueOf = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 360;
 

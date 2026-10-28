@@ -3,7 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { celebrate, closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { closeSheetMotion, enterView, inkBurst, inkSettle, land, openSheetMotion, pop, thunk, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -19,7 +19,7 @@ import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
-import { dragStamp, myFace, myMark } from "./views/stamps.ts";
+import { dragStamp, inkDefs, inkOf, myFace } from "./views/stamps.ts";
 import { mountStamp } from "./stamp3d.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
@@ -122,7 +122,7 @@ export function render() {
     }[S.tab]()}</main>${S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length ? dragStamp() : ""}`;
   placeIndicators(root, inds);
   stamp.setShown(S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0);
-  stamp.setFace(myFace());
+  stamp.setFace(myFace(), inkOf(myId()));
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);
@@ -300,20 +300,22 @@ async function rate(id: string, v: Verdict) {
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
 }
 
-/** Your stamp pressed onto a listing: a big one lands over it, and the stamp stays on the card. */
+/** Your stamp came down on a listing: ink flies, and your seal is printed where it landed. */
 function dropStamp(id: string, x: number, y: number) {
-  if (stampedBy(id, myId())) { toast("You've already stamped this one"); return; }
-  celebrate(x, y, myMark(180));
+  if (stampedBy(id, myId())) return;
+  inkBurst(x, y, inkOf(myId()));
   void placeStamp(id);
 }
 
-/** Place your stamp on a listing. It shows at once, and is undone only if the save fails. */
+/** Print your seal on a listing. It shows at once, stays, and is undone only if the save fails. */
 async function placeStamp(id: string) {
   const before = S.stamps;
-  S.stamps = [...S.stamps, { listing_id: id, user_id: myId() }];
+  S.stamps = [...S.stamps, { listing_id: id, user_id: myId(), stamped_at: new Date().toISOString() }];
   render();
-  // the impression comes down on the card, now that the card has been redrawn with it
-  for (const mark of document.querySelectorAll(`[data-stamp-id="${CSS.escape(id)}"] .impression.mine`)) stampDown(mark);
+  // the card has been redrawn with the seal on it: the ink settles in, and the card gives under the press
+  const card = document.querySelector(`.card[data-stamp-id="${CSS.escape(id)}"]`);
+  inkSettle(card?.querySelector(".seal.mine") ?? null);
+  thunk(card);
   try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); }
 }
 
@@ -556,6 +558,11 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  // a focused listing: S brings your stamp over and presses it
+  if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const card = e.target as HTMLElement;
+    if (card.matches?.(".card[data-stamp-id]")) { e.preventDefault(); stamp.stampCard(card); return; }
+  }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
   const tab = (e.target as HTMLElement).closest?.<HTMLElement>('nav.tabs [role="tab"]');
   if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
@@ -672,7 +679,13 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import
 
 initDrag((id, stage) => setStage(id, stage as Stage));
 
-const stamp = mountStamp({ onStamp: dropStamp });
+// the seals' shared lettering ring, crop and ink filters, once for the whole page
+document.body.insertAdjacentHTML("beforeend", inkDefs());
+const stamp = mountStamp({
+  canStamp: (id) => !stampedBy(id, myId()),
+  onStamp: dropStamp,
+  onRefused: () => toast("You've already stamped this one"),
+});
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;

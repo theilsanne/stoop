@@ -92,53 +92,44 @@ export function pop(els: Element[]) {
   }
 }
 
-/**
- * A stamp comes down on a listing: the picture slams onto the photo, and an ink ring
- * spreads out from it and fades. Taking a stamp back just gives the picture a small lift.
- */
-export function stampDown(mark: Element | null) {
-  if (!mark || reduced()) return;
-  const el = mark as HTMLElement;
-  const ring = document.createElement("span");
-  ring.className = "ink";
-  el.append(ring);
-  animate(el, { scale: [1.6, 0.9, 1], opacity: [0.3, 1] }, { duration: 0.4, ease: [0.2, 0.9, 0.3, 1] })
-    .finished.then(tidy([el], ["transform", "opacity"]));
-  animate(ring, { scale: [0.9, 1.9], opacity: [0.75, 0] }, { duration: 0.6, ease: "easeOut" })
-    .finished.then(() => ring.remove());
+/** A seal just printed on a listing: the ink comes up out of the paper, a touch soft at first. */
+export function inkSettle(seal: Element | null) {
+  if (!seal || reduced()) return;
+  animate(seal, { opacity: [0, 1], scale: [1.04, 1] }, { duration: 0.34, ease: "easeOut" })
+    .finished.then(tidy([seal], ["opacity", "transform"]));
 }
 
-export function stampLift(mark: Element | null) {
-  if (!mark || reduced()) return;
-  animate(mark, { scale: [1, 0.88, 1] }, SOFT).finished.then(tidy([mark], ["transform"]));
+/** The listing a stamp came down on gives a little under the press. */
+export function thunk(card: Element | null) {
+  if (!card || reduced()) return;
+  animate(card, { scale: [1, 0.985, 1] }, { duration: 0.3, ease: "easeOut" }).finished.then(tidy([card], ["transform"]));
 }
 
 /**
- * Your stamp dropped on a listing lands big: your picture slams down over the spot, an
- * accent ring bursts out, a few dots fly off, and the whole thing fades after a moment.
- * Decorative: with reduced motion it's skipped, and the stamp itself still goes on.
+ * Ink thrown off where a stamp lands: a ring of ink spreads and fades, and a few drops fly off
+ * and fall. Decorative: skipped with reduced motion. The seal is what stays.
  */
-export function celebrate(x: number, y: number, mark: string) {
+export function inkBurst(x: number, y: number, ink: string) {
   if (reduced()) return;
-  const el = document.createElement("div");
-  el.className = "celebrate";
-  el.style.left = x + "px";
-  el.style.top = y + "px";
-  el.innerHTML = `<div class="cel-mark">${mark}<span class="cel-ring"></span></div><b class="cel-word">Stamped</b>`;
-  document.body.append(el);
-  const pic = el.querySelector(".cel-mark")!, ring = el.querySelector(".cel-ring")!;
-  animate(pic, { scale: [2.8, 0.9, 1.05, 1], rotate: [-18, 4, -2, 0], opacity: [0, 1, 1, 1] }, { duration: 0.55, ease: [0.2, 0.9, 0.3, 1] });
-  animate(ring, { scale: [0.8, 2.6], opacity: [0.9, 0] }, { duration: 0.8, delay: 0.25, ease: "easeOut" });
-  const DOTS = 14;
-  for (let i = 0; i < DOTS; i++) {
-    const dot = document.createElement("span");
-    dot.className = "cel-dot";
-    pic.append(dot);
-    const a = (i / DOTS) * Math.PI * 2, d = 130 + (i % 3) * 45;
-    animate(dot, { x: [0, Math.cos(a) * d], y: [0, Math.sin(a) * d], opacity: [1, 0], scale: [1, 0.3] },
-      { duration: 0.8, delay: 0.2, ease: "easeOut" }).finished.then(() => dot.remove());
+  const add = (cls: string) => {
+    const el = document.createElement("span");
+    el.className = `ink-fx ${cls}`;
+    el.style.cssText = `left:${x}px;top:${y}px;color:${ink}`;
+    document.body.append(el);
+    return el;
+  };
+  const ring = add("ink-ring");
+  animate(ring, { scale: [0.75, 2.2], opacity: [0.55, 0] }, { duration: 0.65, ease: "easeOut" }).finished.then(() => ring.remove());
+  const DROPS = 14;
+  for (let i = 0; i < DROPS; i++) {
+    const drop = add("ink-drop");
+    drop.style.setProperty("--d", `${3 + Math.random() * 6}px`);
+    const a = (i / DROPS) * Math.PI * 2 + Math.random() * 0.4, d = 52 + Math.random() * 64;
+    const dx = Math.cos(a) * d, dy = Math.sin(a) * d;
+    // out, then down a little as it falls
+    animate(drop, { x: [0, dx * 0.7, dx], y: [0, dy * 0.7 - 8, dy + 16], opacity: [0.95, 0.9, 0], scale: [1, 0.9, 0.5] },
+      { duration: 0.55 + Math.random() * 0.25, ease: "easeOut" }).finished.then(() => drop.remove());
   }
-  animate(el, { opacity: [1, 0] }, { duration: 0.5, delay: 1.4, ease: "easeIn" }).finished.then(() => el.remove());
 }
 
 /** A pipeline card that just changed columns settles into place. */
