@@ -3,7 +3,7 @@
 // 1. Check the shared secret header (Apify can't send a Supabase login).
 // 2. Download the run's dataset from Apify.
 // 3. Normalize each item and upsert it into rentals.listings.
-// 4. Mark listings not seen for 8 days as off-market.
+// 4. Mark listings not seen for OFF_MARKET_DAYS (default 30) as off-market.
 // 5. Score the listings from this run and save the scores.
 // 6. Work out which ones deserve an alert (sending comes with web push).
 //
@@ -13,10 +13,11 @@
 import { chunk, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 import { normalize, type ListingRow } from "../_shared/normalize.ts";
 
-// Hourly runs only fetch the newest listings, so not appearing in one doesn't
-// mean a listing is gone. A weekly full-depth run (see README) refreshes every
-// listing still up; anything it hasn't seen in 8 days has most likely been rented.
-const OFF_MARKET_AFTER_HOURS = 8 * 24;
+// Capped runs (Apify's free plan returns 50 per run) only fetch the newest listings,
+// so not appearing in one doesn't mean a listing is gone. Default to a long window;
+// once full pulls run weekly, set the OFF_MARKET_DAYS secret to 8.
+const OFF_MARKET_DAYS = Number(Deno.env.get("OFF_MARKET_DAYS")) || 30;
+const OFF_MARKET_AFTER_HOURS = OFF_MARKET_DAYS * 24;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

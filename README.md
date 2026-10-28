@@ -10,7 +10,7 @@ preferences, and shows them in an installable web app at
 | Path | What it is |
 | --- | --- |
 | `supabase/migrations/20261006000000_init.sql` | The database: listings, each person's criteria, scores, ratings, pipeline stage, alerts. Everything lives in a `rentals` schema. |
-| `supabase/functions/ingest` | Called by Apify after each scraper run. Saves new listings, marks ones unseen for 8 days off-market, scores everything from the run. |
+| `supabase/functions/ingest` | Called by Apify after each scraper run. Saves new listings, marks ones unseen for 30 days (configurable) off-market, scores everything from the run. |
 | `supabase/functions/rescore` | Called by the app after either person saves criteria. Re-scores every active listing. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
@@ -64,8 +64,10 @@ In a test it kept the search URL's filters and newest-first sort; another scrape
 2. Open the actor → **Use Actor**, put the URL in **Start URLs**, leave **Flatten dataset rows** on (the default), and leave Proxy alone.
 3. **Save as task** twice:
    - **Frequent:** Max Listings `30`, scheduled every 2–3 hours for now (hourly in waking hours from February).
-   - **Weekly:** Max Listings `0`/empty (everything), scheduled weekly. Hourly runs only see the newest listings; this one confirms which older listings are still up. Anything not seen for 8 days is marked off-market.
+   - **Weekly:** Max Listings `0`/empty (everything), scheduled weekly. Hourly runs only see the newest listings; this one confirms which older listings are still up.
 4. Copy your API token from **Settings → API & Integrations**.
+
+**Off-market window.** Listings not seen for `OFF_MARKET_DAYS` days (default 30) are marked off-market. On Apify's free plan memo23 returns at most 50 listings per run, so older listings aren't re-seen and a long window keeps them in the feed. Once you're on a paid plan with a weekly full pull, shorten it: `supabase secrets set OFF_MARKET_DAYS=8`.
 
 Field notes (handled in `normalize.ts`): memo23 sends `0` for unknown size and for "no concession", has no pet field (listings from a pets-allowed search are marked pets allowed), and has no no-fee flag (a listing is no-fee when its fee list has no broker fee).
 
