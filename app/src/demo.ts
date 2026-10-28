@@ -48,6 +48,14 @@ const LISTINGS = [
   L("d12", "302 Midwood St #1R", "Prospect Lefferts Gardens", 3250, 1, 12, 2, 1, "2027-04-15", [T, F, T, T, F], 10),
 ];
 
+// approximate locations of the sample addresses
+const COORDS: Record<string, [number, number]> = {
+  d1: [40.6722, -73.9505], d2: [40.6758, -73.9525], d3: [40.6775, -73.9705], d4: [40.6748, -73.9575],
+  d5: [40.6825, -73.9475], d6: [40.6890, -73.9620], d7: [40.6875, -73.9745], d8: [40.6705, -73.9415],
+  d9: [40.6755, -73.9605], d10: [40.6835, -73.9410], d11: [40.6745, -73.9285], d12: [40.6600, -73.9500],
+};
+for (const l of LISTINGS) [l.lat, l.lng] = COORDS[l.id] ?? [null, null];
+
 let seq = 0;
 const C = (owner: string, label: string, kind: Criterion["kind"], field: string, operator: Criterion["operator"],
   value: unknown, weight = 5, margin: number | null = null): Criterion =>

@@ -1,6 +1,7 @@
 import { S, isNewSinceVisit, myId, partnerId, partnerName, personScore, verdictOf, viewOf, type Filter, type View } from "../state.ts";
 import type { FeedRow, Verdict } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
+import { renderMapShell } from "./map.ts";
 
 export function verdictButtons(id: string) {
   const mine = verdictOf(id, myId());
@@ -89,11 +90,15 @@ export function renderFeed() {
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filter">${([["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
         `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t} ${g[k].length}</button>`).join("")}</div>
-      <label class="summary" for="sort">Sort <select class="sm" id="sort" data-change="sort">${([["score", "Best score"], ["newest", "Newest"], ["rent", "Lowest net rent"]] as const).map(([k, t]) =>
-        `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <div class="toolbar-r">
+        ${S.feedView === "list" ? `<label class="summary" for="sort">Sort <select class="sm" id="sort" data-change="sort">${([["score", "Best score"], ["newest", "Newest"], ["rent", "Lowest net rent"]] as const).map(([k, t]) =>
+          `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>` : ""}
+        <div class="seg" role="group" aria-label="View">${(["list", "map"] as const).map((k) =>
+          `<button data-action="feedview" data-v="${k}" aria-pressed="${S.feedView === k}">${k === "list" ? "List" : "Map"}</button>`).join("")}</div>
+      </div>
     </div>
-    <p class="summary"><b>${S.feed.length}</b> listings${newCount ? ` · <b>${newCount}</b> new since your last visit` : ""}${lastPull ? ` · last pulled ${ago(lastPull)}` : ""}</p>
+    ${S.feedView === "map" ? renderMapShell() : `<p class="summary"><b>${S.feed.length}</b> listings${newCount ? ` · <b>${newCount}</b> new since your last visit` : ""}${lastPull ? ` · last pulled ${ago(lastPull)}` : ""}</p>
     ${list.length ? `<div class="grid">${list.slice(0, S.shown).map((x) => card(x.row, x.v)).join("")}</div>
       ${list.length > S.shown ? `<div class="more"><button class="btn" data-action="more">Show ${Math.min(40, list.length - S.shown)} more of ${list.length - S.shown}</button></div>` : ""}`
-      : `<div class="empty">${empties[S.filter]}</div>`}`;
+      : `<div class="empty">${empties[S.filter]}</div>`}`}`;
 }

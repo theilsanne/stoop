@@ -12,6 +12,7 @@ import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet } from "./views/detail.ts";
 import { renderFeed } from "./views/feed.ts";
+import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
 // ---------- backend ----------
@@ -54,6 +55,7 @@ export function render() {
     }[S.tab]()}</main>`;
   window.scrollTo(0, y);
   $("sheet-root").innerHTML = renderSheet();
+  if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
 }
 
 function toast(text: string) {
@@ -188,6 +190,7 @@ document.addEventListener("click", (e) => {
       case "lens": S.lens = v as Lens; save("lens", v); S.shown = 40; break;
       case "filter": S.filter = v as Filter; S.shown = 40; break;
       case "more": S.shown += 40; break;
+      case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; $("sheet-root").innerHTML = renderSheet(); return;
       case "move": setStage(id, v as Stage); return;
@@ -241,6 +244,7 @@ document.addEventListener("change", (e) => {
   const t = e.target as HTMLSelectElement;
   if (t.dataset.change === "sort") { S.sort = t.value as Sort; save("sort", t.value); render(); }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
+  if (t.dataset.change === "subway") { showSubway.on = (t as unknown as HTMLInputElement).checked; save("subway", showSubway.on); render(); }
 });
 
 document.addEventListener("input", (e) => {

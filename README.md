@@ -21,7 +21,7 @@ preferences, and shows them in an installable web app at
 
 | Screen | What it does |
 | --- | --- |
-| Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. |
+| Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. Switch between **List** and **Map**: pins colored by score, with MTA subway lines from NY Open Data (`s692-irgq`). |
 | Listing | Photos, rent and concessions, amenities, why it scores what it does for each of you, both verdicts and notes, stage, price history. |
 | Criteria | Your own dealbreakers and wants. Shows how many listings would pass before you save; saving re-scores everything. Change history for both of you. |
 | Compare | Your list next to your partner's, where you differ, and the listings you'd split on. |
