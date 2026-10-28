@@ -1,9 +1,8 @@
 import "./styles.css";
 import { SupabaseApi, type Api } from "./api.ts";
-import { CATALOG } from "./catalog.ts";
 import { DemoApi } from "./demo.ts";
 import {
-  S, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, persistDraft, ratingOf, resetDraft,
+  S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
   type Filter, type Lens, type Tab,
 } from "./state.ts";
@@ -111,8 +110,10 @@ async function load() {
   S.loading = true;
   render();
   try {
-    const [profiles, feed, ratings, criteria] = await Promise.all([api.profiles(), api.feed(), api.ratings(), api.criteria()]);
-    Object.assign(S, { profiles, feed, ratings, criteria });
+    const [profiles, feed, ratings, criteria, places] = await Promise.all([
+      api.profiles(), api.feed(), api.ratings(), api.criteria(), api.places().catch(() => []),
+    ]);
+    Object.assign(S, { profiles, feed, ratings, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
     if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
@@ -225,6 +226,29 @@ async function lookUpBuildings() {
   render();
 }
 
+// Commute times come back in batches (gentle on a free service); keep going while there's progress.
+async function workOutCommutes() {
+  S.saving = true;
+  render();
+  let done = 0;
+  try {
+    for (let i = 0; i < 30; i++) {
+      const r = await api.commute();
+      done += r.computed;
+      if (r.errors?.length) console.warn("Commute lookups:", r.errors);
+      if (!r.remaining || !r.computed) {
+        if (!r.computed && r.failed && !done) S.error = "Couldn't get transit times right now" + (r.errors?.[0] ? ` (${r.errors[0]})` : "") + ". Try again later.";
+        break;
+      }
+      toast(`Working out commute times… ${r.remaining} to go`);
+    }
+    S.feed = await api.feed();
+    if (done) toast(`Commute times added for ${done} listing${done === 1 ? "" : "s"}.`, { ms: 5000 });
+  } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
+  S.saving = false;
+  render();
+}
+
 async function loadLog() {
   try { changeLog.rows = await api.criteriaLog(); } catch { changeLog.rows = []; }
   if (S.tab === "criteria") render();
@@ -264,7 +288,7 @@ document.addEventListener("click", (e) => {
       }
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
       case "add": {
-        const def = CATALOG.find((d) => d.key === ($("preset") as HTMLSelectElement).value);
+        const def = allFields().find((d) => d.key === ($("preset") as HTMLSelectElement).value);
         if (!def) return;
         S.draft.push({
           id: "new-" + Date.now(), owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
@@ -279,6 +303,11 @@ document.addEventListener("click", (e) => {
       case "savecrit": saveCriteria(); return;
       case "rescore": rescoreAll(); return;
       case "enrich": lookUpBuildings(); return;
+      case "commute": workOutCommutes(); return;
+      case "removeplace": {
+        api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
+        return;
+      }
       case "savename": {
         const name = ($("myname") as HTMLInputElement).value.trim();
         api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);
@@ -334,6 +363,26 @@ document.addEventListener("input", (e) => {
 
 document.addEventListener("submit", async (e) => {
   const form = e.target as HTMLFormElement;
+  if (form.id === "addplace") {
+    e.preventDefault();
+    const label = ($("place-label") as HTMLInputElement).value.trim();
+    const address = ($("place-address") as HTMLInputElement).value.trim();
+    if (!label || !address) return;
+    S.saving = true; render();
+    try {
+      const p = await api.addPlace(label, address);
+      S.places = await api.places();
+      S.error = null;
+      toast(`Added ${p.label}: ${p.address}`);
+      S.saving = false;
+      workOutCommutes();
+    } catch (err) {
+      S.saving = false;
+      S.error = err instanceof Error ? err.message : String(err);
+      render();
+    }
+    return;
+  }
   if (form.id !== "signin") return;
   e.preventDefault();
   const email = ($("email") as HTMLInputElement).value.trim();

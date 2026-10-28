@@ -49,7 +49,19 @@ export interface FeedRow extends Listing {
   hpd_class_c_open: number | null;
   complaints_311_12mo: number | null;
   building_checked_at: string | null;
+  commutes: Record<string, number> | null; // place id -> transit minutes
 }
+
+export interface Place {
+  id: string;
+  user_id: string;
+  label: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+export interface CommuteResult { computed: number; failed: number; remaining: number; errors: string[] }
 
 export interface EnrichResult {
   geocoded: number; unmatched: number; buildings_checked: number; remaining: number; errors: string[];

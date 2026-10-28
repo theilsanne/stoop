@@ -1,5 +1,5 @@
 import {
-  S, isNewSinceVisit, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
+  S, isNewSinceVisit, placeName, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
   type Filter, type Lens, type Sort, type View,
 } from "../state.ts";
 import type { FeedRow, PersonScore, Verdict } from "../types.ts";
@@ -59,6 +59,15 @@ function whyPanel(row: FeedRow) {
     <button class="linkish small" data-open="${row.id}">Full breakdown</button></div>`;
 }
 
+/** "34 min to Office · 41 min to Noah's studio" for places with a known time. */
+export function commuteLine(row: FeedRow) {
+  const parts = S.places.flatMap((p) => {
+    const m = row.commutes?.[p.id];
+    return m == null ? [] : [`<b>${m} min</b> to ${esc(placeName(p))}`];
+  });
+  return parts.length ? `<div class="comm">${parts.join(" · ")}</div>` : "";
+}
+
 export function parseSort(value: string): { sort: Sort; lens: Lens } {
   const [sort, lens] = value.split(":") as [Sort, Lens];
   return { sort, lens };
@@ -80,6 +89,7 @@ export function card(row: FeedRow, v: View) {
       <div class="addr">${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</div>
       <div class="hood">${esc(row.neighborhood)}</div>
       <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""} · Avail ${fmtDate(row.available_date)} · ${ago(row.listed_at ?? row.first_seen_at)}</div>
+      ${commuteLine(row)}
       ${fails}
       ${v.scored ? `<button class="whybtn" data-action="why" data-id="${row.id}" aria-expanded="${open}">${open ? "Hide why" : `Why ${v.passes ? v.score : "it's out"}?`}</button>` : ""}
       ${open ? whyPanel(row) : ""}

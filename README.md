@@ -13,6 +13,8 @@ preferences, and shows them in an installable web app at
 | `supabase/functions/ingest` | Called by Apify after each scraper run. Saves new listings, marks ones unseen for 30 days (configurable) off-market, scores everything from the run. |
 | `supabase/functions/rescore` | Called by the app after either person saves criteria. Re-scores every active listing. |
 | `supabase/functions/enrich` | Called from the app's Settings. Looks up building records for listings that don't have them yet, in batches, then re-scores. |
+| `supabase/functions/commute` | Called from the app's Settings and after adding a place. Works out transit times from listings to every saved place, in batches, then re-scores. |
+| `supabase/functions/_shared/commute.ts` | Transit times from [Transitous](https://transitous.org), a free open-source router (no key). |
 | `supabase/functions/_shared/buildings.ts` | Address → BBL (NYC GeoSearch), open HPD violations, 311 complaints (NYC Open Data). No keys needed. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
@@ -84,6 +86,7 @@ supabase secrets set APIFY_TOKEN=<token> WEBHOOK_SECRET=<a long random string>
 supabase functions deploy ingest --no-verify-jwt
 supabase functions deploy rescore --no-verify-jwt
 supabase functions deploy enrich --no-verify-jwt
+supabase functions deploy commute --no-verify-jwt
 ```
 
 Optional: a free [NYC Open Data app token](https://data.cityofnewyork.us/profile/edit/developer_settings) raises the city's rate limits: `supabase secrets set NYC_OPENDATA_TOKEN=...`.
@@ -113,7 +116,11 @@ Then open **Table Editor → rentals.listings** and spot-check a few rows agains
 
 ### Database updates
 
-Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed (safe to re-run).
+Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run).
+
+### Commute times
+
+Each of you adds places in **Settings → Places** (name + NYC street address, located with NYC GeoSearch). Every listing gets a transit time to each place, planned to arrive by 9am on a Tuesday, from [Transitous](https://transitous.org/api/). Its usage policy: non-commercial, open-source projects only, identify the app (we send a User-Agent), and keep load light (more than ~720 route requests a day counts as heavy). Times are asked once per listing per place and refreshed every 45 days; a backfill goes 40 at a time. Criteria: **Commute to <place> within N min**, one per place.
 
 ### Building records
 
@@ -142,4 +149,3 @@ curl -X POST https://<ref>.supabase.co/functions/v1/ingest \
 ## Not built yet
 
 - Web push alerts (ingest already works out who would get one)
-- Commute times to places each of you adds (scoring already supports them)

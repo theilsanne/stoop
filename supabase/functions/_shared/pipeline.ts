@@ -8,6 +8,7 @@ import {
 } from "./scoring.ts";
 import { normalize } from "./normalize.ts";
 import { type Fetch, lookupBbl, lookupBuilding } from "./buildings.ts";
+import { lookupCommute, nextTuesdayNineAm } from "./commute.ts";
 
 export function serviceClient() {
   return createClient(
@@ -93,6 +94,62 @@ export async function enrichBuildings(db: DB, ids: string[] | null, limit = 100)
     geocoded, unmatched, buildings_checked: checked, remaining,
     errors: [...new Set(errors)].slice(0, 5),
   };
+}
+
+const COMMUTE_FRESH_DAYS = 45; // schedules change seasonally; re-ask occasionally
+
+/**
+ * Transit minutes from listings to every saved place, via Transitous. Only pairs
+ * with no answer yet (or an old one) are asked, at most `limit` per call, a few at
+ * a time to stay gentle on a free service. A failed lookup is skipped, not stored.
+ */
+export async function computeCommutes(db: DB, ids: string[] | null, limit = 40) {
+  const places = (check(await db.from("places").select("id, lat, lng"), "load places") as
+    { id: string; lat: number | null; lng: number | null }[]).filter((p) => p.lat != null && p.lng != null);
+  if (!places.length) return { computed: 0, failed: 0, remaining: 0, errors: [] as string[] };
+
+  type L = { id: string; lat: number | null; lng: number | null };
+  const listings: L[] = [];
+  if (ids) {
+    for (const part of chunk(ids)) listings.push(...check(await db.from("listings").select("id, lat, lng").in("id", part), "load listings") as L[]);
+  } else {
+    for (let from = 0; ; from += 1000) {
+      const page = check(await db.from("listings").select("id, lat, lng").eq("status", "active").order("id").range(from, from + 999), "load listings") as L[];
+      listings.push(...page);
+      if (page.length < 1000) break;
+    }
+  }
+  const located = listings.filter((l) => l.lat != null && l.lng != null);
+
+  // what we already know
+  const known = new Set<string>();
+  const cutoff = new Date(Date.now() - COMMUTE_FRESH_DAYS * 24 * 3600e3).toISOString();
+  for (const part of chunk(located.map((l) => l.id))) {
+    const rows = check(await db.from("commutes").select("listing_id, place_id").in("listing_id", part).gt("computed_at", cutoff), "load commutes") as { listing_id: string; place_id: string }[];
+    for (const r of rows) known.add(r.listing_id + "|" + r.place_id);
+  }
+  const todo = located.flatMap((l) => places.filter((p) => !known.has(l.id + "|" + p.id)).map((p) => ({ l, p })));
+  const batch = todo.slice(0, limit);
+
+  const arriveBy = nextTuesdayNineAm();
+  const errors: string[] = [];
+  let computed = 0, failed = 0;
+  for (const part of chunk(batch, 3)) {
+    const rows = await Promise.all(part.map(async ({ l, p }) => {
+      try {
+        const minutes = await lookupCommute(fetch as unknown as Fetch, { lat: l.lat!, lng: l.lng! }, { lat: p.lat!, lng: p.lng! }, arriveBy);
+        if (minutes == null) { failed++; return null; }
+        return { listing_id: l.id, place_id: p.id, minutes, mode: "transit", computed_at: new Date().toISOString() };
+      } catch (e) {
+        failed++; errors.push(e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    }));
+    const ok = rows.filter((r) => r != null);
+    if (ok.length) check(await db.from("commutes").upsert(ok, { onConflict: "listing_id,place_id" }), "save commutes");
+    computed += ok.length;
+  }
+  return { computed, failed, remaining: todo.length - batch.length, errors: [...new Set(errors)].slice(0, 5) };
 }
 
 /**

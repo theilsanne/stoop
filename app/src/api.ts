@@ -3,7 +3,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type {
-  CriteriaChange, Criterion, EnrichResult, FeedRow, Me, PricePoint, Profile, Rating, Stage, Verdict,
+  CommuteResult, CriteriaChange, Criterion, EnrichResult, FeedRow, Me, Place, PricePoint, Profile, Rating, Stage, Verdict,
 } from "./types.ts";
 
 export interface Api {
@@ -30,6 +30,26 @@ export interface Api {
   rescore(): Promise<{ rescored: number; passing: number }>;
   /** Look up building records for listings that don't have them (one batch). */
   enrich(): Promise<EnrichResult>;
+
+  places(): Promise<Place[]>;
+  /** Look the address up (NYC only) and save it as one of my places. */
+  addPlace(label: string, address: string): Promise<Place>;
+  removePlace(id: string): Promise<void>;
+  /** Work out transit times to places (one batch). */
+  commute(): Promise<CommuteResult>;
+}
+
+/** NYC address → coordinates with NYC Planning's GeoSearch (free, no key). */
+export async function geocodeNyc(address: string): Promise<{ lat: number; lng: number; label: string }> {
+  const res = await fetch(`https://geosearch.planninglabs.nyc/v2/search?text=${encodeURIComponent(address)}&size=1`);
+  if (!res.ok) throw new Error("The address lookup didn't respond. Try again in a minute.");
+  const body = await res.json() as { features?: { geometry?: { coordinates?: [number, number] }; properties?: { label?: string; confidence?: number } }[] };
+  const f = body.features?.[0];
+  const [lng, lat] = f?.geometry?.coordinates ?? [];
+  if (lat == null || lng == null || (f?.properties?.confidence ?? 1) < 0.6) {
+    throw new Error("Couldn't find that address in New York City. Try the street address with the borough, e.g. “111 8th Ave, Manhattan”.");
+  }
+  return { lat, lng, label: f?.properties?.label ?? address };
 }
 
 const FEED_COLUMNS = [
@@ -38,7 +58,7 @@ const FEED_COLUMNS = [
   "beds", "baths", "sqft", "available_date", "amenities", "photos",
   "listed_at", "first_seen_at", "last_seen_at",
   "score", "passes", "near_miss", "failed", "per_person", "stage", "verdicts",
-  "bbl", "hpd_open_violations", "hpd_class_c_open", "complaints_311_12mo", "building_checked_at",
+  "bbl", "hpd_open_violations", "hpd_class_c_open", "complaints_311_12mo", "building_checked_at", "commutes",
 ].join(",");
 
 const CRITERION_COLUMNS =
@@ -192,6 +212,32 @@ export class SupabaseApi implements Api {
     const { data, error } = await this.sb.functions.invoke("rescore", { method: "POST" });
     fail("Re-scoring listings", error);
     return data as { rescored: number; passing: number };
+  }
+
+  async places() {
+    const { data, error } = await this.sb.from("places").select("id,user_id,label,address,lat,lng").order("label");
+    fail("Loading places", error);
+    return data as Place[];
+  }
+
+  async addPlace(label: string, address: string) {
+    const g = await geocodeNyc(address);
+    const { data, error } = await this.sb.from("places")
+      .insert({ user_id: this.user!.id, label, address: g.label, lat: g.lat, lng: g.lng })
+      .select("id,user_id,label,address,lat,lng").single();
+    fail("Saving the place", error);
+    return data as Place;
+  }
+
+  async removePlace(id: string) {
+    const { error } = await this.sb.from("places").delete().eq("id", id);
+    fail("Removing the place", error);
+  }
+
+  async commute() {
+    const { data, error } = await this.sb.functions.invoke("commute", { method: "POST" });
+    fail("Working out commute times", error);
+    return data as CommuteResult;
   }
 
   async enrich() {

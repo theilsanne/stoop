@@ -1,4 +1,4 @@
-import { S, myId, partnerId, partnerName, personScore, ratingOf, verdictOf, viewOf } from "../state.ts";
+import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
@@ -89,6 +89,14 @@ export function renderSheet() {
       <label class="small" for="note">Your notes</label>
       <textarea id="note" data-note="${row.id}" placeholder="Light, noise, the landlord, anything worth remembering">${esc(myNote)}</textarea>
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
+
+    ${S.places.length ? `<div class="box"><h3>Commute</h3>
+      <ul class="bd-list">${S.places.map((p) => {
+        const m = row.commutes?.[p.id];
+        return `<li><span>${esc(placeName(p))}</span><span class="why">${m == null ? "not worked out yet" : `<b>${m} min</b> by transit`}</span></li>`;
+      }).join("")}</ul>
+      <p class="small">Arriving by 9am on a Tuesday. Transit times by <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a>, from public schedule data.</p>
+    </div>` : ""}
 
     <div class="box"><h3>Building record</h3>
       ${buildingLines(row).length

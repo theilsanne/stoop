@@ -6,7 +6,7 @@ import { groupByOwner, scoreListing } from "../../supabase/functions/_shared/sco
 import type { Api } from "./api.ts";
 import { isNewId } from "./api.ts";
 import type {
-  CriteriaChange, Criterion, FeedRow, Listing, Me, PricePoint, Profile, Rating, Stage, Verdict,
+  CriteriaChange, Criterion, FeedRow, Listing, Me, Place, PricePoint, Profile, Rating, Stage, Verdict,
 } from "./types.ts";
 
 const YOU = "demo-you", PARTNER = "demo-partner";
@@ -61,6 +61,9 @@ const BLDG: Record<string, [number, number, number]> = {
   d8: [1, 0, 1], d9: [0, 0, 0], d10: [14, 3, 26], d11: [4, 1, 9], d12: [1, 0, 2],
 };
 
+// sample transit minutes to the sample office
+const MINUTES: Record<string, number> = { d1: 38, d2: 34, d3: 27, d4: 31, d5: 41, d6: 33, d7: 26, d8: 44, d9: 35, d10: 43, d11: 47, d12: 46 };
+
 let seq = 0;
 const C = (owner: string, label: string, kind: Criterion["kind"], field: string, operator: Criterion["operator"],
   value: unknown, weight = 5, margin: number | null = null): Criterion =>
@@ -113,14 +116,16 @@ export class DemoApi implements Api {
     return LISTINGS.map((l) => {
       const [v, c, n] = BLDG[l.id] ?? [null, null, null];
       const building = v == null ? null : { hpd_open_violations: v, hpd_class_c_open: c, complaints_311_12mo: n, rent_stabilized: null };
-      const s = scoreListing(byOwner, { ...l, building, commutes: {} });
+      const commutes = this.placeRows.length && MINUTES[l.id] ? { [this.placeRows[0].id]: MINUTES[l.id] } : {};
+      const s = scoreListing(byOwner, { ...l, building, commutes });
       const verdicts: Record<string, Verdict | null> = {};
       for (const r of this.ratingRows.filter((r) => r.listing_id === l.id)) verdicts[r.user_id] = r.verdict;
       return { ...l, score: s.score, passes: s.passes, near_miss: s.near_miss, failed: s.failed,
         per_person: s.per_person, stage: this.stages.get(l.id) ?? "new", verdicts,
         bbl: v == null ? null : "30000000" + l.id.slice(1).padStart(2, "0"),
         hpd_open_violations: v ?? null, hpd_class_c_open: c ?? null, complaints_311_12mo: n ?? null,
-        building_checked_at: v == null ? null : new Date().toISOString() };
+        building_checked_at: v == null ? null : new Date().toISOString(),
+        commutes: Object.keys(commutes).length ? commutes : null };
     });
   }
 
@@ -149,6 +154,15 @@ export class DemoApi implements Api {
     this.criteriaRows = [...this.criteriaRows.filter((c) => c.owner_id !== YOU), ...mine];
   }
   async criteriaLog() { return this.log.slice(0, 40); }
+  private placeRows: Place[] = [{ id: "place-office", user_id: YOU, label: "Office", address: "111 8 Avenue, Manhattan, NY, USA", lat: 40.7411, lng: -74.0034 }];
+  async places() { return this.placeRows.map((p) => ({ ...p })); }
+  async addPlace(label: string, address: string) {
+    const p: Place = { id: "place-" + Date.now(), user_id: YOU, label, address, lat: 40.7, lng: -73.99 };
+    this.placeRows.push(p);
+    return p;
+  }
+  async removePlace(id: string) { this.placeRows = this.placeRows.filter((p) => p.id !== id); }
+  async commute() { return { computed: 0, failed: 0, remaining: 0, errors: [] }; }
   async enrich() { return { geocoded: 0, unmatched: 0, buildings_checked: 0, remaining: 0, errors: [] }; }
   async rescore() {
     const f = await this.feed();

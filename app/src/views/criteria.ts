@@ -1,5 +1,5 @@
-import { CATALOG, PARENT_HOOD, defFor } from "../catalog.ts";
-import { S, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts } from "../state.ts";
+import { PARENT_HOOD, defFor } from "../catalog.ts";
+import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts } from "../state.ts";
 import type { CriteriaChange, Criterion } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
@@ -56,7 +56,7 @@ function control(c: Criterion) {
       ? "No hazardous (class C) HPD violations open, and fewer than 5 open in total"
       : "Listing has it"}</div>`;
     case "before": return `<div class="ctl"><label for="v-${c.id}">Available before</label><input type="date" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${esc(c.value)}"></div>`;
-    case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">Each of us within</label><input type="range" min="15" max="60" step="5" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}"><span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
+    case "within_minutes": return `<div class="ctl"><label for="v-${c.id}">${c.field.startsWith("commute:") ? "Within" : "Each of us within"}</label><input type="range" min="15" max="60" step="5" id="v-${c.id}" data-edit="value" data-id="${c.id}" value="${c.value}"><span class="val" id="vl-${c.id}">${c.value}</span> min</div>`;
     default: return "";
   }
 }
@@ -110,9 +110,10 @@ function changeText(ch: CriteriaChange) {
 export function renderCriteria() {
   const dbs = S.draft.filter((c) => c.kind === "dealbreaker"), ws = S.draft.filter((c) => c.kind === "want");
   const have = new Set(S.draft.map((c) => c.field + "|" + c.operator));
-  const groups = ["Basics", "Apartment", "Building"] as const;
-  const options = groups.map((g) => `<optgroup label="${g}">${CATALOG.filter((d) => d.group === g).map((d) =>
-    `<option value="${d.key}" ${have.has(d.field + "|" + d.operator) ? "disabled" : ""}>${d.label}</option>`).join("")}</optgroup>`).join("");
+  const fields = allFields();
+  const groups = (["Basics", "Apartment", "Building", "Commute"] as const).filter((g) => fields.some((d) => d.group === g));
+  const options = groups.map((g) => `<optgroup label="${g}">${fields.filter((d) => d.group === g).map((d) =>
+    `<option value="${d.key}" ${have.has(d.field + "|" + d.operator) ? "disabled" : ""}>${esc(d.label)}</option>`).join("")}</optgroup>`).join("");
   const log = changeLog.rows;
   return `<p class="whose"><span><b>Your criteria.</b> ${esc(partnerName())} keeps their own list; you can see it in Compare.</span></p>
     <div class="critbar">
@@ -124,7 +125,7 @@ export function renderCriteria() {
       ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       ${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</section>
-    <p class="small">Building criteria use NYC's HPD and 311 records. Listings whose building hasn't been looked up yet are skipped by them, not penalized. Commute times come in a later update.</p>
+    <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use transit times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
         const t = changeText(ch);

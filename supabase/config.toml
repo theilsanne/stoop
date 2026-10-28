@@ -15,3 +15,7 @@ verify_jwt = false
 # enrich checks the signed-in user itself.
 [functions.enrich]
 verify_jwt = false
+
+# commute checks the signed-in user itself.
+[functions.commute]
+verify_jwt = false

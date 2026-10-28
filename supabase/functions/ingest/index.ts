@@ -10,7 +10,7 @@
 // Deploy with:  supabase functions deploy ingest --no-verify-jwt
 // Secrets:      APIFY_TOKEN, WEBHOOK_SECRET
 
-import { chunk, enrichBuildings, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
+import { chunk, computeCommutes, enrichBuildings, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 import { normalize, type ListingRow } from "../_shared/normalize.ts";
 
 // Capped runs (Apify's free plan returns 50 per run) only fetch the newest listings,
@@ -105,6 +105,11 @@ Deno.serve(async (req) => {
 
   // building records for this run's listings (fails soft: scoring just skips what's missing)
   const buildings = await enrichBuildings(db, touched.map((t) => t.id)).catch((e) => ({ error: String(e) }));
+  // commute times for new listings only (existing ones already have them)
+  const newIdsForCommute = touched.filter((t) => !before.has(t.source_id)).map((t) => t.id);
+  const commutes = newIdsForCommute.length
+    ? await computeCommutes(db, newIdsForCommute, 120).catch((e) => ({ error: String(e) }))
+    : null;
 
   // score this run's listings
   const scores = await scoreAndStore(db, touched.map((t) => t.id));
@@ -125,6 +130,7 @@ Deno.serve(async (req) => {
     new: newIds.length, price_drops: drops.length, went_off_market: wentOff ?? 0,
     would_alert: alertable.length,
     buildings,
+    commutes,
   };
   console.log("ingest", JSON.stringify(summary));
   return json(summary);

@@ -1,4 +1,4 @@
-import { S, myId, partner, partnerId, partnerName, verdictOf, viewOf } from "../state.ts";
+import { S, myId, partner, partnerId, partnerName, placeName, verdictOf, viewOf } from "../state.ts";
 import { STAGES } from "../types.ts";
 import { esc, money } from "../util.ts";
 import { verdictText } from "./feed.ts";
@@ -31,6 +31,21 @@ export function renderSettings() {
     <section class="panel"><h2>Your partner</h2>
       ${partner() ? `<p><b>${esc(partnerName())}</b> has an account. Their criteria, ratings and notes show throughout the app.</p>`
         : `<p>No second account yet. Invite them from Supabase (Authentication → Users → Invite user). Once they open the link, they show up here.</p>`}
+    </section>
+    <section class="panel" id="places"><h2>Places</h2>
+      <p>Where you each go regularly: work, a studio, family. Every listing gets a transit time to each place, and you can add criteria like “Commute to Office within 35 min”.</p>
+      ${S.places.length ? `<ul class="places">${S.places.map((p) => `<li><div><b>${esc(placeName(p))}</b><div class="small">${esc(p.address)}</div></div>${
+        p.user_id === myId() ? `<button class="x" data-action="removeplace" data-id="${p.id}">Remove</button>` : ""}</li>`).join("")}</ul>` : ""}
+      <form id="addplace" class="placeform">
+        <input id="place-label" class="text" placeholder="Name, e.g. Office" maxlength="30" required aria-label="Place name">
+        <input id="place-address" class="text" placeholder="Street address, e.g. 111 8th Ave, Manhattan" required aria-label="Address">
+        <button class="btn primary" type="submit" ${S.saving ? "disabled" : ""}>Add place</button>
+      </form>
+      ${S.places.length ? (() => {
+        const missing = S.feed.filter((r) => S.places.some((p) => r.commutes?.[p.id] == null)).length;
+        return `<p class="small">${missing ? `${missing} listings still need commute times.` : "Every listing has its commute times."} New listings are worked out as they arrive.</p>
+          ${missing ? `<div><button class="btn" data-action="commute" ${S.saving ? "disabled" : ""}>${S.saving ? "Working out…" : "Work out commute times"}</button></div>` : ""}`;
+      })() : ""}
     </section>
     <section class="panel"><h2>Building records</h2>
       <p>HPD violations and 311 complaints from NYC Open Data. New listings are looked up as they arrive. ${(() => {

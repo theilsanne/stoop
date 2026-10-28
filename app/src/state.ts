@@ -2,7 +2,8 @@ import {
   type ScorableListing, groupByOwner, scoreListing, scorePerson,
 } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
-import type { Criterion, FeedRow, Me, PersonScore, Profile, Rating, Verdict } from "./types.ts";
+import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Verdict } from "./types.ts";
+import { CATALOG, type FieldDef } from "./catalog.ts";
 import { clone, save, store } from "./util.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
@@ -17,6 +18,7 @@ export interface State {
   feed: FeedRow[];
   ratings: Rating[];
   criteria: Criterion[];   // both people's saved lists
+  places: Place[];         // commute destinations, both people's
   draft: Criterion[];      // my list as being edited
   tab: Tab;
   lens: Lens;
@@ -38,7 +40,7 @@ export const S = {} as State;
 
 export function initState(api: Api) {
   Object.assign(S, {
-    api, me: null, profiles: [], feed: [], ratings: [], criteria: [], draft: [],
+    api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
@@ -135,7 +137,7 @@ function scorable(row: FeedRow): ScorableListing {
     hpd_open_violations: row.hpd_open_violations, hpd_class_c_open: row.hpd_class_c_open,
     complaints_311_12mo: row.complaints_311_12mo, rent_stabilized: null,
   };
-  return { ...row, amenities: row.amenities ?? {}, building, commutes: {} };
+  return { ...row, amenities: row.amenities ?? {}, building, commutes: row.commutes ?? {} };
 }
 
 /** Score every listing locally with a candidate version of my criteria (for the editor preview). */
@@ -149,6 +151,21 @@ export function previewCounts(mine: Criterion[]) {
     if (scoreListing(byOwner, scorable(row)).passes) both.pass++;
   }
   return { mine: minePass, both };
+}
+
+// ---------- places ----------
+/** "Office", or "Noah's office" for the other person's place. */
+export function placeName(p: Place) {
+  return p.user_id === myId() ? p.label : `${partnerName()}'s ${p.label.charAt(0).toLowerCase()}${p.label.slice(1)}`;
+}
+
+/** Everything that can go on a criteria list, including a commute to each saved place. */
+export function allFields(): FieldDef[] {
+  const commutes: FieldDef[] = S.places.map((p) => ({
+    key: "place:" + p.id, label: "Commute to " + placeName(p), field: "commute:" + p.id,
+    operator: "within_minutes", value: 35, group: "Commute",
+  }));
+  return [...CATALOG, ...commutes];
 }
 
 export const isNewSinceVisit = (row: FeedRow) => S.lastVisit > 0 && Date.parse(row.first_seen_at) > S.lastVisit;

@@ -101,6 +101,11 @@ function getValue(l: ScorableListing, field: string): Value {
     const mins = Object.values(l.commutes ?? {});
     return mins.length ? mins : UNKNOWN;
   }
+  if (field.startsWith("commute:")) {
+    // one place: "commute:<place id>"
+    const m = l.commutes?.[field.slice(8)];
+    return m == null ? UNKNOWN : [m];
+  }
   if (field === "building.clean") {
     const b = l.building;
     if (!b || b.hpd_open_violations == null) return UNKNOWN;
@@ -119,7 +124,7 @@ function getValue(l: ScorableListing, field: string): Value {
 }
 
 function fmt(v: unknown, field: string): string {
-  if (Array.isArray(v)) return v.join(" / ") + (field === "commute" ? " min" : "");
+  if (Array.isArray(v)) return v.join(" / ") + (field.startsWith("commute") ? " min" : "");
   if (typeof v === "boolean") return v ? "yes" : "no";
   if (typeof v === "number" && (field === "net_effective_rent" || field === "price")) {
     return "$" + v.toLocaleString("en-US");

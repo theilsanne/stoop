@@ -11,7 +11,7 @@ export interface FieldDef {
   value: unknown;         // starting value when added
   unit?: "money" | "beds" | "baths" | "sqft";
   step?: number;
-  group: "Basics" | "Apartment" | "Building";
+  group: "Basics" | "Apartment" | "Building" | "Commute";
 }
 
 export const CATALOG: FieldDef[] = [
