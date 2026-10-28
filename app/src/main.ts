@@ -320,6 +320,15 @@ async function placeStamp(id: string) {
   try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); }
 }
 
+/** Take your seal back off a listing. Undo puts it back, and a failed save puts it back too. */
+async function takeBack(id: string) {
+  const before = S.stamps;
+  S.stamps = S.stamps.filter((s) => !(s.listing_id === id && s.user_id === myId()));
+  render();
+  toast("Stamp taken back", { action: { label: "Undo", run: () => void placeStamp(id) } });
+  try { await api.setStamp(id, false); } catch (e) { S.stamps = before; showError(e); }
+}
+
 async function changeAvatar(run: () => Promise<void>, done: string) {
   S.busy.add("avatar");
   render();
@@ -497,6 +506,7 @@ document.addEventListener("click", (e) => {
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "stamphint": toast("Drag it onto a listing to stamp it"); return;
+      case "takeback": void takeBack(id); return;
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;

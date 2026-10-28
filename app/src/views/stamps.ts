@@ -107,6 +107,7 @@ export function sheetStamp(id: string) {
     </div>
     <div class="stamp-lines">
       <span>${mine ? `<b>You</b> stamped it${mine.s.stamped_at ? ` on ${fmtDay(mine.s.stamped_at)}` : ""}` : "Not stamped by you yet. Drag your stamp onto your slot, or onto this listing."}</span>
+      ${mine ? `<button class="linkish take-back" data-action="takeback" data-id="${id}">Take back my stamp</button>` : ""}
       ${them ? `<span>${theirs ? `<b>${esc(partnerName())}</b> stamped it${theirs.s.stamped_at ? ` on ${fmtDay(theirs.s.stamped_at)}` : ""}` : `${esc(partnerName())} hasn't stamped it yet`}</span>` : ""}
     </div>
   </div>`;

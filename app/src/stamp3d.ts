@@ -408,7 +408,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         sx.to = rest.x; sy.to = rest.y;
         const d = Math.hypot(rest.x - sx.x, rest.y - sy.x);
         sz.to = d > 24 ? CARRY_Z * 0.8 * scale : restZ;
-        swingFrom(sx.v, sy.v, 0.7);
+        tx.to = ty.to = 0; // back to level on the way home, not swung by the motion
         if (d < 1 && Math.abs(sz.x - restZ) < 0.6) setMode("rest");
         break;
       }
@@ -451,8 +451,11 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     }
     const [x, y] = world(sx.x, sy.x);
     // lifting moves it toward the camera only, so it never drifts off the cursor on screen
-    rig.position.set(x, y, sz.x);
     swing.rotation.set(tx.x, ty.x, 0);
+    // the tilt turns about the handle, which moves the die off the spot. Work out where the die is
+    // after the tilt, and shift the stamp so the die stays on (x, y), at height sz
+    const die = new THREE.Vector3(0, 0, -GRIP).applyEuler(swing.rotation).add(new THREE.Vector3(0, 0, GRIP)).applyEuler(rig.rotation);
+    rig.position.set(x - die.x, y - die.y, sz.x - die.z);
     body.scale.z = sq.x;
     // over the pad its shadow falls on the felt; anywhere else, on the page
     const onPad = Math.abs(sx.x - rest.x) < (PAD_W / 2) * scale && Math.abs(sy.x - rest.y) < (PAD_D / 2) * Math.cos(VIEW) * scale;
