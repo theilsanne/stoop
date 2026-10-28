@@ -189,7 +189,7 @@ export class DemoApi implements Api {
   async alertsKey(): Promise<string> { throw new Error("Alerts don't work in the demo"); }
   async savePushSubscription() {}
   async removePushSubscription() {}
-  async testAlert() { return { sent: 0, failed: 0, errors: [] }; }
+  async testAlert() { return { phones: 0, sent: 0, failed: 0, removed: 0, errors: [] }; }
   async setAlertThreshold(n: number) {
     this.thresholds[YOU] = n;
   }

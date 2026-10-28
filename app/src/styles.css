@@ -43,10 +43,10 @@ nav.tabs .n{font-family:var(--mono);font-size:12px;margin-left:4px;color:var(--i
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
 .summary{font-size:13px;color:var(--ink-2)}
 .summary b{color:var(--ink);font-variant-numeric:tabular-nums}
-select.sm{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 34px 7px 10px;font-size:13px;
+select.sm{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 30px 6px 12px;font-size:13px;font-weight:600;color:var(--ink);field-sizing:content;max-width:100%;min-width:0;text-overflow:ellipsis;
   -webkit-appearance:none;appearance:none;cursor:pointer;
   /* our own chevron, inset from the edge and in the theme's text color */
-  background-image:var(--chev);background-position:right 12px center;background-size:12px 8px;background-repeat:no-repeat}
+  background-image:var(--chev);background-position:right 11px center;background-size:11px 7px;background-repeat:no-repeat}
 select.sm:hover{border-color:var(--ink-2)}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
@@ -107,7 +107,7 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .impact{padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .critbar .addrow{border-top:1px solid var(--line);padding:10px 14px}
 .critbar .addrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.critbar .addrow select{max-width:100%;min-width:0;flex:1 1 160px}
+.critbar .addrow select{flex:0 1 auto}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
 .brand h1{display:inline-flex;align-items:center;gap:8px}
@@ -123,8 +123,6 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
   .critbar .impact .nums b{font-size:14px}
   .critbar .acts .btn{padding:5px 10px;font-size:13px}
   .critbar .addrow{padding:8px 12px;flex-wrap:nowrap;gap:6px}
-  .critbar .addrow label{display:none}
-  .critbar .addrow select{flex:1 1 auto;width:0}
   .btn.sm-btn{padding:6px 8px;white-space:nowrap}
 }
 .toast{cursor:pointer}
@@ -171,9 +169,7 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .sheet{background:var(--bg);width:min(560px,100%);height:100%;overflow-y:auto;padding:0 20px calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
 .sheet-head{position:sticky;top:0;z-index:2;background:var(--bg);margin:0 -20px;padding:calc(16px + env(safe-area-inset-top,0px)) 20px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 .stage-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.stage-pill{appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:999px;background:var(--surface) var(--chev) no-repeat right 10px center;padding:6px 28px 6px 12px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;max-width:100%;field-sizing:content}
-.stage-pill:hover{border-color:var(--ink-2)}
-.stage-pill:not([data-stage="new"]){background-color:var(--accent-soft, var(--good-soft));border-color:var(--accent);color:var(--accent)}
+select.sm.stage:not([data-stage="new"]){background-color:var(--accent-soft, var(--good-soft));border-color:var(--accent);color:var(--accent)}
 .head-vote{margin:0;padding:0;gap:6px;flex-wrap:nowrap}
 .head-vote .vbtn{padding:5px 9px}
 .head-vote .other{margin-left:4px;font-size:12px;white-space:nowrap}

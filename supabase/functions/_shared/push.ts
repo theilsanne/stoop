@@ -42,8 +42,8 @@ export const vapidPublicKey = () => Deno.env.get("VAPID_PUBLIC_KEY") ?? null;
 
 /** Send to every phone of the given people. Dead subscriptions (phone unsubscribed, app removed) are deleted. */
 export async function sendTo(db: DB, userIds: string[], msg: Message) {
-  if (!configured()) return { sent: 0, failed: 0, errors: ["VAPID keys aren't set"] };
-  if (!userIds.length) return { sent: 0, failed: 0, errors: [] as string[] };
+  if (!configured()) return { phones: 0, sent: 0, failed: 0, removed: 0, errors: ["the VAPID keys aren't set in Supabase secrets"] };
+  if (!userIds.length) return { phones: 0, sent: 0, failed: 0, removed: 0, errors: [] as string[] };
   const { data, error } = await db.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth").in("user_id", userIds);
   if (error) throw new Error(`load subscriptions: ${error.message}`);
   let sent = 0, failed = 0;
@@ -58,12 +58,15 @@ export async function sendTo(db: DB, userIds: string[], msg: Message) {
       sent++;
     } catch (e) {
       const status = (e as { statusCode?: number }).statusCode;
+      const body = (e as { body?: string }).body;
       if (status === 404 || status === 410) dead.push(s.id);
-      else { failed++; errors.push(`${status ?? ""} ${e instanceof Error ? e.message : String(e)}`.trim()); }
+      else failed++;
+      errors.push(`${status ? `push service said ${status}` : "couldn't reach the push service"}: ${body || (e instanceof Error ? e.message : String(e))}`.slice(0, 300));
+      console.error("push failed", status, body, e instanceof Error ? e.message : e);
     }
   }));
   if (dead.length) await db.from("push_subscriptions").delete().in("id", dead);
-  return { sent, failed, removed: dead.length, errors: [...new Set(errors)].slice(0, 3) };
+  return { phones: (data as Sub[]).length, sent, failed, removed: dead.length, errors: [...new Set(errors)].slice(0, 3) };
 }
 
 const money = (n: number | null) => (n == null ? "" : "$" + n.toLocaleString("en-US"));

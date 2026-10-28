@@ -118,7 +118,7 @@ export function renderCriteria() {
   return `<p class="whose"><span><b>Your criteria.</b> ${esc(partnerName())} keeps their own list; you can see it in Compare.</span></p>
     <div class="critbar">
       <div class="impact" id="impact">${impactHTML()}</div>
-      <div class="addrow"><label for="preset" class="small">Add</label><select class="sm" id="preset">${options}</select>
+      <div class="addrow"><select class="sm" id="preset" aria-label="Criterion to add" title="Criterion to add">${options}</select>
         <button class="btn sm-btn" data-action="add" data-v="dealbreaker">+ Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">+ Want</button></div>
     </div>
     <section class="sect"><h2>Dealbreakers</h2><p class="lede">A listing that fails any of these drops out of your feed. Give a number a near-miss margin and listings that miss it by a little show up under Near misses instead.</p>

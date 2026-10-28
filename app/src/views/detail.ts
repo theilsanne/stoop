@@ -62,7 +62,7 @@ export function renderSheet() {
         <div class="hood">${esc(row.neighborhood)}</div></div>
         <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>
       <div class="stage-row">
-        <select class="stage-pill" id="stage" data-change="stage" data-id="${row.id}" data-stage="${row.stage}" aria-label="Stage" title="Stage">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+        <select class="sm stage" id="stage" data-change="stage" data-id="${row.id}" data-stage="${row.stage}" aria-label="Stage" title="Stage">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select>
         <div class="vote head-vote">${verdictButtons(row.id)}<span class="other" title="${esc(partnerName())}'s verdict">${esc(partnerName())}: ${verdictOf(row.id, partnerId()) ? verdictText(verdictOf(row.id, partnerId())) : "—"}</span></div>
       </div>
     </div>

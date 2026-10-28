@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
         body: "This is what a new listing will look like. Tap to open Stoop.",
         url: APP_URL, tag: "test",
       });
+      console.log("test alert", JSON.stringify(r));
       return json(r);
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 500);

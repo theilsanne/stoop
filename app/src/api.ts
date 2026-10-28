@@ -6,6 +6,8 @@ import type {
   CommuteResult, CriteriaChange, Criterion, EnrichResult, FeedRow, Me, Place, PricePoint, Profile, Rating, Stage, Verdict,
 } from "./types.ts";
 
+export interface TestResult { phones: number; sent: number; failed: number; removed: number; errors: string[] }
+
 export interface Api {
   readonly demo: boolean;
   me(): Promise<Me | null>;
@@ -42,7 +44,7 @@ export interface Api {
   alertsKey(): Promise<string>;
   savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
   removePushSubscription(endpoint: string): Promise<void>;
-  testAlert(): Promise<{ sent: number; failed: number; errors: string[] }>;
+  testAlert(): Promise<TestResult>;
   /** Alert me about new listings scoring at least this. */
   setAlertThreshold(n: number): Promise<void>;
 }
@@ -289,7 +291,7 @@ export class SupabaseApi implements Api {
   async testAlert() {
     const { data, error } = await this.sb.functions.invoke("alerts", { body: { action: "test" } });
     await failFn("Sending a test alert", data, error);
-    return data as { sent: number; failed: number; errors: string[] };
+    return data as TestResult;
   }
 
   async setAlertThreshold(n: number) {

@@ -3,7 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
-import { SupabaseApi, type Api } from "./api.ts";
+import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
   S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
@@ -273,6 +273,17 @@ async function rescoreAll() {
 }
 
 // Building records come back in batches; keep going while there's progress.
+/** Say plainly what happened to a test alert. */
+function testResult(r: TestResult) {
+  if (r.sent) { toast(`Test sent to ${r.sent === 1 ? "1 phone" : `${r.sent} phones`}. It should arrive in a few seconds.`, { ms: 6000 }); return; }
+  const why = r.errors?.[0];
+  const msg = !r.phones && !why ? "The test wasn't sent: no phone is saved for you on the server. Tap Turn off on this phone, then Turn on alerts again."
+    : r.removed && !r.failed ? "The test wasn't sent: the push service says this phone's alert subscription is no longer valid, so it was removed. Tap Turn on alerts again."
+    : `The test wasn't sent: ${why ?? "no reason given"}`;
+  toast(msg, { ms: 15000 });
+  console.warn("Test alert", r);
+}
+
 async function alertsAction(run: () => Promise<void>) {
   S.busy.add("alerts");
   render();
@@ -403,13 +414,11 @@ document.addEventListener("click", (e) => {
       case "alerts-on": alertsAction(async () => {
         await turnOnAlerts(api);
         toast("Alerts are on. Sending a test…");
-        const r = await api.testAlert();
-        if (!r.sent) toast("Alerts are on, but the test didn't arrive. " + (r.errors?.[0] ?? ""), { ms: 8000 });
+        testResult(await api.testAlert());
       }); return;
       case "alerts-off": alertsAction(async () => { await turnOffAlerts(api); toast("Alerts are off on this phone"); }); return;
       case "alerts-test": alertsAction(async () => {
-        const r = await api.testAlert();
-        toast(r.sent ? `Test sent to ${r.sent === 1 ? "this phone" : `${r.sent} phones`}` : "The test didn't go through. " + (r.errors?.[0] ?? ""), { ms: 6000 });
+        testResult(await api.testAlert());
       }); return;
       case "removeplace": {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
