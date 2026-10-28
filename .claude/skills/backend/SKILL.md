@@ -21,7 +21,7 @@ Stoop runs on one Supabase project with one schema, `rentals`. There is no dev o
 - **Never edit a migration that has been run.** Add a new one. Editing history means the two of you and any fresh setup will disagree.
 - Write them to be safe to run twice: `create schema if not exists`, `create table if not exists`, `add column if not exists`, `create or replace view`, and drop-then-create for policies.
 - A view that gains columns puts them at the end, because `create or replace view` only allows that.
-- Migrations are run by hand, in order, in the SQL editor (or `supabase db push` from a linked project). Say in the PR which files to run and in what order.
+- Migrations apply on merge to `main` (`migrate.yml`, `supabase db push`). The PR's dry run shows what will apply, so check that output before merging. Say in the PR anything a migration needs beyond the SQL, such as a dashboard setting.
 - Before running one on the real project, read it against the current schema, since there is no staging copy. A destructive statement (`drop`, `alter ... type`, a `delete`) needs a sentence in the PR explaining why it's safe.
 
 ## Edge Functions

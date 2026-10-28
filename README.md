@@ -54,7 +54,7 @@ Add `?demo` to the URL to try it on built-in sample listings without signing in.
    - Site URL: `https://theilsanne.github.io/stoop/`
    - Redirect URLs: the same, plus `http://localhost:5173/**` and `https://theilsanne.github.io/stoop/previews/**` (so sign-in works on branch previews)
 3. **Authentication → Sign In / Providers:** Email on. Magic links come with it.
-4. **SQL Editor:** paste `supabase/migrations/20261006000000_init.sql` and run it.
+4. **Migrations:** `supabase link --project-ref <ref>`, then `supabase db push --linked`. Or paste `supabase/migrations/20261006000000_init.sql` into the SQL Editor and run it. After that, merges to `main` apply new migrations on their own (`.github/workflows/migrate.yml`).
 5. **Project Settings → Data API → Exposed schemas:** add `rentals`.
 6. **Authentication → Users:** invite both people. Each account gets one starter criterion ("Available before April 1"). Then turn off "Allow new users to sign up".
 
@@ -116,7 +116,7 @@ Then open **Table Editor → rentals.listings** and spot-check a few rows agains
 
 ### Database updates
 
-Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run). Then `20261028020000_avatars.sql` adds profile photos and `20261028030000_stamps.sql` adds listing stamps.
+Migrations in `supabase/migrations/` apply on merge to `main`, in filename order. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run). Then `20261028020000_avatars.sql` adds profile photos and `20261028030000_stamps.sql` adds listing stamps.
 
 ### Commute times
 
