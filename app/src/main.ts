@@ -355,6 +355,41 @@ function testResult(r: TestResult) {
   console.warn("Test alert", r);
 }
 
+/** Add a write-in from the "Write your own…" box: "exposed brick" becomes a criterion that looks for those words. */
+function addWriteIn(kind: Criterion["kind"]) {
+  const box = document.getElementById("writein") as HTMLInputElement | null;
+  const phrase = box?.value.trim().replace(/\s+/g, " ") ?? "";
+  if (!phrase) { box?.focus(); toast("Type what to look for first, e.g. exposed brick"); return; }
+  const slug = phrase.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (S.draft.some((c) => c.field === "write_in:" + slug)) { toast(`You already have “${phrase}”`); return; }
+  const newId = "new-" + Date.now();
+  addedAs.set(newId, kind);
+  S.draft.push({
+    id: newId, owner_id: myId(), label: phrase[0].toUpperCase() + phrase.slice(1), kind,
+    field: "write_in:" + slug, operator: "mentions", value: [phrase],
+    weight: 5, near_miss_margin: null, active: true,
+  });
+  render();
+}
+
+/** Tick or untick one of my write-ins on a listing (null: go back to what the listing says), then re-score. */
+let markTimer: number | undefined;
+function markWriteIn(criterionId: string, met: boolean | null) {
+  const row = S.feed.find((r) => r.id === S.openId);
+  if (!row) return;
+  const marks = { ...(row.marks ?? {}) };
+  if (met == null) delete marks[criterionId]; else marks[criterionId] = met;
+  row.marks = marks;
+  render();
+  api.setMark(criterionId, row.id, met).then(() => {
+    // scores are stored on the server; refresh them once the ticking stops
+    clearTimeout(markTimer);
+    markTimer = window.setTimeout(async () => {
+      try { await api.rescore(); S.feed = await api.feed(); render(); } catch (e) { showError(e); }
+    }, 800);
+  }, showError);
+}
+
 async function alertsAction(run: () => Promise<void>) {
   S.busy.add("alerts");
   render();
@@ -461,7 +496,6 @@ document.addEventListener("click", (e) => {
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
-      case "move": setStage(id, v as Stage); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
       case "kind": draftById(id).kind = v as Criterion["kind"]; break;
       case "hood": {
@@ -471,7 +505,9 @@ document.addEventListener("click", (e) => {
       }
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
       case "add": {
-        const def = allFields().find((d) => d.key === ($("preset") as HTMLSelectElement).value);
+        const pick = ($("preset") as HTMLSelectElement).value;
+        if (pick === "__write") { addWriteIn(v as Criterion["kind"]); return; }
+        const def = allFields().find((d) => d.key === pick);
         if (!def) return;
         const newId = "new-" + Date.now();
         addedAs.set(newId, v as Criterion["kind"]);
@@ -484,6 +520,7 @@ document.addEventListener("click", (e) => {
         });
         break;
       }
+      case "unmark": markWriteIn(id, null); return;
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
       case "rescore": rescoreAll(); return;
@@ -558,6 +595,12 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
+  if (t.dataset.change === "preset") {
+    S.preset = t.value;
+    render();
+    if (S.preset === "__write") document.getElementById("writein")?.focus();
+  }
+  if (t.dataset.mark) markWriteIn(t.dataset.mark, (t as unknown as HTMLInputElement).checked);
   if (t.dataset.change === "threshold") {
     const n = Number(t.value);
     api.setAlertThreshold(n).then(async () => { S.profiles = await api.profiles(); toast(`You'll be alerted at ${n} and up`); render(); }, showError);
@@ -573,6 +616,7 @@ document.addEventListener("input", (e) => {
   const c = draftById(t.dataset.id);
   if (t.type === "range") t.style.setProperty("--fill", `${Math.round(((+t.value - +t.min) / (+t.max - +t.min)) * 100)}%`);
   if (f === "label") c.label = t.value;
+  else if (f === "words") c.value = t.value.split(",").map((w) => w.trim()).filter(Boolean);
   else if (f === "active") { c.active = t.checked; render(); return; }
   else if (f === "weight") { c.weight = +t.value; $("wl-" + c.id).textContent = t.value; }
   else if (f === "margin") { c.near_miss_margin = +t.value ? +t.value / 100 : null; $("ml-" + c.id).textContent = t.value + "%"; }

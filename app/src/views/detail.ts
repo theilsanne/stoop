@@ -1,4 +1,5 @@
-import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf } from "../state.ts";
+import { mentions } from "../../../supabase/functions/_shared/scoring.ts";
+import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf, myCriteria } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money, routeHTML } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
@@ -38,6 +39,20 @@ export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b
   }
   if (n != null) out.push({ text: `311 complaints, past year: ${n}`, tone: n >= 25 ? "b" : n >= 10 ? "w" : "" });
   return out;
+}
+
+/** My write-ins on this listing: what the description says, and my own tick to override it. */
+function writeIns(row: FeedRow) {
+  const mine = myCriteria().filter((c) => c.operator === "mentions" && c.active);
+  if (!mine.length) return "";
+  return `<div class="box"><h3>Your write-ins</h3><ul class="writeins">${mine.map((c) => {
+    const mark = row.marks?.[c.id];
+    const said = mentions(row.description, c.value);
+    const on = mark ?? said;
+    const why = mark != null ? (mark ? "You ticked it" : "You unticked it") : said ? "Mentioned in the listing" : "Not mentioned";
+    return `<li><label class="switch"><input type="checkbox" role="switch" data-mark="${c.id}" ${on ? "checked" : ""}> ${esc(c.label)}</label>
+      <span class="small">${why}${mark != null ? ` · <button class="x" data-action="unmark" data-id="${c.id}">Use the listing</button>` : ""}</span></li>`;
+  }).join("")}</ul></div>`;
 }
 
 export function renderSheet() {
@@ -101,6 +116,7 @@ export function renderSheet() {
       }).join("")}</ul>
     </div>` : ""}
 
+    ${writeIns(row)}
     <div class="box"><h3${row.building_checked_at ? ` title="NYC HPD and 311 records, checked ${esc(ago(row.building_checked_at))}"` : ""}>Building</h3>
       ${buildingLines(row).length
         ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>

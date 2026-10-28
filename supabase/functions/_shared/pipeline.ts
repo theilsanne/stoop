@@ -12,6 +12,13 @@ import { type SubwayGraph, subwayCommute } from "./subway.ts";
 import graphJson from "./subway-graph.json" with { type: "json" };
 const SUBWAY = graphJson as unknown as SubwayGraph;
 
+/** The listing's own text, from the saved scraper item (write-ins look for words in it). */
+function descriptionOf(raw: unknown): string | null {
+  const r = raw as Record<string, unknown> | null;
+  const d = r?.description ?? r?.title;
+  return typeof d === "string" ? d : null;
+}
+
 export function serviceClient() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -229,6 +236,18 @@ export async function scoreAndStore(db: DB, ids: string[] | null) {
     }
   }
 
+  // write-ins you ticked or unticked, by listing then criterion
+  const marks: Record<string, Record<string, boolean>> = {};
+  for (const part of chunk(listings.map((l) => l.id as string))) {
+    const rows = check(
+      await db.from("criterion_marks").select("listing_id, criterion_id, met").in("listing_id", part),
+      "load write-in ticks",
+    );
+    for (const m of rows as { listing_id: string; criterion_id: string; met: boolean }[]) {
+      (marks[m.listing_id] ??= {})[m.criterion_id] = m.met;
+    }
+  }
+
   const now = new Date().toISOString();
   const results: Record<string, ReturnType<typeof scoreListing>> = {};
   const rows = listings.map((l) => {
@@ -237,6 +256,8 @@ export async function scoreAndStore(db: DB, ids: string[] | null) {
       amenities: (l.amenities as Record<string, boolean>) ?? {},
       building: l.bbl ? buildings[l.bbl as string] ?? null : null,
       commutes: commutes[l.id as string] ?? {},
+      description: descriptionOf(l.raw),
+      marks: marks[l.id as string] ?? {},
     };
     const r = scoreListing(byOwner, s);
     results[l.id as string] = r;

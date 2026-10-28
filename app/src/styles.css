@@ -561,3 +561,21 @@ body.sorting{user-select:none;-webkit-user-select:none}
 @media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
 @media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
 .crit-body:not(:has(*)){display:none}
+.crit-head h3.lbl{flex:1 1 200px;min-width:0;margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+
+/* ---- write-ins ---- */
+.critbar .addrow input.writein{flex:1 1 180px;width:auto;min-width:0;height:var(--h-sm);font-size:14px}
+.ctl.words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;width:100%}
+.ctl.words input{width:100%}
+.ctl.words .small{grid-column:2}
+.writeins{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.writeins li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
+.writeins .switch{font-size:14.5px;color:var(--ink);gap:10px}
+
+.critbar .addrow:has(.writein){display:grid;grid-template-columns:auto 1fr auto auto;gap:8px}
+.critbar .addrow:has(.writein) select{max-width:none}
+@media (max-width:620px){
+  .critbar .addrow:has(.writein){grid-template-columns:1fr 1fr}
+  .critbar .addrow:has(.writein) select,.critbar .addrow input.writein{grid-column:1 / -1}
+  .critbar .addrow:has(.writein) .btn{width:100%}
+}

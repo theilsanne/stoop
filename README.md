@@ -56,7 +56,7 @@ Add `?demo` to the URL to try it on built-in sample listings without signing in.
 3. **Authentication → Sign In / Providers:** Email on. Magic links come with it.
 4. **SQL Editor:** paste `supabase/migrations/20261006000000_init.sql` and run it.
 5. **Project Settings → Data API → Exposed schemas:** add `rentals`.
-6. **Authentication → Users:** invite both people. Each account gets one starter criterion ("Available before April 1"). Then turn off "Allow new users to sign up".
+6. **Authentication → Users:** invite both people. Each account gets one starter criterion ("Availability": available before April 1). Then turn off "Allow new users to sign up".
 
 ### 2. Apify
 
