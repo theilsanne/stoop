@@ -3,7 +3,7 @@
   --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7ece9; --ink:#15201a; --ink-2:#56645c; --line:#d3dcd6;
   --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2;
   --good:#1b7a44; --good-soft:#dcf0e3; --warn:#9a5c00; --warn-soft:#fbecd2; --bad:#bb3227; --bad-soft:#f9dfdc;
-  --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06);
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06);
   --display:'Archivo','Arial Narrow',system-ui,sans-serif;
   --body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -12,12 +12,12 @@
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
@@ -43,7 +43,11 @@ nav.tabs .n{font-family:var(--mono);font-size:12px;margin-left:4px;color:var(--i
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
 .summary{font-size:13px;color:var(--ink-2)}
 .summary b{color:var(--ink);font-variant-numeric:tabular-nums}
-select.sm{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+select.sm{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 34px 7px 10px;font-size:13px;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+  /* our own chevron, inset from the edge and in the theme's text color */
+  background-image:var(--chev);background-position:right 12px center;background-size:12px 8px;background-repeat:no-repeat}
+select.sm:hover{border-color:var(--ink-2)}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .15s,box-shadow .15s}
