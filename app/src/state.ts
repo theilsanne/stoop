@@ -23,6 +23,7 @@ export interface State {
   filter: Filter;
   sort: Sort;
   feedView: "list" | "map";
+  whyOpen: Set<string>;    // feed cards with their score explanation expanded
   shown: number;           // feed cards rendered so far
   openId: string | null;   // listing detail sheet
   bdWho: "me" | "partner";
@@ -38,8 +39,8 @@ export const S = {} as State;
 export function initState(api: Api) {
   Object.assign(S, {
     api, me: null, profiles: [], feed: [], ratings: [], criteria: [], draft: [],
-    tab: store<Tab>("tab", "feed"), lens: store<Lens>("lens", "both"),
-    filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), shown: 40,
+    tab: store<Tab>("tab", "feed"), lens: "both",
+    filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
     loading: true, saving: false, error: null, sentLinkTo: null,
   } satisfies State);

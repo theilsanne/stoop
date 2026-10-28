@@ -5,14 +5,14 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, neighborhoods, partnerName, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Sort, type Tab,
+  type Filter, type Lens, type Tab,
 } from "./state.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
-import { esc, save } from "./util.ts";
+import { esc, save, store } from "./util.ts";
 import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
 import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet } from "./views/detail.ts";
-import { renderFeed } from "./views/feed.ts";
+import { parseSort, renderFeed } from "./views/feed.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
@@ -60,12 +60,43 @@ export function render() {
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
 }
 
-function toast(text: string) {
+function toast(text: string, opts: { ms?: number; action?: { label: string; run: () => void } } = {}) {
   const n = document.createElement("div");
   n.className = "toast";
-  n.textContent = text;
+  const t = document.createElement("span");
+  t.textContent = text;
+  n.append(t);
+  if (opts.action) {
+    const b = document.createElement("button");
+    b.className = "toast-act";
+    b.textContent = opts.action.label;
+    b.addEventListener("click", () => { n.remove(); opts.action!.run(); });
+    n.append(b);
+  }
+  n.addEventListener("click", () => n.remove()); // tap a notice to dismiss it
   $("toasts").prepend(n);
-  setTimeout(() => n.remove(), 3500);
+  setTimeout(() => n.remove(), opts.ms ?? 3500);
+}
+
+// ---------- one-time "install the app" tip on phones ----------
+// Chrome on Android offers a proper install prompt; we keep it and use it from the tip.
+let installEvent: (Event & { prompt: () => Promise<void> }) | null = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvent = e as typeof installEvent; });
+
+function maybeInstallTip() {
+  const onPhone = matchMedia("(pointer: coarse)").matches && innerWidth < 900;
+  const installed = matchMedia("(display-mode: standalone)").matches;
+  const key = "installTip." + myId(); // once per person on this device
+  if (!onPhone || installed || !S.me || store<boolean>(key, false)) return;
+  save(key, true);
+  if (installEvent) {
+    const ev = installEvent;
+    toast("Add Stoop to your home screen so it opens like an app.", {
+      ms: 12000, action: { label: "Install", run: () => { ev.prompt().catch(() => {}); installEvent = null; } },
+    });
+  } else {
+    toast("Tip: add Stoop to your home screen. In Chrome, open the ⋮ menu and choose Add to Home screen.", { ms: 12000 });
+  }
 }
 
 function showError(e: unknown) {
@@ -91,6 +122,7 @@ async function load() {
   S.loading = false;
   render();
   save("lastVisit", Date.now()); // next visit's "new" badge counts from now
+  setTimeout(maybeInstallTip, 1500); // after Chrome has had a moment to offer installing
 }
 
 async function boot() {
@@ -192,14 +224,17 @@ document.addEventListener("click", (e) => {
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
         if (v === "criteria" && changeLog.rows == null) loadLog();
         break;
-      case "lens": S.lens = v as Lens; save("lens", v); S.shown = 40; break;
+      case "why": {
+        if (S.whyOpen.has(id)) S.whyOpen.delete(id); else S.whyOpen.add(id);
+        break;
+      }
       case "filter": S.filter = v as Filter; S.shown = 40; break;
       case "more": S.shown += 40; break;
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; $("sheet-root").innerHTML = renderSheet(); return;
       case "move": setStage(id, v as Stage); return;
-      case "peek": S.lens = v as Lens; save("lens", v); S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
+      case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
       case "kind": draftById(id).kind = v as Criterion["kind"]; break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];
@@ -247,7 +282,12 @@ document.addEventListener("keydown", (e) => {
 
 document.addEventListener("change", (e) => {
   const t = e.target as HTMLSelectElement;
-  if (t.dataset.change === "sort") { S.sort = t.value as Sort; save("sort", t.value); render(); }
+  if (t.dataset.change === "sort") {
+    const { sort, lens } = parseSort(t.value);
+    S.sort = sort; S.lens = lens; S.shown = 40;
+    save("sort", sort); // whose scores always starts at "both of us"; only the order is remembered
+    render();
+  }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
   if (t.dataset.change === "subway") { showSubway.on = (t as unknown as HTMLInputElement).checked; save("subway", showSubway.on); render(); }
 });

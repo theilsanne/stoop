@@ -1,5 +1,8 @@
-import { S, isNewSinceVisit, myId, partnerId, partnerName, personScore, verdictOf, viewOf, type Filter, type View } from "../state.ts";
-import type { FeedRow, Verdict } from "../types.ts";
+import {
+  S, isNewSinceVisit, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
+  type Filter, type Lens, type Sort, type View,
+} from "../state.ts";
+import type { FeedRow, PersonScore, Verdict } from "../types.ts";
 import { ago, beds, esc, fmtDate, money } from "../util.ts";
 import { renderMapShell } from "./map.ts";
 
@@ -19,22 +22,55 @@ function badges(row: FeedRow) {
   if (row.no_fee) b.push('<span class="badge">No fee</span>');
   if (row.free_months) b.push(`<span class="badge">${row.free_months} mo free</span>`);
   if (verdictOf(row.id, myId()) === "yes" && verdictOf(row.id, partnerId()) === "yes") b.push('<span class="badge both">Both yes</span>');
+  const me = personScore(row, "me"), them = personScore(row, "partner");
+  if (S.lens === "both" && me?.passes && them?.passes && Math.abs(me.score - them.score) >= 20) b.push('<span class="badge gap">You disagree</span>');
   return b.join("");
+}
+
+// ---------- score explanation, shown when the score is tapped ----------
+const markOf = (credit: number) => (credit >= 1 ? "✓" : credit > 0 ? "½" : "✗");
+
+function personWhy(name: string, p: PersonScore | undefined) {
+  if (!p) return `<div class="why-who"><b>${esc(name)}</b> <span class="small">not scored yet</span></div>`;
+  const known = p.breakdown.filter((x) => x.known);
+  const dbs = known.filter((x) => x.kind === "dealbreaker");
+  const wants = known.filter((x) => x.kind === "want" && x.weight > 0);
+  const met = wants.filter((x) => x.credit >= 1).length;
+  const dbText = !dbs.length ? "no dealbreakers"
+    : p.passes ? `passes all ${dbs.length} dealbreaker${dbs.length > 1 ? "s" : ""}`
+    : `fails ${p.failed.map(esc).join(", ")}`;
+  // wants, biggest weight first: what earned the score and what cost it
+  const chips = wants.sort((a, b) => b.weight - a.weight).map((x) =>
+    `<span class="wchip ${x.credit >= 1 ? "ok" : x.credit > 0 ? "part" : "no"}">${markOf(x.credit)} ${esc(x.label)}</span>`).join("");
+  return `<div class="why-who"><b>${esc(name)} · ${p.passes ? p.score : "out"}</b>
+      <span class="small">${dbText}${wants.length ? ` · ${met} of ${wants.length} wants` : ""}</span></div>
+    ${chips ? `<div class="wchips">${chips}</div>` : ""}`;
+}
+
+function whyPanel(row: FeedRow) {
+  const people = S.lens === "both"
+    ? [["You", personScore(row, "me")], [partnerName(), personScore(row, "partner")]] as const
+    : S.lens === "me" ? [["You", personScore(row, "me")]] as const : [[partnerName(), personScore(row, "partner")]] as const;
+  return `<div class="why-panel">
+    ${S.lens === "both" ? '<p class="small">The score is the average of your two scores. It only counts if the listing passes both of your dealbreakers.</p>' : ""}
+    ${people.map(([n, p]) => personWhy(n, p)).join("")}
+    <button class="linkish small" data-open="${row.id}">Full breakdown</button></div>`;
+}
+
+export function parseSort(value: string): { sort: Sort; lens: Lens } {
+  const [sort, lens] = value.split(":") as [Sort, Lens];
+  return { sort, lens };
 }
 
 export function card(row: FeedRow, v: View) {
   const photo = row.photos?.[0];
-  const me = personScore(row, "me"), them = personScore(row, "partner");
-  const split = S.lens === "both" && me && them
-    ? `<div class="split"><span>You <b>${me.passes ? me.score : "out"}</b></span><span>${esc(partnerName())} <b>${them.passes ? them.score : "out"}</b></span>${
-      me.passes && them.passes && Math.abs(me.score - them.score) >= 20 ? '<span class="gap">You disagree</span>' : ""}</div>`
-    : "";
+  const open = S.whyOpen.has(row.id);
   const fails = v.passes || !v.failed.length ? "" :
     `<div class="fails">${v.failed.map((f) => `<span class="chip ${v.near ? "near" : ""}">${v.near ? "Near miss: " : "✗ "}${esc(f)}</span>`).join("")}</div>`;
   return `<article class="card" data-open="${row.id}" tabindex="0" aria-label="${esc(row.address)}">
     <div class="ph">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
       <div class="badges">${badges(row)}</div>
-      ${v.scored ? `<div class="score ${tier(v.score)}" title="Score">${v.score}</div>` : ""}
+      ${v.scored ? `<button class="score ${tier(v.score)}" data-action="why" data-id="${row.id}" aria-expanded="${open}" aria-label="Score ${v.score}. Show why">${v.score}</button>` : ""}
     </div>
     <div class="cb">
       <div class="rent"><b>${money(row.net_effective_rent ?? row.price)}</b>${
@@ -42,7 +78,9 @@ export function card(row: FeedRow, v: View) {
       <div class="addr">${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</div>
       <div class="hood">${esc(row.neighborhood)}</div>
       <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""} · Avail ${fmtDate(row.available_date)} · ${ago(row.listed_at ?? row.first_seen_at)}</div>
-      ${split}${fails}
+      ${fails}
+      ${v.scored ? `<button class="whybtn" data-action="why" data-id="${row.id}" aria-expanded="${open}">${open ? "Hide why" : `Why ${v.passes ? v.score : "it's out"}?`}</button>` : ""}
+      ${open ? whyPanel(row) : ""}
       <div class="vote">${verdictButtons(row.id)}<span class="other">${esc(partnerName())}: ${verdictText(verdictOf(row.id, partnerId()))}</span></div>
     </div></article>`;
 }
@@ -68,11 +106,12 @@ export function renderFeed() {
 
   const newCount = S.feed.filter(isNewSinceVisit).length;
   const lastPull = S.feed.reduce((m, r) => (r.last_seen_at > m ? r.last_seen_at : m), "");
-  const lensText = {
-    both: "A listing has to pass both of your dealbreakers. Its score is the average of your two scores.",
-    me: "Your criteria only.",
-    partner: `${esc(partnerName())}'s criteria only. This is the feed as they see it.`,
-  }[S.lens];
+  // one dropdown for order and whose scores: "score:me" = sorted by score, scored for you only
+  const sortOptions: [string, string][] = [
+    ["score:both", "Best for both of us"], ["score:me", "Best for you"], ["score:partner", `Best for ${partnerName()}`],
+    ["newest:both", "Newest"], ["rent:both", "Lowest net rent"],
+  ];
+  const current = `${S.sort}:${S.lens}`;
   const empties: Record<Filter, string> = {
     passing: "Nothing passes every dealbreaker right now. Check Near misses, or loosen a dealbreaker in My criteria.",
     near: "No near misses. Give a number dealbreaker a near-miss margin to see listings that miss it by a little.",
@@ -83,16 +122,12 @@ export function renderFeed() {
     return `<div class="empty"><b>No listings yet.</b><br>Start your Apify task. When the run finishes, listings appear here.</div>`;
   }
 
-  return `<div class="lens"><span class="lens-k">Scored for</span>
-      <div class="seg" role="group" aria-label="Scored for">${(["both", "me", "partner"] as const).map((k) =>
-        `<button data-action="lens" data-v="${k}" aria-pressed="${S.lens === k}">${k === "both" ? "Both of us" : k === "me" ? "You" : esc(partnerName())}</button>`).join("")}</div>
-      <span class="lens-d">${lensText}</span></div>
-    <div class="toolbar">
+  return `<div class="toolbar">
       <div class="seg" role="group" aria-label="Filter">${([["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
         `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t} ${g[k].length}</button>`).join("")}</div>
       <div class="toolbar-r">
-        ${S.feedView === "list" ? `<label class="summary" for="sort">Sort <select class="sm" id="sort" data-change="sort">${([["score", "Best score"], ["newest", "Newest"], ["rent", "Lowest net rent"]] as const).map(([k, t]) =>
-          `<option value="${k}" ${S.sort === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>` : ""}
+        <label class="summary" for="sort">${S.feedView === "map" ? "Show" : "Sort"} <select class="sm" id="sort" data-change="sort">${sortOptions.map(([k, t]) =>
+          `<option value="${k}" ${current === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>
         <div class="seg" role="group" aria-label="View">${(["list", "map"] as const).map((k) =>
           `<button data-action="feedview" data-v="${k}" aria-pressed="${S.feedView === k}">${k === "list" ? "List" : "Map"}</button>`).join("")}</div>
       </div>

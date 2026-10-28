@@ -36,9 +36,6 @@ export function renderSettings() {
       <p>Listings are re-scored whenever either of you saves criteria, and new ones are scored as they arrive. If anything looks stale, re-score everything now.</p>
       <div><button class="btn" data-action="rescore" ${S.saving ? "disabled" : ""}>${S.saving ? "Re-scoring…" : "Re-score all listings"}</button></div>
     </section>
-    <section class="panel"><h2>Install on your phone</h2>
-      <p>In Chrome, open the menu (⋮) and choose <b>Add to Home screen</b> or <b>Install app</b>. It then opens like an app, without the browser bar.</p>
-    </section>
   </div>`;
 }
 

@@ -41,9 +41,13 @@ export function renderSheet() {
   const pts = history.get(row.id);
 
   return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}">
-    <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
-      <div class="hood">${esc(row.neighborhood)}</div></div>
-      <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>
+    <div class="sheet-head">
+      <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
+        <div class="hood">${esc(row.neighborhood)}</div></div>
+        <button class="close" data-action="closesheet" id="close-sheet">Close</button></div>
+      <div class="stage-row"><label for="stage" class="small">Stage</label>
+        <select class="sm" id="stage" data-change="stage" data-id="${row.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+    </div>
     ${row.photos?.length ? `<div class="photos">${row.photos.slice(0, 8).map((p) => `<img src="${esc(p)}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join("")}</div>` : ""}
     <div class="box"><div class="kv">
       <div><span>Net effective</span><b>${money(row.net_effective_rent ?? row.price)}</b></div>
@@ -70,9 +74,6 @@ export function renderSheet() {
       <label class="small" for="note">Your notes</label>
       <textarea id="note" data-note="${row.id}" placeholder="Light, noise, the landlord, anything worth remembering">${esc(myNote)}</textarea>
       ${theirNote ? `<p class="small"><b>${esc(partnerName())}:</b> ${esc(theirNote)}</p>` : ""}</div>
-
-    <div class="box"><h3>Stage</h3>
-      <select class="sm" id="stage" data-change="stage" data-id="${row.id}">${STAGES.map(([k, t]) => `<option value="${k}" ${row.stage === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
 
     <div class="box"><h3>Price history</h3><div class="spark">${pts ? sparkline(pts) : '<span class="small">Loading…</span>'}</div></div>
   </div></div>`;

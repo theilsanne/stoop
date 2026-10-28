@@ -111,15 +111,16 @@ export function renderCriteria() {
   const options = groups.map((g) => `<optgroup label="${g}">${CATALOG.filter((d) => d.group === g).map((d) =>
     `<option value="${d.key}" ${have.has(d.field + "|" + d.operator) ? "disabled" : ""}>${d.label}</option>`).join("")}</optgroup>`).join("");
   const log = changeLog.rows;
-  return `<div class="whose"><div><b>Your criteria.</b> ${esc(partnerName())} keeps their own list; you can see it in Compare.</div>
-      <button class="btn" data-action="tab" data-v="compare">Compare</button></div>
-    <div class="impact" id="impact">${impactHTML()}</div>
+  return `<p class="whose"><span><b>Your criteria.</b> ${esc(partnerName())} keeps their own list; you can see it in Compare.</span></p>
+    <div class="critbar">
+      <div class="impact" id="impact">${impactHTML()}</div>
+      <div class="addrow"><label for="preset" class="small">Add</label><select class="sm" id="preset">${options}</select>
+        <button class="btn sm-btn" data-action="add" data-v="dealbreaker">+ Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">+ Want</button></div>
+    </div>
     <section class="sect"><h2>Dealbreakers</h2><p class="lede">A listing that fails any of these drops out of your feed. Give a number a near-miss margin and listings that miss it by a little show up under Near misses instead.</p>
       ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
       ${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</section>
-    <section class="sect addrow"><label for="preset" class="small">Add</label><select class="sm" id="preset">${options}</select>
-      <button class="btn" data-action="add" data-v="dealbreaker">As dealbreaker</button><button class="btn" data-action="add" data-v="want">As want</button></section>
     <p class="small">Commute times and building records (HPD violations, 311) come in a later update.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
