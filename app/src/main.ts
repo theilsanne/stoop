@@ -3,7 +3,7 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { celebrate, closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, stampLift, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { celebrate, closeSheetMotion, enterView, land, openSheetMotion, pop, stampDown, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
@@ -19,7 +19,8 @@ import { diffRows, renderCompare } from "./views/compare.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
-import { dragStamp, myMark } from "./views/stamps.ts";
+import { dragStamp, myFace, myMark } from "./views/stamps.ts";
+import { mountStamp } from "./stamp3d.ts";
 import { mountMap, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
@@ -120,6 +121,8 @@ export function render() {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
     }[S.tab]()}</main>${S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length ? dragStamp() : ""}`;
   placeIndicators(root, inds);
+  stamp.setShown(S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0);
+  stamp.setFace(myFace());
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);
@@ -297,30 +300,21 @@ async function rate(id: string, v: Verdict) {
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
 }
 
-/** Stamp the listing as one I really like, or take my stamp back. */
-function toggleStamp(id: string) {
-  return setStamp(id, !stampedBy(id, myId()));
-}
-
-/** Your stamp dropped on a listing: a big one lands over it. Stamping never takes a stamp back. */
+/** Your stamp pressed onto a listing: a big one lands over it, and the stamp stays on the card. */
 function dropStamp(id: string, x: number, y: number) {
   if (stampedBy(id, myId())) { toast("You've already stamped this one"); return; }
   celebrate(x, y, myMark(180));
-  void setStamp(id, true);
+  void placeStamp(id);
 }
 
-/** Put your stamp on a listing, or take it back. Shows at once; undone if the save fails. */
-async function setStamp(id: string, on: boolean) {
+/** Place your stamp on a listing. It shows at once, and is undone only if the save fails. */
+async function placeStamp(id: string) {
   const before = S.stamps;
-  S.stamps = on
-    ? [...S.stamps, { listing_id: id, user_id: myId() }]
-    : S.stamps.filter((s) => !(s.listing_id === id && s.user_id === myId()));
+  S.stamps = [...S.stamps, { listing_id: id, user_id: myId() }];
   render();
-  // the stamp comes down on the card and on the sheet, if it's open
-  for (const mark of document.querySelectorAll(`[data-action="stamp"][data-id="${CSS.escape(id)}"] .mark`)) {
-    if (on) stampDown(mark); else stampLift(mark);
-  }
-  try { await api.setStamp(id, on); } catch (e) { S.stamps = before; showError(e); }
+  // the impression comes down on the card, now that the card has been redrawn with it
+  for (const mark of document.querySelectorAll(`[data-stamp-id="${CSS.escape(id)}"] .impression.mine`)) stampDown(mark);
+  try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); }
 }
 
 async function changeAvatar(run: () => Promise<void>, done: string) {
@@ -499,7 +493,6 @@ document.addEventListener("click", (e) => {
       case "more": S.shown += 40; break;
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
-      case "stamp": toggleStamp(id); return;
       case "stamphint": toast("Drag it onto a listing to stamp it"); return;
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
@@ -677,7 +670,9 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import
   navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").catch(() => {});
 }
 
-initDrag((id, stage) => setStage(id, stage as Stage), dropStamp);
+initDrag((id, stage) => setStage(id, stage as Stage));
+
+const stamp = mountStamp({ onStamp: dropStamp });
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
