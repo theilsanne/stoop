@@ -1,11 +1,12 @@
 // Phosphor icons (https://phosphoricons.com), inlined as SVG so only the icons
 // used are bundled and they take the surrounding text color (currentColor).
-// Kept to a few on purpose: the logomark, verdict and settings buttons, and photo arrows.
+// Kept to a few on purpose: the logomark, verdict and settings buttons, arrows, and drag handles.
 
 import stairs from "@phosphor-icons/core/assets/light/stairs-light.svg?raw";
 import caretLeft from "@phosphor-icons/core/assets/bold/caret-left-bold.svg?raw";
 import caretRight from "@phosphor-icons/core/assets/bold/caret-right-bold.svg?raw";
 import x from "@phosphor-icons/core/assets/bold/x-bold.svg?raw";
+import dotsSix from "@phosphor-icons/core/assets/regular/dots-six-vertical.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
 import thumbsUp from "@phosphor-icons/core/assets/regular/thumbs-up.svg?raw";
 import question from "@phosphor-icons/core/assets/regular/question.svg?raw";
@@ -14,7 +15,7 @@ import thumbsUpFill from "@phosphor-icons/core/assets/fill/thumbs-up-fill.svg?ra
 import questionFill from "@phosphor-icons/core/assets/fill/question-fill.svg?raw";
 import thumbsDownFill from "@phosphor-icons/core/assets/fill/thumbs-down-fill.svg?raw";
 
-const REGULAR = { stairs, "caret-left": caretLeft, "caret-right": caretRight, x, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown };
+const REGULAR = { stairs, "caret-left": caretLeft, "caret-right": caretRight, x, "dots-six-vertical": dotsSix, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown };
 const FILL: Partial<Record<IconName, string>> = { "thumbs-up": thumbsUpFill, question: questionFill, "thumbs-down": thumbsDownFill };
 
 export type IconName = keyof typeof REGULAR;

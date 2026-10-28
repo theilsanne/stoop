@@ -1,5 +1,6 @@
+import { icon } from "../icons.ts";
 import { PARENT_HOOD, defFor } from "../catalog.ts";
-import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts } from "../state.ts";
+import { S, allFields, draftDirty, myCriteria, nameOf, neighborhoods, partnerName, previewCounts, sectionOf } from "../state.ts";
 import type { CriteriaChange, Criterion } from "../types.ts";
 import { esc, fmtDate, money } from "../util.ts";
 
@@ -70,12 +71,15 @@ function control(c: Criterion) {
 function row(c: Criterion) {
   const numeric = c.operator === "lte" || c.operator === "gte" || c.operator === "within_minutes";
   const margin = Math.round((c.near_miss_margin ?? 0) * 100);
-  return `<div class="crit ${c.active ? "" : "off"}">
+  const moving = c.kind !== sectionOf(c);
+  return `<div class="crit ${c.active ? "" : "off"}" data-crit="${c.id}">
     <div class="crit-head">
+      <button class="grip" data-action="grip" data-id="${c.id}" aria-label="Reorder ${esc(c.label)}: drag, or use the up and down arrow keys" title="Drag to reorder">${icon("dots-six-vertical", { size: 18 })}</button>
       <input class="lbl" id="l-${c.id}" data-edit="label" data-id="${c.id}" value="${esc(c.label)}" aria-label="Criterion name">
       <div class="seg" role="group" aria-label="Type"><button data-action="kind" data-id="${c.id}" data-v="dealbreaker" aria-pressed="${c.kind === "dealbreaker"}">Dealbreaker</button><button data-action="kind" data-id="${c.id}" data-v="want" aria-pressed="${c.kind === "want"}">Want</button></div>
       <label class="switch"><input type="checkbox" role="switch" id="a-${c.id}" data-edit="active" data-id="${c.id}" ${c.active ? "checked" : ""}> ${c.active ? "On" : "Off"}</label>
     </div>
+    ${moving ? `<p class="moving">Moves to ${c.kind === "want" ? "Wants" : "Dealbreakers"} when you save</p>` : ""}
     <div class="crit-body">
       ${control(c)}
       ${c.kind === "want" ? `<div class="ctl"><label for="w-${c.id}">Weight</label>${slider(`w-${c.id}`, "weight", c.id, 0, 10, c.weight)}<span class="val" id="wl-${c.id}">${c.weight}</span></div>` : ""}
@@ -114,7 +118,7 @@ function changeText(ch: CriteriaChange) {
 }
 
 export function renderCriteria() {
-  const dbs = S.draft.filter((c) => c.kind === "dealbreaker"), ws = S.draft.filter((c) => c.kind === "want");
+  const dbs = S.draft.filter((c) => sectionOf(c) === "dealbreaker"), ws = S.draft.filter((c) => sectionOf(c) === "want");
   const have = new Set(S.draft.map((c) => c.field + "|" + c.operator));
   const fields = allFields();
   const groups = (["Basics", "Apartment", "Building", "Commute"] as const).filter((g) => fields.some((d) => d.group === g));
@@ -128,9 +132,9 @@ export function renderCriteria() {
         <button class="btn sm-btn" data-action="add" data-v="dealbreaker">+ Dealbreaker</button><button class="btn sm-btn" data-action="add" data-v="want">+ Want</button></div>
     </div>
     <section class="sect"><h2>Dealbreakers</h2><p class="lede">A listing that fails any of these drops out of your feed. Give a number a near-miss margin and listings that miss it by a little show up under Near misses instead.</p>
-      ${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</section>
+      <div class="crit-list" data-section="dealbreaker">${dbs.map(row).join("") || '<div class="empty">No dealbreakers yet.</div>'}</div></section>
     <section class="sect"><h2>Wants</h2><p class="lede">Each want adds to your score out of 100, in proportion to its weight. Numbers give partial credit when a listing is a little off.</p>
-      ${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</section>
+      <div class="crit-list" data-section="want">${ws.map(row).join("") || '<div class="empty">No wants yet.</div>'}</div></section>
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
     <section class="sect"><h2>Change history</h2>
       ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {

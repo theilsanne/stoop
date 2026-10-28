@@ -73,24 +73,21 @@ export function renderSettings() {
 function alertsPanel(threshold: number) {
   const status = {
     checking: "",
-    unsupported: S.api.demo
-      ? "Alerts don't work in the demo."
-      : "This browser can't receive alerts. On your phone, open Stoop in Chrome (or from your home screen).",
-    blocked: "Notifications are blocked for Stoop on this phone. Allow them in Chrome (⋮ → Settings → Site settings → Notifications), then come back here.",
-    off: "Alerts are off on this phone.",
-    on: "Alerts are on for this phone.",
+    unsupported: S.api.demo ? "Not available in the demo." : "This browser can't get alerts. Open Stoop in Chrome.",
+    blocked: "Notifications are blocked for Stoop. Allow them in Chrome's site settings.",
+    off: "",
+    on: "On for this phone.",
   }[S.alerts];
   const busy = S.busy.has("alerts") ? "disabled" : "";
   return `<section class="panel" id="alerts"><h2>Alerts</h2>
-    <p>A notification on this phone when a new listing passes both of your dealbreakers and scores at least
+    <p class="small">New listings that pass for both of you and score
       <select class="sm inline" data-change="threshold" aria-label="Alert me at this score or higher">${[50, 60, 70, 80, 90].map((n) =>
         `<option value="${n}" ${n === threshold ? "selected" : ""}>${n}</option>`).join("")}</select>
-      for you, and when a listing either of you said Yes or Maybe to drops its price. Each of you turns alerts on on your own phone.</p>
-    ${status ? `<p class="small">${status}</p>` : ""}
-    <div class="btnrow">${
-      S.alerts === "off" ? `<button class="btn primary" data-action="alerts-on" ${busy}>Turn on alerts</button>`
-      : S.alerts === "on" ? `<button class="btn" data-action="alerts-test" ${busy}>Send a test</button><button class="btn" data-action="alerts-off" ${busy}>Turn off on this phone</button>`
-      : ""}</div>
+      or more for you, plus price drops on ones you said Yes or Maybe to.</p>
+    ${S.alerts === "off" || S.alerts === "on" ? `<div class="panel-foot">${
+      S.alerts === "off" ? `<button class="btn sm-btn primary" data-action="alerts-on" ${busy}>Turn on for this phone</button>`
+      : `<button class="btn sm-btn" data-action="alerts-test" ${busy}>Send a test</button><button class="btn sm-btn" data-action="alerts-off" ${busy}>Turn off</button>`}${
+      status ? `<span class="small">${status}</span>` : ""}</div>` : status ? `<p class="small">${status}</p>` : ""}
   </section>`;
 }
 

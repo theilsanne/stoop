@@ -3,13 +3,14 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
+import { initSort } from "./sort.ts";
 import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
   S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Tab,
+  type Filter, type Lens, type Tab, addedAs, moveInSection, reorderSection,
 } from "./state.ts";
 import type { Criterion, Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
@@ -472,8 +473,10 @@ document.addEventListener("click", (e) => {
       case "add": {
         const def = allFields().find((d) => d.key === ($("preset") as HTMLSelectElement).value);
         if (!def) return;
+        const newId = "new-" + Date.now();
+        addedAs.set(newId, v as Criterion["kind"]);
         S.draft.push({
-          id: "new-" + Date.now(), owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
+          id: newId, owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
           field: def.field, operator: def.operator,
           // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
           value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
@@ -514,6 +517,13 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  // a criterion's grip: arrow keys move it up or down within its section
+  const grip = (e.target as HTMLElement).closest?.<HTMLElement>(".grip");
+  if (grip && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    e.preventDefault();
+    if (moveInSection(grip.dataset.id!, e.key === "ArrowUp" ? -1 : 1)) { holdInPlace(grip); render(); }
+    return;
+  }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
   const tab = (e.target as HTMLElement).closest?.<HTMLElement>('nav.tabs [role="tab"]');
   if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
@@ -630,6 +640,7 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
+initSort((section, ids) => { reorderSection(section as Criterion["kind"], ids); render(); });
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
