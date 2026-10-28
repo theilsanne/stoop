@@ -9,7 +9,7 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, verdictOf,
-  type Filter, type Lens, type Tab, setLevel,
+  type Filter, type Lens, type Tab, draftChanges, setLevel,
 } from "./state.ts";
 import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
@@ -252,7 +252,11 @@ async function load() {
     Object.assign(S, { profiles, feed, ratings, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
-    if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
+    if (restored === "restored") {
+      toast(`Unsaved criteria edits from earlier: ${draftChanges() || "small changes"}. Save them in Criteria, or discard them.`, {
+        ms: 12000, action: { label: "Discard", run: () => { resetDraft(); render(); toast("Discarded"); } },
+      });
+    }
     if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
     S.error = null;
   } catch (e) {
@@ -521,6 +525,12 @@ document.addEventListener("click", (e) => {
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
       case "writein": addWriteIn(); return;
       case "unmark": markWriteIn(id, null); return;
+      case "history": {
+        S.historyOpen = !S.historyOpen; save("historyOpen", S.historyOpen);
+        render();
+        if (S.historyOpen) unfold(document.getElementById("history-list"));
+        return;
+      }
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
       case "rescore": rescoreAll(); return;

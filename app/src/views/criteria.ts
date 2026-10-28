@@ -238,6 +238,19 @@ export function refreshBars() {
   }
 }
 
+/** Change history: a heading with the number of changes; the list opens when you tap it. */
+function historySection(log: CriteriaChange[] | null) {
+  const items = (log ?? []).flatMap((ch) => { const t = changeText(ch); return t ? [{ ch, t }] : []; });
+  const open = S.historyOpen;
+  return `<section class="sect history">
+    <h2><button class="disclose" data-action="history" aria-expanded="${open}" aria-controls="history-list">${icon("caret-right", { size: 18 })}Change history${
+      log ? `<span class="n">${items.length}</span>` : ""}</button></h2>
+    ${!open ? "" : log == null ? '<p class="small">Loading…</p>' : items.length
+      ? `<ul class="log" id="history-list">${items.map(({ ch, t }) => `<li><time>${new Date(ch.changed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time><span class="by">${ch.changed_by ? esc(nameOf(ch.changed_by)) : "Setup"}</span><span>${esc(t)}</span></li>`).join("")}</ul>`
+      : '<p class="small" id="history-list">No changes yet. Saved edits from both of you show here.</p>'}
+  </section>`;
+}
+
 function changeText(ch: CriteriaChange) {
   const b = ch.before, a = ch.after;
   if (!b && a) return `Added ${a.kind}: ${a.label}${valueText(a) ? " (" + valueText(a) + ")" : ""}`;
@@ -276,10 +289,6 @@ export function renderCriteria() {
     ${S.critFilter === "picks" && !picked ? '<div class="empty">Nothing picked yet. Switch to Everything and tap a step on anything you care about.</div>' : ""}
     ${[...GROUPS, OWN].map(section).join("")}
     <p class="small">Building criteria use NYC's HPD and 311 records; commute criteria use subway times to the places in Settings. Listings without that information yet are skipped by those criteria, not penalized.</p>
-    <section class="sect"><h2>Change history</h2>
-      ${log == null ? '<p class="small">Loading…</p>' : log.length ? `<ul class="log">${log.map((ch) => {
-        const t = changeText(ch);
-        return t ? `<li><time>${new Date(ch.changed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time><span class="by">${ch.changed_by ? esc(nameOf(ch.changed_by)) : "Setup"}</span><span>${esc(t)}</span></li>` : "";
-      }).join("")}</ul>` : '<p class="small">No changes yet. Saved edits from both of you show here.</p>'}</section>
+    ${historySection(log)}
     <div id="savebar">${savebarHTML()}</div>`;
 }
