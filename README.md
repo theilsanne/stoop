@@ -149,3 +149,7 @@ curl -X POST https://<ref>.supabase.co/functions/v1/ingest \
 ## Not built yet
 
 - Web push alerts (ingest already works out who would get one)
+
+## License
+
+MIT, see [LICENSE](LICENSE). Icons from [Phosphor](https://phosphoricons.com) (MIT). Map data © OpenStreetMap contributors. Transit times from [Transitous](https://transitous.org).
