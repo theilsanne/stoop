@@ -1,3 +1,4 @@
+import type { AlertState } from "./push.ts";
 import {
   type ScorableListing, groupByOwner, scoreListing, scorePerson,
 } from "../../supabase/functions/_shared/scoring.ts";
@@ -34,6 +35,7 @@ export interface State {
   saving: boolean;
   error: string | null;
   sentLinkTo: string | null;
+  alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
@@ -44,7 +46,7 @@ export function initState(api: Api) {
     tab: store<Tab>("tab", "feed"), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, error: null, sentLinkTo: null,
+    loading: true, saving: false, error: null, sentLinkTo: null, alerts: "checking",
   } satisfies State);
 }
 

@@ -146,9 +146,18 @@ curl -X POST https://<ref>.supabase.co/functions/v1/ingest \
   -d '{"items":[{"id":"test-1","price":3400,"address":"1 Test St","areaName":"Crown Heights","bedrooms":2,"availableDate":"2027-01-01"}]}'
 ```
 
+## Alerts
+
+Phone notifications via web push, sent by ingest after each run: new listings that pass both of your dealbreakers and score at or above your own threshold (Settings → Alerts; more than three at once become one summary), and price drops on listings either of you said Yes or Maybe to or moved into the pipeline. Tapping one opens that listing. `rentals.alerts` records what was sent so nothing is sent twice.
+
+Setup, once: generate VAPID keys with `npx web-push generate-vapid-keys`, then
+`npx supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:you@example.com`,
+and deploy `alerts` and `ingest`. Each of you turns alerts on in Settings on your own phone (install Stoop to the home screen first).
+
 ## Not built yet
 
-- Web push alerts (ingest already works out who would get one)
+- Craigslist (on hold)
+- Scheduled pulls / monitoring mode (planned for January)
 
 ## License
 

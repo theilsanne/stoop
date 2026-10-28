@@ -364,3 +364,7 @@ button.score:hover{transform:scale(1.05)}
 .viewer-close{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:2;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:18px}
 .viewer .ph-nav.prev{left:16px}.viewer .ph-nav.next{right:16px}
 @media (pointer:coarse){.viewer .ph-nav{display:none}}
+
+/* ---- alerts ---- */
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+select.sm.inline{display:inline-block;width:auto;padding-block:2px;margin:0 2px;vertical-align:baseline}

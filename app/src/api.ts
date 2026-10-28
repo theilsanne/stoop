@@ -37,6 +37,14 @@ export interface Api {
   removePlace(id: string): Promise<void>;
   /** Work out transit times to places (one batch). */
   commute(): Promise<CommuteResult>;
+
+  /** Phone alerts: the server's public key to subscribe with, saving this phone, and a test. */
+  alertsKey(): Promise<string>;
+  savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
+  removePushSubscription(endpoint: string): Promise<void>;
+  testAlert(): Promise<{ sent: number; failed: number; errors: string[] }>;
+  /** Alert me about new listings scoring at least this. */
+  setAlertThreshold(n: number): Promise<void>;
 }
 
 /** NYC address → coordinates with NYC Planning's GeoSearch (free, no key). */
@@ -68,6 +76,21 @@ export const isNewId = (id: string) => id.startsWith("new-");
 
 function fail(what: string, error: { message: string } | null): asserts error is null {
   if (error) throw new Error(`${what}: ${error.message}`);
+}
+
+/** Like fail, for edge functions: shows the function's own error message when it sent one. */
+async function failFn(what: string, data: unknown, error: { message: string; context?: unknown } | null) {
+  if (!error) {
+    const msg = (data as { error?: string } | null)?.error;
+    if (msg) throw new Error(`${what}: ${msg}`);
+    return;
+  }
+  let msg = error.message;
+  const res = error.context as Response | undefined;
+  if (res && typeof res.json === "function") {
+    try { msg = (await res.clone().json()).error ?? msg; } catch { /* not JSON */ }
+  }
+  throw new Error(`${what}: ${msg}`);
 }
 
 const makeClient = (url: string, key: string) =>
@@ -244,5 +267,33 @@ export class SupabaseApi implements Api {
     const { data, error } = await this.sb.functions.invoke("enrich", { method: "POST" });
     fail("Looking up building records", error);
     return data as EnrichResult;
+  }
+
+  async alertsKey() {
+    const { data, error } = await this.sb.functions.invoke("alerts", { body: { action: "key" } });
+    await failFn("Turning on alerts", data, error);
+    return (data as { publicKey: string }).publicKey;
+  }
+
+  async savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }) {
+    const { error } = await this.sb.from("push_subscriptions")
+      .upsert({ ...sub, user_id: this.user!.id }, { onConflict: "endpoint" });
+    fail("Saving this phone for alerts", error);
+  }
+
+  async removePushSubscription(endpoint: string) {
+    const { error } = await this.sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
+    fail("Turning off alerts", error);
+  }
+
+  async testAlert() {
+    const { data, error } = await this.sb.functions.invoke("alerts", { body: { action: "test" } });
+    await failFn("Sending a test alert", data, error);
+    return data as { sent: number; failed: number; errors: string[] };
+  }
+
+  async setAlertThreshold(n: number) {
+    const { error } = await this.sb.from("profiles").update({ notify_threshold: n }).eq("id", this.user!.id);
+    fail("Saving your alert setting", error);
   }
 }

@@ -116,6 +116,7 @@ export class DemoApi implements Api {
   private log: CriteriaChange[] = [];
   private names: Record<string, string> = { [YOU]: "You", [PARTNER]: "Partner" };
   private signedIn = true;
+  private thresholds: Record<string, number> = {};
 
   async me(): Promise<Me | null> { return this.signedIn ? { id: YOU, email: "you@example.com" } : null; }
   onAuthChange() {}
@@ -123,7 +124,7 @@ export class DemoApi implements Api {
   async signOut() { this.signedIn = false; }
 
   async profiles(): Promise<Profile[]> {
-    return [YOU, PARTNER].map((id) => ({ id, display_name: this.names[id], notify_threshold: 70 }));
+    return [YOU, PARTNER].map((id) => ({ id, display_name: this.names[id], notify_threshold: this.thresholds[id] ?? 70 }));
   }
   async updateMyName(name: string) { this.names[YOU] = name; }
 
@@ -183,5 +184,13 @@ export class DemoApi implements Api {
   async rescore() {
     const f = await this.feed();
     return { rescored: f.length, passing: f.filter((r) => r.passes).length };
+  }
+
+  async alertsKey(): Promise<string> { throw new Error("Alerts don't work in the demo"); }
+  async savePushSubscription() {}
+  async removePushSubscription() {}
+  async testAlert() { return { sent: 0, failed: 0, errors: [] }; }
+  async setAlertThreshold(n: number) {
+    this.thresholds[YOU] = n;
   }
 }

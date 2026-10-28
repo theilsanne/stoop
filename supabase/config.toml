@@ -19,3 +19,6 @@ verify_jwt = false
 # commute checks the signed-in user itself.
 [functions.commute]
 verify_jwt = false
+
+[functions.alerts]
+verify_jwt = false

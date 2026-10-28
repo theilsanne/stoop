@@ -1,5 +1,6 @@
 import "./styles.css";
 import { icon } from "./icons.ts";
+import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { closeSheetMotion, enterView, land, openSheetMotion, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api } from "./api.ts";
@@ -185,6 +186,8 @@ async function load() {
   }
   S.loading = false;
   render();
+  openFromLink();
+  alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); }, () => { S.alerts = "unsupported"; });
   save("lastVisit", Date.now()); // next visit's "new" badge counts from now
   setTimeout(maybeInstallTip, 1500); // after Chrome has had a moment to offer installing
 }
@@ -270,6 +273,26 @@ async function rescoreAll() {
 }
 
 // Building records come back in batches; keep going while there's progress.
+async function alertsAction(run: () => Promise<void>) {
+  S.saving = true;
+  render();
+  try { await run(); } catch (e) { toast(e instanceof Error ? e.message : String(e), { ms: 8000 }); }
+  S.alerts = await alertState(api).catch(() => "unsupported" as const);
+  S.saving = false;
+  render();
+}
+
+/** A tapped alert opens the app at ?open=<listing>: show that listing. */
+function openFromLink() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("open");
+  if (!id) return;
+  params.delete("open");
+  window.history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params : "") + location.hash);
+  if (S.feed.some((r) => r.id === id)) { S.tab = "feed"; openSheet(id); }
+  else toast("That listing isn't on the market any more.");
+}
+
 async function lookUpBuildings() {
   S.saving = true;
   render();
@@ -377,6 +400,17 @@ document.addEventListener("click", (e) => {
       case "rescore": rescoreAll(); return;
       case "enrich": lookUpBuildings(); return;
       case "commute": workOutCommutes(); return;
+      case "alerts-on": alertsAction(async () => {
+        await turnOnAlerts(api);
+        toast("Alerts are on. Sending a test…");
+        const r = await api.testAlert();
+        if (!r.sent) toast("Alerts are on, but the test didn't arrive. " + (r.errors?.[0] ?? ""), { ms: 8000 });
+      }); return;
+      case "alerts-off": alertsAction(async () => { await turnOffAlerts(api); toast("Alerts are off on this phone"); }); return;
+      case "alerts-test": alertsAction(async () => {
+        const r = await api.testAlert();
+        toast(r.sent ? `Test sent to ${r.sent === 1 ? "this phone" : `${r.sent} phones`}` : "The test didn't go through. " + (r.errors?.[0] ?? ""), { ms: 6000 });
+      }); return;
       case "removeplace": {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
         return;
@@ -420,6 +454,10 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
+  if (t.dataset.change === "threshold") {
+    const n = Number(t.value);
+    api.setAlertThreshold(n).then(async () => { S.profiles = await api.profiles(); toast(`You'll be alerted at ${n} and up`); render(); }, showError);
+  }
   if (t.dataset.change === "subway") { showSubway.on = (t as unknown as HTMLInputElement).checked; save("subway", showSubway.on); render(); }
 });
 

@@ -10,6 +10,7 @@
 // Deploy with:  supabase functions deploy ingest --no-verify-jwt
 // Secrets:      APIFY_TOKEN, WEBHOOK_SECRET
 
+import { sendAlerts } from "../_shared/push.ts";
 import { chunk, computeCommutes, enrichBuildings, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
 import { normalize, type ListingRow } from "../_shared/normalize.ts";
 
@@ -114,21 +115,18 @@ Deno.serve(async (req) => {
   // score this run's listings
   const scores = await scoreAndStore(db, touched.map((t) => t.id));
 
-  // who would get an alert: new + passes both of you + at or above the lower of your thresholds
-  const { data: profiles } = await db.from("profiles").select("notify_threshold");
-  const threshold = Math.min(...(profiles ?? []).map((p) => p.notify_threshold), 70);
+  // alerts to your phones (fails soft: listings are saved either way)
   const newIds = touched.filter((t) => !before.has(t.source_id)).map((t) => t.id);
-  const drops = touched.filter((t) => {
+  const drops = touched.flatMap((t) => {
     const old = before.get(t.source_id)?.price;
-    return old != null && t.price < old;
-  }).map((t) => t.id);
-  const alertable = newIds.filter((id) => scores[id]?.passes && scores[id].score >= threshold);
+    return old != null && t.price < old ? [{ id: t.id, from: old, to: t.price }] : [];
+  });
+  const alerts = await sendAlerts(db, newIds, drops, scores).catch((e) => ({ error: String(e) }));
 
-  // Sending comes next (web push). Until then, the alerts are only reported here.
   const summary = {
     items: items.length, skipped_unusable: skipped, saved: touched.length,
     new: newIds.length, price_drops: drops.length, went_off_market: wentOff ?? 0,
-    would_alert: alertable.length,
+    alerts,
     buildings,
     commutes,
   };
