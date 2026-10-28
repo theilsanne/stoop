@@ -29,8 +29,10 @@ Branch: `th-/great-fermi-9u0pes`. Not merged. No PR. Last updated 2026-10-28 by 
 - Not re-checked after the migrations. The sandbox proxy returns 403 for `theilsanne.github.io`, so it can't be checked from the cloud session.
 
 **Not yet done**
-- The preview sign-in redirect is not configured. Add `https://theilsanne.github.io/stoop/previews/**` under Authentication → URL Configuration → Redirect URLs.
 - Photo upload and stamps haven't been tested against the real project.
+
+**Done on the Supabase project**
+- The preview sign-in redirect is set. `uri_allow_list` is `http://localhost:5173/**,https://theilsanne.github.io/stoop/previews/**`, added in the dashboard. Confirmed by reading the auth config.
 
 ## Session log
 
@@ -40,13 +42,13 @@ Branch: `th-/great-fermi-9u0pes`. Not merged. No PR. Last updated 2026-10-28 by 
 - The Management API reaches the project with `SUPABASE_ACCESS_TOKEN` (`api.supabase.com` resolves and returns the project). The earlier migration attempt blocked on `db.jjrjswxakuneoxipdswd.supabase.co` not resolving. The Management API route doesn't need that host.
 - Applied the two new migrations in order through the Management API. Both returned no errors. Verified as above.
 - Preview check: not possible from the cloud session (the sandbox proxy returns 403 for `theilsanne.github.io`).
+- The user added the preview redirect URL in the Supabase dashboard and confirmed it is done. Confirmed on the project's auth config.
 
 ## Next steps
 
-1. Open `https://theilsanne.github.io/stoop/previews/th-great-fermi-9u0pes/` in a browser. Confirm the red "rentals.stamps" error is gone.
-2. Add the preview redirect URL in Supabase (see "Not yet done").
-3. Test photo upload, stamping, and the sheet pill with a real sign-in. Report anything that breaks.
-4. Only then consider merging. Merging to `main` is the user's call.
+1. Open `https://theilsanne.github.io/stoop/previews/th-great-fermi-9u0pes/` in a browser. Confirm the red "rentals.stamps" error is gone and sign-in works.
+2. Test photo upload, stamping, and the sheet pill with a real sign-in. Report anything that breaks.
+3. Only then consider merging. Merging to `main` is the user's call.
 
 ## Things to know
 
