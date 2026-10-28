@@ -2,6 +2,7 @@
 // "Scored for" lens and filtered like the list. Tap a pin for a summary and a link
 // to the full listing. Subway lines come from NY Open Data (MTA Subway Service Lines)
 // and are optional: if they fail to load, the map still works.
+// Base map: OpenStreetMap tiles (no key needed).
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -76,10 +77,13 @@ export async function mountMap() {
   const dark = document.documentElement.dataset.theme === "dark"
     || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
   map = L.map(el, { zoomControl: true, attributionControl: true, preferCanvas: true });
-  L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, {
-    maxZoom: 19, subdomains: "abcd",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  // OpenStreetMap's standard tiles: open, no API key. Their usage policy asks for the credit
+  // below and light use, which two people browsing listings is. Dark mode darkens them with CSS.
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
+  el.classList.toggle("dark", dark);
 
   const subwayPane = map.createPane("subway");
   subwayPane.style.zIndex = "350"; // under the pins

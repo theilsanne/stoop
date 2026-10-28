@@ -265,6 +265,7 @@ button.who{border:1px solid var(--line);background:var(--surface);border-radius:
 .maplegend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .maplegend .switch{margin-left:auto}
 .leaflet-container{font-family:var(--body)}
+.map.dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6)}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink)}
 .leaflet-popup-content{margin:12px 14px;font-size:14px;line-height:1.4}
 .pop{display:flex;flex-direction:column;gap:3px;min-width:180px}
