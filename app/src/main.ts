@@ -50,7 +50,8 @@ export function render() {
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings">${esc(S.profiles.find((p) => p.id === myId())?.display_name || S.me.email)} &amp; ${esc(partnerName())} <span aria-hidden="true">⚙</span></button>
     </header>
     <nav class="tabs" role="tablist">${TABS.map(([k, t]) =>
-      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span></button>`).join("")}</nav>
+      `<button role="tab" aria-selected="${S.tab === k}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
+        k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
@@ -220,7 +221,6 @@ document.addEventListener("click", (e) => {
     switch (action) {
       case "closesheet": if (t === a) { S.openId = null; $("sheet-root").innerHTML = ""; } return;
       case "tab":
-        if (S.tab === "criteria" && v !== "criteria" && draftDirty()) toast("Your criteria edits aren't saved yet. They're kept on this device until you save or discard them.");
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
         if (v === "criteria" && changeLog.rows == null) loadLog();
         break;

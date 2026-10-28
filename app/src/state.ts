@@ -55,7 +55,18 @@ export const nameOf = (id: string) => (id === myId() ? "You" : id === partnerId(
 
 export const myCriteria = () => S.criteria.filter((c) => c.owner_id === myId());
 export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === partnerId());
-export const draftDirty = () => JSON.stringify(myCriteria()) !== JSON.stringify(S.draft);
+/**
+ * The settings that matter, in a stable form: ignores key order, how the database
+ * formats numbers, and the order neighborhoods were ticked in.
+ */
+export function settingsOf(list: Criterion[]) {
+  const norm = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : typeof v === "number" ? Number(v) : v ?? null);
+  return JSON.stringify(list.map((c) => [
+    c.id, c.label.trim(), c.kind, c.field, c.operator, norm(c.value),
+    Number(c.weight), Math.round(Number(c.near_miss_margin ?? 0) * 100), !!c.active,
+  ]));
+}
+export const draftDirty = () => settingsOf(myCriteria()) !== settingsOf(S.draft);
 
 // ---------- unsaved criteria edits ----------
 // Kept on this device so they survive a reload, a new tab, or closing the app.
@@ -71,7 +82,7 @@ export function resetDraft(clearStored = true) {
 export function persistDraft() {
   if (!S.me || S.loading) return;
   save("draft", draftDirty()
-    ? ({ user: myId(), base: JSON.stringify(myCriteria()), draft: S.draft, at: Date.now() } satisfies StoredDraft)
+    ? ({ user: myId(), base: settingsOf(myCriteria()), draft: S.draft, at: Date.now() } satisfies StoredDraft)
     : null);
 }
 
@@ -82,7 +93,11 @@ export function persistDraft() {
 export function restoreDraft(): "restored" | "stale" | null {
   const d = store<StoredDraft | null>("draft", null);
   if (!d || d.user !== myId()) return null;
-  if (d.base !== JSON.stringify(myCriteria())) { save("draft", null); return "stale"; }
+  if (d.base !== settingsOf(myCriteria())) {
+    save("draft", null);
+    // only worth mentioning if the dropped edits actually changed something
+    return settingsOf(d.draft) !== d.base ? "stale" : null;
+  }
   S.draft = clone(d.draft);
   return draftDirty() ? "restored" : null;
 }
