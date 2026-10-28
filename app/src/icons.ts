@@ -94,5 +94,5 @@ export function icon(name: IconName, opts: { fill?: boolean; size?: number; labe
   const raw = (opts.fill && FILL[name]) || REGULAR[name];
   const size = opts.size ?? 18;
   const a11y = opts.label ? `role="img" aria-label="${opts.label.replace(/"/g, "&quot;")}"` : 'aria-hidden="true" focusable="false"';
-  return raw.replace("<svg ", `<svg class="ph${opts.cls ? " " + opts.cls : ""}" width="${size}" height="${size}" ${a11y} `);
+  return raw.replace("<svg ", `<svg class="ic${opts.cls ? " " + opts.cls : ""}" width="${size}" height="${size}" ${a11y} `);
 }

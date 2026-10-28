@@ -32,7 +32,7 @@ export function enterView(main: Element | null) {
 /** The tab you just picked: its icon gives a little bounce. */
 export function popTab(nav: Element | null) {
   if (!nav || reduced()) return;
-  const ic = nav.querySelector('[aria-selected="true"] .ph');
+  const ic = nav.querySelector('[aria-selected="true"] .ic');
   if (ic) animate(ic, { scale: [0.7, 1] }, { type: "spring", stiffness: 600, damping: 14 });
 }
 
@@ -83,7 +83,7 @@ export function unfold(el: Element | null) {
 export function pop(els: Element[]) {
   if (!els.length || reduced()) return;
   for (const el of els) {
-    const ic = el.querySelector(".ph") ?? el;
+    const ic = el.querySelector(".ic") ?? el;
     animate(ic, { scale: [1, 1.35, 1], rotate: [0, -8, 0] }, { duration: 0.32, ease: "easeOut" });
   }
 }
