@@ -36,7 +36,8 @@ function hoodChips(c: Criterion) {
     `<button class="hchip" data-action="hood" data-id="${c.id}" data-v="${esc(n)}" aria-pressed="${chosen.has(n)}">${esc(n)} <span class="n">${counts.get(n) ?? 0}</span></button>`;
   return `<div class="hgroups">${ordered.map(([parent, ns]) => {
     ns.sort((a, b) => (a === parent ? -1 : b === parent ? 1 : (counts.get(b) ?? 0) - (counts.get(a) ?? 0)));
-    return `<div class="hgroup">${ns.map(chip).join("")}</div>`;
+    // a neighborhood with StreetEasy sub-areas stays together in one light pill
+    return `<div class="hgroup${ns.length > 1 ? " multi" : ""}">${ns.map(chip).join("")}</div>`;
   }).join("")}</div>
   <p class="small">Numbers are current listings. StreetEasy splits some areas: Stuyvesant Heights and Ocean Hill are part of Bed-Stuy, Weeksville is part of Crown Heights.</p>`;
 }

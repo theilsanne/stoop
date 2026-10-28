@@ -231,8 +231,10 @@ nav.tabs .dot{display:inline-block;width:7px;height:7px;border-radius:50%;backgr
 .pill{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
 .btn.ext{align-self:flex-start;text-decoration:none}
 .mark.unk{color:var(--ink-2)}
-.hgroups{display:flex;flex-direction:column;gap:6px;width:100%}
-.hgroup{display:flex;flex-wrap:wrap;gap:6px}
+.hgroups{display:flex;flex-wrap:wrap;gap:8px;width:100%;align-items:center}
+.hgroup{display:inline-flex;flex-wrap:wrap;gap:6px;max-width:100%}
+.hgroup.multi{background:var(--surface-2);border-radius:999px;padding:4px}
+@media (max-width:520px){.hgroup.multi{border-radius:18px}}
 .hchip .n{font-family:var(--mono);font-size:11px;opacity:.7}
 .acts{display:flex;gap:8px}
 input.text{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;width:min(320px,100%)}
