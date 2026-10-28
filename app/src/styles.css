@@ -608,5 +608,6 @@ body.sorting{user-select:none;-webkit-user-select:none}
   .sheet-head{border-radius:18px 18px 0 0;padding-top:16px}
 }
 
-/* while a sheet is open, the feed behind it doesn't scroll */
+/* while a sheet is open, the feed behind it doesn't scroll, and a pull down doesn't reload the app */
 body:has(.overlay){overflow:hidden}
+html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
