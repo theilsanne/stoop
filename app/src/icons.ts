@@ -2,7 +2,7 @@
 // used are bundled and they take the surrounding text color (currentColor).
 // Kept to a few on purpose: the logomark, verdict and settings buttons, and photo arrows.
 
-import stairs from "@phosphor-icons/core/assets/bold/stairs-bold.svg?raw";
+import stairs from "@phosphor-icons/core/assets/light/stairs-light.svg?raw";
 import caretLeft from "@phosphor-icons/core/assets/bold/caret-left-bold.svg?raw";
 import caretRight from "@phosphor-icons/core/assets/bold/caret-right-bold.svg?raw";
 import x from "@phosphor-icons/core/assets/bold/x-bold.svg?raw";
