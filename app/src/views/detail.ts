@@ -1,7 +1,7 @@
 import { mentions } from "../../../supabase/functions/_shared/scoring.ts";
 import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf, myCriteria } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
-import { ago, beds, esc, fmtDate, money, routeHTML } from "../util.ts";
+import { ago, beds, esc, fmtDate, money, routeHTML, googleMapsUrl } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
 import { sheetStamp } from "./stamps.ts";
@@ -97,7 +97,8 @@ export function renderSheet() {
       <div><span>Listed</span><b>${ago(row.listed_at ?? row.first_seen_at)}</b></div>
     </div>
     ${amen.length ? `<div class="amen">${amen.map((a) => `<span class="pill">${esc(a)}</span>`).join("")}</div>` : ""}
-    ${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ↗</a>` : ""}</div>
+    <div class="ext-row">${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ↗</a>` : ""}${
+      googleMapsUrl(row) ? `<a class="btn ext" href="${googleMapsUrl(row)}" target="_blank" rel="noopener">Google Maps ↗</a>` : ""}</div></div>
 
     <div class="box"><h3>Why it scores ${v.scored ? v.score : "–"} for both of you</h3>
       <div class="seg" role="group" aria-label="Whose breakdown">${(["me", "partner"] as const).map((w) => {

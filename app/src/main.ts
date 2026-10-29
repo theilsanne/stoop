@@ -10,7 +10,7 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
-  type Filter, type Lens, type Tab, draftChanges, setLevel,
+  type Filter, type Lens, type Liked, type Tab, draftChanges, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
 import type { Stage, Verdict } from "./types.ts";
@@ -22,7 +22,7 @@ import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
 import { inkDefs, inkOf, myFace, seal, waitingDot } from "./views/stamps.ts";
 import { mountStamp } from "./stamp3d.ts";
-import { mountMap, showSubway } from "./views/map.ts";
+import { focusOnMap, mountMap, showList, showSubway } from "./views/map.ts";
 import { renderSettings, renderSignIn } from "./views/other.ts";
 import { renderPipeline } from "./views/pipeline.ts";
 import { shouldShortlist } from "./stages.ts";
@@ -660,6 +660,9 @@ document.addEventListener("click", (e) => {
       case "filter": S.filter = v as Filter; S.shown = 40; break;
       case "more": S.shown += 40; break;
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
+      case "mapliked": S.mapLiked = v as Liked; save("mapLiked", v); break;
+      case "maplist": showList.on = !showList.on; save("mapList", showList.on); break;
+      case "mapfocus": focusOnMap(id); return;
       case "rate": rate(id, v as Verdict); return;
       case "stamphint": toast("Drag it onto a listing to stamp it"); return;
       case "jump": scrollBoard({ col: v }); return;
