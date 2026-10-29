@@ -46,7 +46,7 @@ export function renderSettings() {
       ${S.places.length ? (() => {
         const missing = S.feed.filter((r) => S.places.some((p) => r.commutes?.[p.id] == null)).length;
         const busy = S.busy.has("commute");
-        return `<div class="panel-foot"><button class="btn sm-btn" data-action="recommute" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update commute times"}</button>${
+        return `<div class="panel-foot"><button class="btn" data-action="recommute" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update commute times"}</button>${
           missing ? `<span class="small">${missing} listing${missing === 1 ? "" : "s"} still need${missing === 1 ? "s" : ""} times</span>` : ""}</div>`;
       })() : ""}
     </section>
@@ -80,8 +80,8 @@ function alertsPanel(threshold: number) {
         `<option value="${n}" ${n === threshold ? "selected" : ""}>${n}</option>`).join("")}</select>
       or more for you, plus price drops on ones you said Yes or Maybe to.</p>
     ${S.alerts === "off" || S.alerts === "on" ? `<div class="panel-foot">${
-      S.alerts === "off" ? `<button class="btn sm-btn primary" data-action="alerts-on" ${busy}>Turn on for this phone</button>`
-      : `<button class="btn sm-btn" data-action="alerts-test" ${busy}>Send a test</button><button class="btn sm-btn" data-action="alerts-off" ${busy}>Turn off</button>`}${
+      S.alerts === "off" ? `<button class="btn primary" data-action="alerts-on" ${busy}>Turn on for this phone</button>`
+      : `<button class="btn" data-action="alerts-test" ${busy}>Send a test</button><button class="btn" data-action="alerts-off" ${busy}>Turn off</button>`}${
       status ? `<span class="small">${status}</span>` : ""}</div>` : status ? `<p class="small">${status}</p>` : ""}
   </section>`;
 }
