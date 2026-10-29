@@ -6,7 +6,7 @@ import { groupByOwner, scoreListing } from "../../supabase/functions/_shared/sco
 import type { Api } from "./api.ts";
 import { isNewId } from "./api.ts";
 import type {
-  CriteriaChange, Criterion, FeedRow, Listing, Me, Place, PricePoint, Profile, Rating, Stage, Verdict,
+  CriteriaChange, Criterion, FeedRow, Listing, Me, Place, PricePoint, Profile, Rating, Stage, Stamp, Verdict,
 } from "./types.ts";
 
 const YOU = "demo-you", PARTNER = "demo-partner";
@@ -46,6 +46,13 @@ function demoPhotos(id: string): string[] {
       + `<text x="40" y="490" font-family="sans-serif" font-size="34" font-weight="600" fill="#fff">${room}</text></svg>`;
     return "data:image/svg+xml," + encodeURIComponent(svg);
   });
+}
+
+// A sample profile photo: a head and shoulders on a colored ground, drawn in place.
+function samplePortrait(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#e9b872"/>`
+    + `<circle cx="60" cy="50" r="22" fill="#7a4a2b"/><path d="M14 120c4-26 22-40 46-40s42 14 46 40z" fill="#2f5d7c"/></svg>`;
+  return "data:image/svg+xml," + encodeURIComponent(svg);
 }
 
 // Sample listing descriptions, for write-in criteria to look in.
@@ -123,11 +130,20 @@ export class DemoApi implements Api {
     { listing_id: "d8", user_id: PARTNER, verdict: "maybe", note: null },
     { listing_id: "d2", user_id: PARTNER, verdict: "yes", note: null },
   ];
-  private stages = new Map<string, Stage>([["d4", "shortlisted"], ["d2", "shortlisted"], ["d3", "tour_requested"], ["d8", "toured"]]);
+  private stages = new Map<string, Stage>([["d2", "shortlisted"], ["d3", "tour_requested"], ["d8", "toured"]]);
   private log: CriteriaChange[] = [];
   private names: Record<string, string> = { [YOU]: "You", [PARTNER]: "Partner" };
   private signedIn = true;
   private thresholds: Record<string, number> = {};
+  // profile photos: your own is whatever you pick here; the partner's is a sample drawing
+  private photos: Record<string, string> = { [PARTNER]: samplePortrait() };
+  private stampRows: Stamp[] = [
+    { listing_id: "d8", user_id: YOU, stamped_at: new Date(Date.now() - 2 * 864e5).toISOString() },
+    { listing_id: "d4", user_id: PARTNER, stamped_at: new Date(Date.now() - 5 * 864e5).toISOString() },
+    { listing_id: "d2", user_id: PARTNER, stamped_at: new Date(Date.now() - 864e5).toISOString() },
+    { listing_id: "d2", user_id: YOU, stamped_at: new Date(Date.now() - 6 * 36e5).toISOString() },  // both stamped: shortlisted
+    { listing_id: "d1", user_id: YOU, stamped_at: new Date(Date.now() - 3 * 36e5).toISOString() },  // waiting for the partner
+  ];
 
   async me(): Promise<Me | null> { return this.signedIn ? { id: YOU, email: "you@example.com" } : null; }
   onAuthChange() {}
@@ -135,9 +151,13 @@ export class DemoApi implements Api {
   async signOut() { this.signedIn = false; }
 
   async profiles(): Promise<Profile[]> {
-    return [YOU, PARTNER].map((id) => ({ id, display_name: this.names[id], notify_threshold: this.thresholds[id] ?? 70 }));
+    return [YOU, PARTNER].map((id) => ({
+      id, display_name: this.names[id], notify_threshold: this.thresholds[id] ?? 70, avatar_url: this.photos[id] ?? null,
+    }));
   }
   async updateMyName(name: string) { this.names[YOU] = name; }
+  async setAvatar(image: Blob) { this.photos[YOU] = URL.createObjectURL(image); }
+  async removeAvatar() { delete this.photos[YOU]; }
 
   async feed(): Promise<FeedRow[]> {
     const byOwner = groupByOwner(this.criteriaRows.filter((c) => c.active));
@@ -166,6 +186,11 @@ export class DemoApi implements Api {
     const r = this.ratingRows.find((r) => r.listing_id === listingId && r.user_id === YOU);
     if (r) { r.verdict = verdict; r.note = note; }
     else this.ratingRows.push({ listing_id: listingId, user_id: YOU, verdict, note });
+  }
+  async stamps() { return this.stampRows.map((s) => ({ ...s })); }
+  async setStamp(listingId: string, stamped: boolean) {
+    this.stampRows = this.stampRows.filter((s) => !(s.listing_id === listingId && s.user_id === YOU));
+    if (stamped) this.stampRows.push({ listing_id: listingId, user_id: YOU, stamped_at: new Date().toISOString() });
   }
   async setStage(listingId: string, stage: Stage) { this.stages.set(listingId, stage); }
   async priceHistory(listingId: string): Promise<PricePoint[]> {

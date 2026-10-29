@@ -11,7 +11,10 @@ const SOFT = { type: "spring", stiffness: 260, damping: 30 } as const;
 
 /** Clear the inline styles an animation leaves behind, so CSS (hover lifts etc.) works again. */
 const tidy = (els: Element[], props: string[]) => () => {
-  for (const el of els) for (const p of props) (el as HTMLElement).style.removeProperty(p);
+  const clear = () => { for (const el of els) for (const p of props) (el as HTMLElement).style.removeProperty(p); };
+  clear();
+  // the last element of a staggered group gets its final frame written just after the animation reports done
+  requestAnimationFrame(clear);
 };
 
 /**
@@ -21,6 +24,8 @@ const tidy = (els: Element[], props: string[]) => () => {
  */
 export function enterView(main: Element | null, newSection = true) {
   if (!main || reduced()) return;
+  // the pipeline has its own entrance: the columns slide in along the board
+  if (main.querySelector(".board")) { if (newSection) boardIn(main); return; }
   const items = [...main.querySelectorAll(".card, .mini, .panel, .pick")].slice(0, 14);
   if (!newSection) {
     if (items.length) {
@@ -38,6 +43,29 @@ export function enterView(main: Element | null, newSection = true) {
   if (items.length) {
     animate(items, { opacity: [0, 1], y: [14, 0] }, { ...SOFT, delay: stagger(0.035, { startDelay: 0.04 }) })
       .finished.then(tidy(items, ["opacity", "transform"]));
+  }
+}
+
+/**
+ * The pipeline arrives: its heading and strip settle, the columns slide in from the right one after
+ * another, and the first cards in each follow. A column that starts off-screen just arrives with the rest.
+ */
+export function boardIn(main: Element) {
+  if (reduced()) return;
+  const head = [...main.querySelectorAll(".pipe-head, .pipe-nav")];
+  const cols = [...main.querySelectorAll(".col")];
+  const cards = [...main.querySelectorAll(".col .mini, .col-empty")].slice(0, 18);
+  if (head.length) {
+    animate(head, { opacity: [0, 1], y: [6, 0] }, { duration: 0.22, ease: "easeOut", delay: stagger(0.05) })
+      .finished.then(tidy(head, ["opacity", "transform"]));
+  }
+  if (cols.length) {
+    animate(cols, { opacity: [0, 1], x: [44, 0] }, { ...SOFT, delay: stagger(0.06, { startDelay: 0.08 }) })
+      .finished.then(tidy(cols, ["opacity", "transform"]));
+  }
+  if (cards.length) {
+    animate(cards, { opacity: [0, 1], y: [10, 0] }, { duration: 0.28, ease: "easeOut", delay: stagger(0.035, { startDelay: 0.3 }) })
+      .finished.then(tidy(cards, ["opacity", "transform"]));
   }
 }
 
@@ -103,6 +131,46 @@ export function pop(els: Element[]) {
   for (const el of els) {
     const ic = el.querySelector(".ic") ?? el;
     animate(ic, { scale: [1, 1.35, 1], rotate: [0, -8, 0] }, { duration: 0.32, ease: "easeOut" });
+  }
+}
+
+/** A seal just printed on a listing: the ink comes up out of the paper, a touch soft at first. */
+export function inkSettle(seal: Element | null) {
+  if (!seal || reduced()) return;
+  animate(seal, { opacity: [0, 1], scale: [1.04, 1] }, { duration: 0.34, ease: "easeOut" })
+    .finished.then(tidy([seal], ["opacity", "transform"]));
+}
+
+/** The listing a stamp came down on gives a little under the press. */
+export function thunk(card: Element | null) {
+  if (!card || reduced()) return;
+  animate(card, { scale: [1, 0.985, 1] }, { duration: 0.3, ease: "easeOut" }).finished.then(tidy([card], ["transform"]));
+}
+
+/**
+ * Ink thrown off where a stamp lands: a ring of ink spreads and fades, and a few drops fly off
+ * and fall. Decorative: skipped with reduced motion. The seal is what stays.
+ */
+export function inkBurst(x: number, y: number, ink: string) {
+  if (reduced()) return;
+  const add = (cls: string) => {
+    const el = document.createElement("span");
+    el.className = `ink-fx ${cls}`;
+    el.style.cssText = `left:${x}px;top:${y}px;color:${ink}`;
+    document.body.append(el);
+    return el;
+  };
+  const ring = add("ink-ring");
+  animate(ring, { scale: [0.75, 2.2], opacity: [0.55, 0] }, { duration: 0.65, ease: "easeOut" }).finished.then(() => ring.remove());
+  const DROPS = 14;
+  for (let i = 0; i < DROPS; i++) {
+    const drop = add("ink-drop");
+    drop.style.setProperty("--d", `${3 + Math.random() * 6}px`);
+    const a = (i / DROPS) * Math.PI * 2 + Math.random() * 0.4, d = 52 + Math.random() * 64;
+    const dx = Math.cos(a) * d, dy = Math.sin(a) * d;
+    // out, then down a little as it falls
+    animate(drop, { x: [0, dx * 0.7, dx], y: [0, dy * 0.7 - 8, dy + 16], opacity: [0.95, 0.9, 0], scale: [1, 0.9, 0.5] },
+      { duration: 0.55 + Math.random() * 0.25, ease: "easeOut" }).finished.then(() => drop.remove());
   }
 }
 

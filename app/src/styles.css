@@ -1,7 +1,7 @@
 /* Layout: app shell — header + tab bar, then one working view at a time (feed grid, pipeline columns, criteria rows, alerts). Subway-bullet commute lines as the subject detail. */
 :root{
   --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7ece9; --ink:#15201a; --ink-2:#56645c; --line:#d3dcd6;
-  --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2;
+  --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2; --seal-0:#c23a2b; --seal-1:#24479a;
   --good:#1b7a44; --good-soft:#dcf0e3; --warn:#9a5c00; --warn-soft:#fbecd2; --bad:#bb3227; --bad-soft:#f9dfdc;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06); --lift:0 2px 4px rgba(20,32,26,.08),0 10px 26px rgba(20,32,26,.16); --lift-bg:var(--surface);
   --display:'Archivo','Arial Narrow',system-ui,sans-serif;
@@ -10,17 +10,17 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
-  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
+  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.5),0 14px 32px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07); --lift-bg:color-mix(in srgb,var(--surface) 93%,#fff); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
-  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525;
+  --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.5),0 14px 32px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07); --lift-bg:color-mix(in srgb,var(--surface) 93%,#fff); color-scheme:dark }
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body{overflow-x:clip;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -95,13 +95,96 @@ select.sm:hover{border-color:var(--ink-2)}
 .empty{padding:40px 16px;text-align:center;color:var(--ink-2);border:1px dashed var(--line);border-radius:12px}
 
 /* pipeline */
-.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
-.col{background:var(--surface-2);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:160px}
-.col h3{margin:2px 4px 4px;font-family:var(--display);font-stretch:80%;font-size:15px;text-transform:uppercase;letter-spacing:.03em;display:flex;justify-content:space-between}
-.col h3 span{font-family:var(--mono);color:var(--ink-2);font-size:12px}
-.mini{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;font-size:13px}
-.mini .t{font-weight:600;cursor:pointer}
-.mini .row{display:flex;justify-content:space-between;align-items:center;gap:6px;color:var(--ink-2)}
+.pipe-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px 24px;flex-wrap:wrap;margin:0 0 14px}
+.pipe-head h2{margin:0 0 9px;font-family:var(--display);font-stretch:80%;font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.pipe-stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);color:var(--ink-2);font-size:13px}
+.stat b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.stat.ask{border-color:color-mix(in srgb,var(--seal-0) 45%,var(--line));color:var(--ink)}
+.stat .dot.notify{margin:0;box-shadow:none}
+/* the strip: every step at a glance, with its count. Tap one and the board scrolls to it; the highlight follows the board as it scrolls */
+.pipe-nav{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.stage-strip{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
+.stage-strip::-webkit-scrollbar{display:none}
+.stage-strip > button{display:inline-flex;align-items:center;gap:6px;flex:none;white-space:nowrap}
+.stage-strip .n{margin-left:1px}
+.stage-strip .dot.notify{margin:0 0 0 1px;box-shadow:none}
+.pipe-arrows{display:flex;flex:none;gap:6px}
+.arrow{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--ink-2);cursor:pointer;
+  transition:color .15s,border-color .15s,opacity .15s,transform .12s var(--ease)}
+.arrow:hover:not(:disabled){border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2));color:var(--ink)}
+.arrow:active:not(:disabled){transform:scale(.94)}
+.arrow:disabled{opacity:.35;cursor:default}
+.arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:700px){.pipe-arrows{display:none}}
+/* the board scrolls sideways, and runs off the edge of the screen: it's as wide as the window, and its first column lines up with the page
+   (--gutter is the page's side margin: #app is 1080px wide and centred, with 16px of padding inside the body's 8px margin) */
+.board-wrap{position:relative;flex:1 1 auto;min-height:260px}
+/* the Pipeline tab is exactly as tall as the window: the header, tabs and step strip stay put, the board takes the rest, and each column scrolls inside it
+   (8px is the body's margin) */
+#app.fit{display:flex;flex-direction:column;align-items:stretch;height:calc(100dvh - 16px);padding-block:0 12px}
+#app.fit > #panel{display:flex;min-width:0;flex:1 1 auto;flex-direction:column;min-height:0}
+#app.fit .board{height:100%}
+/* the title and its pills share a line, so the board gets the room */
+#app.fit .pipe-head{margin-bottom:10px}
+#app.fit .pipe-head > div{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+#app.fit .pipe-head h2{margin:0}
+.board{--gutter:calc(max(0px,50vw - 548px) + 24px);position:relative;display:flex;gap:12px;margin-inline:calc(-1 * var(--gutter));padding:2px var(--gutter) 14px;overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;scroll-padding-inline:var(--gutter);scrollbar-width:thin}
+.board:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-card)}
+/* snapping fights the board's own scrolling while a card is held near an edge */
+body.is-dragging .board{scroll-snap-type:none}
+/* each column has a colour that deepens toward the end of the pipeline: Stamped in the stamp's ink, Won in the accent, Passed quiet */
+.col{--tone:color-mix(in srgb,var(--accent) calc(var(--step) * 16%),var(--line));--col-w:288px;position:relative;display:flex;flex:0 0 var(--col-w);flex-direction:column;gap:6px;
+  min-height:0;padding:14px 12px 12px;background:var(--surface-2);scroll-snap-align:start}
+@media (max-width:700px){.col{--col-w:min(82vw,320px)}}
+.col::before{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--tone)}
+.col[data-col="stamped"]{--tone:var(--seal-0)}
+.col[data-col="won"]{--tone:var(--accent);background:color-mix(in srgb,var(--accent-soft) 60%,var(--surface-2))}
+.col[data-col="passed"]{--tone:var(--line);opacity:.85}
+.col h3{display:flex;align-items:center;gap:8px;margin:2px 2px 0;font-family:var(--display);font-stretch:80%;font-size:15px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.col-ic{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--surface);color:var(--tone);box-shadow:0 0 0 1px var(--line)}
+.col[data-col="passed"] .col-ic{color:var(--ink-2)}
+.col-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.col-n{padding:1px 8px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);color:var(--ink-2);font-family:var(--mono);font-size:12px;font-weight:600}
+.col-blurb{margin:0 2px 8px;color:var(--ink-2);font-size:12.5px}
+.col-body{display:flex;flex-direction:column;flex:1 1 0;gap:10px;min-height:0;margin:-3px -6px 0;padding:3px 6px 6px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin}
+.col-body > *{flex:none}
+.col-body > .col-empty{flex:1 0 auto}
+.col-empty{display:grid;flex:1;place-content:center;justify-items:center;gap:8px;min-height:140px;padding:18px 16px;border:1.5px dashed var(--line);border-radius:12px;color:var(--ink-2);font-size:13px;text-align:center}
+.col-empty p{max-width:24ch;margin:0}
+.col-empty .ic{opacity:.55}
+/* a card: the photo with its score and who has stamped it, then the rent, the place, and where each of you stands */
+.mini{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);border:1px solid var(--line);font-size:13px;
+  transition:border-color .15s var(--ease),box-shadow .15s var(--ease),transform .15s var(--ease)}
+.mini:hover{border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2));box-shadow:var(--shadow);transform:translateY(-1px)}
+.mini.waiting{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent)}
+.mini-ph{position:relative;flex:none;width:100%;height:104px;overflow:hidden;background:linear-gradient(135deg,var(--ph-a),var(--ph-b))}
+.mini-ph img{display:block;width:100%;height:100%;object-fit:cover}
+.mini-ph::after{content:"";position:absolute;inset:auto 0 0;height:46px;background:linear-gradient(to top,rgba(0,0,0,.34),transparent);pointer-events:none}
+.mini-ph .score{z-index:1;top:8px;right:8px;width:36px;height:36px;border-width:2px;font-size:13px}
+.pslots{position:absolute;left:8px;bottom:8px;z-index:1;display:inline-flex}
+.pslot{display:inline-grid;place-items:center;width:26px;height:26px;border:1.5px dashed rgba(255,255,255,.75);border-radius:50%;background:rgba(0,0,0,.28)}
+.pslot + .pslot{margin-left:-7px}
+.pslot.on{border:0;background:none;box-shadow:0 0 0 2px var(--ink)}
+.pslot .av{box-shadow:none}
+.mini-body{display:flex;flex-direction:column;flex:1;gap:3px;min-width:0;padding:10px 12px 12px}
+.mini-rent{display:flex;align-items:baseline;gap:8px}
+.mini-rent b{font-family:var(--mono);font-size:16px;font-weight:600}
+.mini-rent span{color:var(--ink-2);font-size:12.5px}
+.mini .t{overflow:hidden;font-size:14px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mini-meta{overflow:hidden;color:var(--ink-2);font-size:12.5px;white-space:nowrap;text-overflow:ellipsis}
+.wait{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--ink-2);font-size:12px;font-weight:600}
+.wait.me{color:var(--accent)}
+.mini-foot{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:6px}
+.vd{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--ink-2);font-size:11.5px;white-space:nowrap}
+.vd[data-v="yes"]{background:var(--accent-soft);color:var(--accent)}
+.vd[data-v="no"]{color:var(--bad)}
+/* the little dot for what's waiting on your stamp, in the stamp's ink */
+.dot.notify{display:inline-block;flex:none;width:8px;height:8px;margin:0 0 0 5px;border-radius:50%;background:var(--seal-0);box-shadow:0 0 0 2px var(--bg)}
+nav.tabs .dot.notify{background:var(--seal-0);vertical-align:5px}
+.seg .dot.notify{margin-left:6px;vertical-align:1px}
+.col h3 .dot.notify,.wait .dot.notify{margin:0;box-shadow:none}
 .mv{display:flex;gap:4px}
 .mv button{border:1px solid var(--line);background:var(--surface);border-radius:6px;width:30px;height:26px;color:var(--ink-2)}
 .mv button:disabled{opacity:.35;cursor:default}
@@ -231,7 +314,6 @@ input.text{background:var(--bg);border:1px solid var(--line);border-radius:8px;p
 .signin input.text{width:100%}
 .err{color:var(--bad)}
 .linkish{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--accent);text-align:left;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.mini .t{display:block}
 button.who{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--ink-2)}
 .narrow{display:none;margin-top:4px}
 .toolbar-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -370,7 +452,6 @@ button.who:active{transform:scale(.94)}
   text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;transition:color .15s,text-decoration-color .15s}
 .linkish{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .x,.whybtn{color:var(--ink-2);text-decoration-style:solid;text-decoration-color:color-mix(in srgb,var(--ink-2) 45%,transparent)}
-.mini .t.linkish{font-size:14px}
 .linkish:hover{text-decoration-color:currentColor}
 .x:hover,.whybtn:hover{color:var(--ink);text-decoration-color:currentColor}
 
@@ -408,8 +489,6 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .card,.mini,.panel,.box,.picks,.critbar,.lens,.empty,.col{border-radius:var(--r-card)}
 .card{transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .15s}
 .card:active{transform:scale(.995)}
-.mini{padding:12px;transition:border-color .15s,box-shadow .15s}
-.mini:hover{border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
 .panel{padding:18px}
 .box{padding:16px}
 .places li{border-radius:var(--r-input)}
@@ -418,6 +497,60 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
   .btn,.close,.vbtn,button.who,.mv button,.seg>button,.hchip,.card{transition:none}
   .btn:active,.close:active,.vbtn:active,button.who:active,.mv button:active,.seg>button:active,.hchip:active,.card:active{transform:none}
 }
+
+/* ---- profile photos: a picture, or initials on a color of their own ---- */
+.av{display:inline-grid;place-items:center;flex:none;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;
+  background:hsl(var(--hue) 46% 40%);color:#fff;font-family:var(--display);font-weight:800;font-size:calc(var(--s) * .4);line-height:1;user-select:none}
+img.av{object-fit:cover;background:var(--surface-2)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0;margin:-1px}
+.avatar-edit{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.avatar-edit p{margin:0}
+.avatar-acts{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* ---- stamps: seals printed in ink on a listing. They stay. ---- */
+/* on a card's photo, bottom left. The ink multiplies into the photo like a real print.
+   stamp3d.ts aims for the first seal's spot, so keep its SEAL_* numbers in step with these. */
+.impressions{position:absolute;left:6px;bottom:4px;z-index:2;display:flex;align-items:flex-end;pointer-events:none}
+.impressions .seal + .seal{margin:0 0 10px -30px}
+/* each seal sits on a disc of the theme's surface, so the lettering reads over any photo */
+.impressions .seal{background:var(--surface);border-radius:50%;box-shadow:0 0 0 1px var(--line),0 2px 8px rgba(0,0,0,.28)}
+.seal{display:block;flex:none;rotate:var(--tilt,0deg);overflow:visible}
+.seal-ring{font-family:Archivo,"Arial Narrow",sans-serif;font-weight:800;font-stretch:75%;font-size:7.4px;letter-spacing:.15px}
+.seal-initials{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:33px}
+.ink-defs{position:absolute;width:0;height:0;overflow:hidden}
+
+/* on the listing sheet: the seals on a slip of paper, then who stamped it when */
+.stamp-band{flex-direction:row;align-items:center;flex-wrap:wrap;gap:16px}
+/* two slots, the partner's then yours: a seal once stamped, a dashed ring until then */
+.stamp-band .slots{display:flex;align-items:center;gap:14px;flex:none}
+.slot-wrap{display:inline-grid;border-radius:50%}
+.stamp-band .slot{display:inline-grid;place-items:center;width:80px;height:80px;border-radius:50%;
+  border:1.5px dashed var(--line);color:var(--ink-2);font-size:22px;font-weight:600;letter-spacing:.02em}
+.stamp-band .slot-wrap .seal{display:block}
+.stamp-lines{flex:1 1 220px;display:grid;gap:4px;min-width:0;font-size:14px;color:var(--ink-2)}
+.stamp-lines b{color:var(--ink)}
+
+/* your stamp on its ink pad, bottom right in the list view. It's drawn in WebGL over this button
+   (stamp3d.ts), which is the hit area; the button's width sets how big they're drawn. */
+.drag-stamp{position:fixed;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25;
+  display:grid;place-items:center;width:136px;height:136px;padding:0;border:0;border-radius:18px;background:none;color:inherit;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+@media (max-width:600px){.drag-stamp{width:108px;height:108px}}
+.drag-stamp:active{cursor:grabbing}
+.drag-stamp:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* with WebGL the flat seal is hidden: the stamp on its pad is what you see */
+.drag-stamp.gl > *{opacity:0}
+.drag-stamp[hidden]{display:none}
+/* the WebGL canvas over the page. It takes no clicks: the button under it does */
+.stamp-gl{position:fixed;inset:0;width:100%;height:100%;z-index:26;pointer-events:none}
+/* the listing your stamp is over while you carry it */
+[data-stamp-id].drop-target{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.card.drop-target{transform:translateY(-2px)}
+
+/* ink thrown off where a stamp lands (inkBurst() in motion.ts) */
+.ink-fx{position:fixed;z-index:27;pointer-events:none;border-radius:50%}
+.ink-ring{width:84px;height:84px;margin:-42px 0 0 -42px;border:3px solid currentColor}
+.ink-drop{width:var(--d);height:var(--d);margin:calc(var(--d) / -2) 0 0 calc(var(--d) / -2);background:currentColor}
 
 /* ---- on/off switch (a checkbox underneath, so it works with keyboards and screen readers) ---- */
 .switch{cursor:pointer;user-select:none}

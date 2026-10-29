@@ -4,6 +4,7 @@ import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money, routeHTML, googleMapsUrl } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
+import { sheetStamp } from "./stamps.ts";
 
 export const history = new Map<string, PricePoint[]>(); // filled lazily when a sheet opens
 export const routes = new Map<string, Record<string, string>>(); // commute routes, same
@@ -72,7 +73,7 @@ export function renderSheet() {
   const theirNote = ratingOf(row.id, partnerId())?.note;
   const pts = history.get(row.id);
 
-  return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}">
+  return `<div class="overlay" data-action="closesheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(row.address)}" data-stamp-id="${row.id}">
     <div class="sheet-head">
       <div class="grabber" aria-hidden="true"><span></span></div>
       <div class="sheet-top"><div><h2>${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</h2>
@@ -84,6 +85,7 @@ export function renderSheet() {
       </div>
     </div>
     ${sheetPhotos(row.id, row.photos)}
+    ${sheetStamp(row.id)}
     <div class="box"><div class="kv">
       <div><span>Net effective</span><b>${money(row.net_effective_rent ?? row.price)}</b></div>
       <div><span>Asking</span><b>${money(row.price)}</b></div>

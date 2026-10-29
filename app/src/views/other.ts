@@ -1,30 +1,26 @@
-import { S, myId, partner, partnerId, partnerName, placeName, verdictOf, viewOf } from "../state.ts";
+import { S, myId, partner, partnerName, placeName } from "../state.ts";
 import { icon } from "../icons.ts";
-import { STAGES } from "../types.ts";
-import { esc, money } from "../util.ts";
-import { verdictText } from "./feed.ts";
-
-export function renderPipeline() {
-  return `<p class="hint">Drag a card to another column as you tour and apply (on a phone, press and hold first). To add one, or move one without dragging, open it and set its stage.</p>
-  <div class="board">${STAGES.slice(1).map(([k, t]) => {
-    const items = S.feed.filter((r) => r.stage === k);
-    return `<section class="col" data-stage="${k}" aria-label="${t}"><h3>${t}<span>${items.length}</span></h3>
-      ${items.map((r) => {
-        const v = viewOf(r);
-        return `<div class="mini" data-drag-id="${r.id}"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
-          <div class="row"><span>${money(r.net_effective_rent ?? r.price)} · ${esc(r.neighborhood)}</span><span class="val">${v.scored ? v.score : "–"}</span></div>
-          <div class="row"><span>You ${verdictText(verdictOf(r.id, myId()))} · ${esc(partnerName())} ${verdictText(verdictOf(r.id, partnerId()))}</span></div></div>`;
-      }).join("") || '<div class="small" style="padding:4px">Empty</div>'}
-    </section>`;
-  }).join("")}</div>`;
-}
+import { esc } from "../util.ts";
+import { avatar } from "./avatar.ts";
 
 export function renderSettings() {
   const me = S.profiles.find((p) => p.id === myId());
+  const busy = S.busy.has("avatar");
   return `<div class="two">
     <section class="panel people"><div class="people-grid">
       <div class="person">
         <h2>You</h2>
+        <div class="avatar-edit">
+          ${avatar(me ?? { id: myId(), display_name: "", avatar_url: null }, 72)}
+          <div class="avatar-acts">
+            <div class="btnrow">
+              <button class="btn" data-action="pickavatar" ${busy ? "disabled" : ""}>${busy ? "Saving…" : me?.avatar_url ? "Change photo" : "Add a photo"}</button>
+              ${me?.avatar_url ? `<button class="x" data-action="removeavatar" ${busy ? "disabled" : ""}>Remove</button>` : ""}
+            </div>
+            <p class="small">Your picture is what you stamp listings with. It's cropped square.</p>
+          </div>
+          <input type="file" id="avatar-file" accept="image/*" class="visually-hidden" tabindex="-1" aria-hidden="true" data-change="avatar">
+        </div>
         <form id="nameform" class="inline-form">
           <input id="myname" class="text" value="${esc(me?.display_name ?? "")}" maxlength="40" aria-label="Your name" placeholder="Your name">
           <button class="btn" type="submit">Save</button>
@@ -33,8 +29,9 @@ export function renderSettings() {
       </div>
       <div class="person">
         <h2>${partner() ? esc(partnerName()) : "Your partner"}</h2>
-        <p class="small">${partner() ? "Signed up. Their criteria, ratings and notes show throughout the app."
-          : "Not signed up yet. Invite them from Supabase: Authentication → Users → Invite user."}</p>
+        ${partner()
+          ? `<div class="avatar-edit">${avatar(partner()!, 72)}<p class="small">Signed up. Their criteria, ratings and notes show throughout the app.</p></div>`
+          : `<p class="small">Not signed up yet. Invite them from Supabase: Authentication → Users → Invite user.</p>`}
       </div>
     </div></section>
     <section class="panel" id="places"><h2>Places</h2>

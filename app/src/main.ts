@@ -4,14 +4,15 @@ import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
 import { initSheetDrag } from "./sheetdrag.ts";
-import { closeSheetMotion, enterView, growBars, land, liveBar, openSheetMotion, picked, pop, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { closeSheetMotion, enterView, growBars, inkBurst, inkSettle, land, liveBar, openSheetMotion, picked, pop, thunk, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
-  restoreDraft, verdictOf,
+  restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
   type Filter, type Lens, type Liked, type Tab, draftChanges, setLevel,
 } from "./state.ts";
+import { squareAvatar } from "./avatar.ts";
 import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import type { Level } from "./criteria-edit.ts";
@@ -19,8 +20,12 @@ import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/crite
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
+import { inkDefs, inkOf, myFace, seal, waitingDot } from "./views/stamps.ts";
+import { mountStamp } from "./stamp3d.ts";
 import { focusOnMap, mountMap, showList, showSubway } from "./views/map.ts";
-import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
+import { renderSettings, renderSignIn } from "./views/other.ts";
+import { renderPipeline } from "./views/pipeline.ts";
+import { shouldShortlist } from "./stages.ts";
 
 // ---------- backend ----------
 const env = import.meta.env;
@@ -37,7 +42,7 @@ const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["cri
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
-  if (t === "pipeline") return S.feed.filter((r) => r.stage !== "new" && r.stage !== "passed").length;
+  if (t === "pipeline") return S.feed.filter((r) => { const c = columnFor(r); return c !== null && c !== "passed"; }).length;
   if (t === "criteria") return S.draft.filter((c) => c.active).length;
   return "";
 }
@@ -109,21 +114,30 @@ export function render() {
   const focusKey = root.contains(document.activeElement) ? controlKey(document.activeElement) : null;
   const hold = anchor && performance.now() - anchor.at < 1000 ? anchor : null;
   anchor = null;
+  // the pipeline fits the window and its columns scroll inside it; every other tab is a page that scrolls
+  root.classList.toggle("fit", S.tab === "pipeline" && !S.loading);
   const inds = noteIndicators(root);
   // keep each photo strip on the photo you'd swiped to
   const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
+  // and the pipeline board on the column you'd scrolled to
+  const boardLeft = document.querySelector<HTMLElement>(".board")?.scrollLeft ?? 0;
+  const colTops = new Map([...document.querySelectorAll<HTMLElement>(".col")].map((c) => [c.dataset.col, c.querySelector<HTMLElement>(".col-body")?.scrollTop ?? 0]));
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
     </header>
     <nav class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, t]) =>
       `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
-        k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
+        k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}${
+        k === "pipeline" && !S.loading ? waitingDot() : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, settings: renderSettings,
     }[S.tab]()}</main>`;
   placeIndicators(root, inds);
+  // the stamp is at hand on the list, and while a listing's sheet is open, where you can stamp it
+  stamp.setShown((S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0) || !!S.openId);
+  stamp.setFace(myFace(), inkOf(myId()), seal(myFace(), { size: 72, tilt: -8 }));
   syncTabsHeight();
   window.scrollTo(0, y);
   if (hold) {
@@ -138,6 +152,12 @@ export function render() {
   }
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
   if (!S.loading && S.tab === "criteria") liveBar(root);
+  const board = root.querySelector<HTMLElement>(".board");
+  if (board) {
+    board.scrollLeft = boardLeft;
+    for (const c of board.querySelectorAll<HTMLElement>(".col")) c.querySelector<HTMLElement>(".col-body")!.scrollTop = colTops.get(c.dataset.col) ?? 0;
+    syncBoard(board);
+  }
 
   const key = viewKey();
   if (key !== lastView && !S.loading) {
@@ -196,9 +216,64 @@ function closeViewer() {
 }
 
 // photo strips scroll sideways; keep their counters and arrows in step (scroll doesn't bubble, so capture)
+/**
+ * The pipeline board scrolls sideways. Keep what follows it in step: the strip above highlights the
+ * first column in view (sliding the highlight, and scrolling the strip itself on a phone) and the arrows
+ * dim at either end. Plain DOM state, no redraw.
+ */
+function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElement>(".board")) {
+  if (!board) return;
+  const atStart = board.scrollLeft < 4, atEnd = board.scrollLeft + board.clientWidth >= board.scrollWidth - 4;
+  for (const a of document.querySelectorAll<HTMLButtonElement>(".pipe-arrows .arrow")) a.disabled = a.dataset.v === "prev" ? atStart : atEnd;
+  const cols = [...board.querySelectorAll<HTMLElement>(".col")];
+  // the first column that's mostly in view, so a half-hidden one doesn't count. But a column you tapped in the
+  // strip stays the highlighted one while it's on screen, even if the board ran out of room to put it at the left
+  const mostlyIn = (c: HTMLElement) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55
+    && c.offsetLeft - board.scrollLeft <= board.clientWidth - c.offsetWidth * 0.55;
+  const tapped = jump ? cols.find((c) => c.dataset.col === jump!.col) : undefined;
+  if (jump && !(performance.now() < jump.until || (tapped && mostlyIn(tapped)))) jump = null;
+  const lead = (jump && tapped) || cols.find((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55) || cols[0];
+  const nav = document.querySelector<HTMLElement>(".pipe-nav"), strip = nav?.querySelector<HTMLElement>(".stage-strip");
+  if (!nav || !strip || !lead) return;
+  const on = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
+  if (on?.dataset.v === lead.dataset.col) return;
+  const before = noteIndicators(nav);
+  for (const b of strip.querySelectorAll<HTMLElement>("button")) b.setAttribute("aria-pressed", String(b.dataset.v === lead.dataset.col));
+  placeIndicators(nav, before);
+  const now = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
+  if (now) strip.scrollTo({ left: now.offsetLeft - (strip.clientWidth - now.offsetWidth) / 2, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+// the column last tapped in the strip, until you take over by scrolling yourself
+let jump: { col: string; until: number } | null = null;
+for (const ev of ["wheel", "pointerdown", "touchstart"] as const) {
+  document.addEventListener(ev, (e) => { if ((e.target as HTMLElement | null)?.closest?.(".board")) jump = null; }, { passive: true, capture: true });
+}
+
+/** Scroll the board so a column sits at its left edge, or step a column along. */
+function scrollBoard(to: { col: string } | { step: 1 | -1 }) {
+  const board = document.querySelector<HTMLElement>(".board");
+  if (!board) return;
+  const cols = [...board.querySelectorAll<HTMLElement>(".col")];
+  const pad = parseFloat(getComputedStyle(board).paddingLeft) || 0;
+  let target: HTMLElement | undefined;
+  if ("col" in to) { target = cols.find((c) => c.dataset.col === to.col); jump = { col: to.col, until: performance.now() + 1500 }; }
+  else {
+    jump = null;
+    const i = cols.findIndex((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55);
+    target = cols[Math.max(0, Math.min(cols.length - 1, (i < 0 ? 0 : i) + to.step))];
+  }
+  if (target) board.scrollTo({ left: target.offsetLeft - pad, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
 let stripTick = 0;
 document.addEventListener("scroll", (e) => {
   const s = e.target as HTMLElement;
+  if (s instanceof HTMLElement && s.classList.contains("board")) {
+    cancelAnimationFrame(stripTick);
+    stripTick = requestAnimationFrame(() => syncBoard(s));
+    return;
+  }
   if (!(s instanceof HTMLElement) || !s.dataset?.strip) return;
   cancelAnimationFrame(stripTick);
   stripTick = requestAnimationFrame(() => syncStrip(s));
@@ -256,10 +331,10 @@ async function load() {
   S.loading = true;
   render();
   try {
-    const [profiles, feed, ratings, criteria, places] = await Promise.all([
-      api.profiles(), api.feed(), api.ratings(), api.criteria(), api.places().catch(() => []),
+    const [profiles, feed, ratings, stamps, criteria, places] = await Promise.all([
+      api.profiles(), api.feed(), api.ratings(), api.stamps(), api.criteria(), api.places().catch(() => []),
     ]);
-    Object.assign(S, { profiles, feed, ratings, criteria, places });
+    Object.assign(S, { profiles, feed, ratings, stamps, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
     if (restored === "restored") {
@@ -320,6 +395,70 @@ async function rate(id: string, v: Verdict) {
   try { await api.setRating(id, next, note); } catch (e) { showError(e); }
 }
 
+/** Your stamp came down on a listing: ink flies, and your seal is printed where it landed. */
+function dropStamp(id: string, x: number, y: number) {
+  if (stampedBy(id, myId())) return;
+  inkBurst(x, y, inkOf(myId()));
+  void placeStamp(id);
+}
+
+/** Print your seal on a listing. It shows at once, stays, and is undone only if the save fails. */
+async function placeStamp(id: string) {
+  const before = S.stamps;
+  S.stamps = [...S.stamps, { listing_id: id, user_id: myId(), stamped_at: new Date().toISOString() }];
+  render();
+  // the card has been redrawn with the seal on it: the ink settles in, and the card gives under the press
+  const card = document.querySelector(`.card[data-stamp-id="${CSS.escape(id)}"]`);
+  inkSettle(card?.querySelector(".seal.mine") ?? null);
+  thunk(card);
+  try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); return; }
+  // your partner may have stamped it since this phone last loaded: look again before deciding
+  try {
+    const fresh = await api.stamps();
+    const changed = fresh.length !== S.stamps.length;
+    S.stamps = fresh;
+    if (changed) render();
+  } catch { /* keep what we have: the shortlist can still be made by hand */ }
+  await shortlistMutual(true);
+}
+
+/**
+ * Both of you stamped a listing that hasn't moved on: it's a shortlist. Saved as a real stage change,
+ * so your partner sees it too, and the listing's sheet shows it. This runs when a stamp is placed, not
+ * when the app loads, so a listing you drag back into Stamped stays there. `say` announces it.
+ */
+async function shortlistMutual(say = false) {
+  const rows = S.feed.filter((r) => { const s = stampsOf(r.id); return shouldShortlist(r.stage, s.mine, s.theirs); });
+  if (!rows.length) return;
+  for (const r of rows) r.stage = "shortlisted";
+  render();
+  for (const r of rows) land(document.querySelector(`.mini[data-drag-id="${CSS.escape(r.id)}"]`));
+  if (say) toast(rows.length === 1 ? "You both stamped it, so it's shortlisted" : `${rows.length} listings you both stamped are shortlisted`);
+  try { await Promise.all(rows.map((r) => api.setStage(r.id, "shortlisted"))); }
+  catch (e) { for (const r of rows) r.stage = "new"; showError(e); }
+}
+
+/** Take your seal back off a listing. Undo puts it back, and a failed save puts it back too. */
+async function takeBack(id: string) {
+  const before = S.stamps;
+  S.stamps = S.stamps.filter((s) => !(s.listing_id === id && s.user_id === myId()));
+  render();
+  toast("Stamp taken back", { action: { label: "Undo", run: () => void placeStamp(id) } });
+  try { await api.setStamp(id, false); } catch (e) { S.stamps = before; showError(e); }
+}
+
+async function changeAvatar(run: () => Promise<void>, done: string) {
+  S.busy.add("avatar");
+  render();
+  try {
+    await run();
+    S.profiles = await api.profiles();
+    toast(done);
+  } catch (e) { S.error = e instanceof Error ? e.message : String(e); }
+  S.busy.delete("avatar");
+  render();
+}
+
 let noteTimer: number | undefined;
 function noteChanged(id: string, text: string) {
   const r = ratingOf(id, myId());
@@ -332,9 +471,14 @@ function noteChanged(id: string, text: string) {
 
 async function setStage(id: string, stage: Stage) {
   const row = S.feed.find((r) => r.id === id);
+  const before = row?.stage;
   if (row) row.stage = stage;
   render();
   land(document.querySelector(`.mini[data-drag-id="${CSS.escape(id)}"]`));
+  // back into Stamped sets the stage to "new". A listing nobody stamped isn't on the board then, so say so
+  if (row && before && stage === "new" && !columnFor(row)) {
+    toast("Back in the feed. Nobody stamped it, so it isn't on the board.", { action: { label: "Undo", run: () => void setStage(id, before) } });
+  }
   try { await api.setStage(id, stage); } catch (e) { showError(e); }
 }
 
@@ -520,6 +664,12 @@ document.addEventListener("click", (e) => {
       case "maplist": showList.on = !showList.on; save("mapList", showList.on); break;
       case "mapfocus": focusOnMap(id); return;
       case "rate": rate(id, v as Verdict); return;
+      case "stamphint": toast("Drag it onto a listing to stamp it"); return;
+      case "jump": scrollBoard({ col: v }); return;
+      case "boardstep": scrollBoard({ step: v === "next" ? 1 : -1 }); return;
+      case "takeback": void takeBack(id); return;
+      case "pickavatar": $("avatar-file").click(); return;
+      case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
       case "level": {
@@ -586,6 +736,11 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  // a focused listing: S brings your stamp over and presses it
+  if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const card = e.target as HTMLElement;
+    if (card.matches?.(".card[data-stamp-id]")) { e.preventDefault(); stamp.stampCard(card); return; }
+  }
   // the "add your own" box: Enter adds it
   if (e.key === "Enter" && (e.target as HTMLElement).id === "writein") { e.preventDefault(); addWriteIn(); return; }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
@@ -622,6 +777,11 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (t.dataset.change === "stage") setStage(t.dataset.id!, t.value as Stage);
+  if (t.dataset.change === "avatar") {
+    const input = t as unknown as HTMLInputElement, file = input.files?.[0];
+    input.value = ""; // so picking the same photo again still counts as a change
+    if (file) changeAvatar(async () => api.setAvatar(await squareAvatar(file)), "Profile photo saved");
+  }
   if (t.dataset.mark) markWriteIn(t.dataset.mark, (t as unknown as HTMLInputElement).checked);
   if (t.dataset.change === "threshold") {
     const n = Number(t.value);
@@ -708,16 +868,25 @@ document.addEventListener("visibilitychange", () => {
   else if (S.me && hiddenAt && Date.now() - hiddenAt > 5 * 60e3 && !draftDirty()) load();
 });
 
-if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD) {
+// Branch previews (under /previews/) skip the service worker, so they can't be served from the live app's cache.
+if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import.meta.env.BASE_URL.includes("/previews/")) {
   navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js").catch(() => {});
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
 initSheetDrag((dy) => closeSheet(dy));
 
+// the seals' shared lettering ring, crop and ink filters, once for the whole page
+document.body.insertAdjacentHTML("beforeend", inkDefs());
+const stamp = mountStamp({
+  canStamp: (id) => !stampedBy(id, myId()),
+  onStamp: dropStamp,
+  onRefused: () => toast("You've already stamped this one"),
+});
+
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
-window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); }); });
+window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); syncBoard(); }); });
 document.fonts?.ready.then(() => { placeIndicators(); syncTabsHeight(); });
 
 boot();

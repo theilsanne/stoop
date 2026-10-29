@@ -10,13 +10,23 @@ import trash from "@phosphor-icons/core/assets/regular/trash.svg?raw";
 import info from "@phosphor-icons/core/assets/regular/info.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
 import thumbsUp from "@phosphor-icons/core/assets/regular/thumbs-up.svg?raw";
+import stamp from "@phosphor-icons/core/assets/regular/stamp.svg?raw";
+import star from "@phosphor-icons/core/assets/regular/star.svg?raw";
+import calendarDots from "@phosphor-icons/core/assets/regular/calendar-dots.svg?raw";
+import binoculars from "@phosphor-icons/core/assets/regular/binoculars.svg?raw";
+import paperPlane from "@phosphor-icons/core/assets/regular/paper-plane-tilt.svg?raw";
+import key from "@phosphor-icons/core/assets/regular/key.svg?raw";
+import archive from "@phosphor-icons/core/assets/regular/archive.svg?raw";
 import question from "@phosphor-icons/core/assets/regular/question.svg?raw";
 import thumbsDown from "@phosphor-icons/core/assets/regular/thumbs-down.svg?raw";
 import thumbsUpFill from "@phosphor-icons/core/assets/fill/thumbs-up-fill.svg?raw";
 import questionFill from "@phosphor-icons/core/assets/fill/question-fill.svg?raw";
 import thumbsDownFill from "@phosphor-icons/core/assets/fill/thumbs-down-fill.svg?raw";
 
-const REGULAR = { stairs, "caret-left": caretLeft, "caret-right": caretRight, x, trash, info, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown };
+const REGULAR = {
+  stairs, "caret-left": caretLeft, "caret-right": caretRight, x, trash, info, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown,
+  stamp, star, "calendar-dots": calendarDots, binoculars, "paper-plane": paperPlane, key, archive,
+};
 const FILL: Partial<Record<IconName, string>> = { "thumbs-up": thumbsUpFill, question: questionFill, "thumbs-down": thumbsDownFill };
 
 export type IconName = keyof typeof REGULAR;

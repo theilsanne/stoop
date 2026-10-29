@@ -8,7 +8,8 @@ type OnDrop = (listingId: string, stage: string) => void;
 
 const HOLD_MS = 300;      // touch: how long to hold before the card lifts
 const MOVE_PX = 6;        // mouse: how far to move before a drag starts
-const EDGE_PX = 48;       // auto-scroll the board when this close to its edge
+const EDGE_PX = 80;       // the board scrolls by itself when the card is this close to its edge, faster the closer
+const SCROLL_PX = 18;     // ...by up to this much a frame
 
 interface Pending { id: string; card: HTMLElement; x: number; y: number; pointerId: number; touch: boolean; timer?: number }
 interface Active { id: string; card: HTMLElement; ghost: HTMLElement; dx: number; dy: number; from: string; over: HTMLElement | null }
@@ -16,6 +17,8 @@ interface Active { id: string; card: HTMLElement; ghost: HTMLElement; dx: number
 let pending: Pending | null = null;
 let active: Active | null = null;
 let suppressClick = false;
+let pointer = { x: 0, y: 0 };
+let scrollFrame = 0;
 
 function columnAt(x: number, y: number): HTMLElement | null {
   const el = document.elementFromPoint(x, y);
@@ -33,12 +36,14 @@ function start(p: Pending, x: number, y: number) {
   p.card.classList.add("dragging");
   active = {
     id: p.id, card: p.card, ghost, dx: x - rect.left, dy: y - rect.top,
-    from: (p.card.closest("[data-stage]") as HTMLElement).dataset.stage!, over: null,
+    // a card in Stamped has no stage to come from: that column takes no drops, but its cards can leave it
+    from: (p.card.closest("[data-stage]") as HTMLElement | null)?.dataset.stage ?? "", over: null,
   };
   document.body.classList.add("is-dragging");
   if (p.touch) navigator.vibrate?.(10);
   pending = null;
   move(x, y);
+  scrollFrame = requestAnimationFrame(autoScroll);
 }
 
 function move(x: number, y: number) {
@@ -51,13 +56,35 @@ function move(x: number, y: number) {
     if (col && col.dataset.stage !== active.from) col.classList.add("drop-target");
     active.over = col;
   }
-  // nudge the board sideways near its edges so far columns are reachable
+  pointer = { x, y };
+}
+
+/**
+ * While a card is held near either edge of the board, scroll it sideways, faster the closer to the edge,
+ * so a far column can be reached without letting go. It keeps going while the pointer rests there.
+ */
+function autoScroll() {
+  scrollFrame = 0;
+  if (!active) return;
   const board = active.card.closest(".board") as HTMLElement | null;
   if (board) {
     const r = board.getBoundingClientRect();
-    if (x < r.left + EDGE_PX) board.scrollLeft -= 12;
-    else if (x > r.right - EDGE_PX) board.scrollLeft += 12;
+    const near = pointer.x < r.left + EDGE_PX ? -(1 - (pointer.x - r.left) / EDGE_PX)
+      : pointer.x > r.right - EDGE_PX ? 1 - (r.right - pointer.x) / EDGE_PX : 0;
+    if (near) {
+      board.scrollLeft += Math.max(-1, Math.min(1, near)) * SCROLL_PX;
+      move(pointer.x, pointer.y); // the column under the card has changed
+    }
   }
+  // and the column under the card scrolls up or down the same way when the card is near its top or bottom
+  const list = columnAt(pointer.x, pointer.y)?.querySelector<HTMLElement>(".col-body");
+  if (list && list.scrollHeight > list.clientHeight) {
+    const r = list.getBoundingClientRect();
+    const near = pointer.y < r.top + EDGE_PX ? -(1 - (pointer.y - r.top) / EDGE_PX)
+      : pointer.y > r.bottom - EDGE_PX ? 1 - (r.bottom - pointer.y) / EDGE_PX : 0;
+    if (near) list.scrollTop += Math.max(-1, Math.min(1, near)) * SCROLL_PX;
+  }
+  scrollFrame = requestAnimationFrame(autoScroll);
 }
 
 function finish(onDrop: OnDrop, x: number, y: number, cancelled = false) {
@@ -69,6 +96,8 @@ function finish(onDrop: OnDrop, x: number, y: number, cancelled = false) {
   card.classList.remove("dragging");
   over?.classList.remove("drop-target");
   document.body.classList.remove("is-dragging");
+  cancelAnimationFrame(scrollFrame);
+  scrollFrame = 0;
   active = null;
   suppressClick = true; // the pointerup shouldn't also count as a tap on the card
   setTimeout(() => (suppressClick = false), 0);

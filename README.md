@@ -18,7 +18,7 @@ preferences, and shows them in an installable web app at
 | `supabase/functions/_shared/buildings.ts` | Address → BBL (NYC GeoSearch), open HPD violations, 311 complaints (NYC Open Data). No keys needed. |
 | `supabase/functions/_shared/scoring.ts` | The scoring rules. Pure TypeScript, shared by both functions and the tests. |
 | `supabase/functions/_shared/normalize.ts` | Turns one scraped StreetEasy item into a listing row. |
-| `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main`. |
+| `app/` | The web app (Vite + TypeScript, no framework). Deployed to GitHub Pages by `.github/workflows/pages.yml`: `main` is the live app, and other branches get previews. |
 | `test/` | Tests for scoring and field mapping. Run `npm test` (Node 22.6+). |
 
 ## The app
@@ -28,7 +28,8 @@ preferences, and shows them in an installable web app at
 | Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. Switch between **List** and **Map**: pins colored by score on OpenStreetMap tiles (no API key), with MTA subway lines from NY Open Data (`s692-irgq`). On the map, filter to what you, your partner or both of you have thumbs-upped; a floating list of listings on the left flies to a pin and opens its popup (photo and summary), and **See more** opens the full listing. The popup and the listing page have a **Google Maps ↗** button that opens the listing's address in Google Maps in a new tab. |
 | Listing | Photos, rent and concessions, amenities, why it scores what it does for each of you, both verdicts and notes, stage, price history. |
 | Criteria | Every feature you can care about in one list, each with one control for how much it matters: Skip, Nice, Important or Dealbreaker. Each row shows how many current listings fit and what a dealbreaker costs; rent has a histogram of the listings behind its slider; your partner's pick sits beside yours (green where you agree, amber where you differ, with a "We differ" view and a dot on neighborhoods you both picked), and you can pick up one of their own phrases with a tap. A bar at the top shows how many listings fit you before you save (saving re-scores everything), and nudges you when a dealbreaker is keeping out too many. Add your own phrase at the bottom. Change history for both of you. |
-| Pipeline | Shortlisted → tour requested → toured → applied → won. |
+| Stamps | Your stamp sits on its ink pad, bottom left. Drag it onto a listing you really like (or focus one and press S) and it prints your seal there: your name, the day, and your photo in your own ink. Each of you has a colour. A stamp stays until you take it back from the listing's sheet. The feed's **Stamped** filter shows everything either of you has stamped. |
+| Pipeline | Stamped → shortlisted → tour requested → toured → applied → won, plus passed. A listing lands in **Stamped** when either of you stamps it, and moves to **Shortlisted** on its own once you both have. Drag cards on from there, and back into Stamped too (a listing nobody stamped goes back to the feed, with an Undo). Every column is the same width and the board scrolls sideways, with a strip of the seven steps above it: tap one to jump to it. A card held near the edge makes the board scroll. A dot on the Pipeline tab and the Stamped filter means your partner has stamped something that is waiting for your stamp. |
 
 Add `?demo` to the URL to try it on built-in sample listings without signing in.
 
@@ -51,9 +52,9 @@ Add `?demo` to the URL to try it on built-in sample listings without signing in.
 1. Create the project (Data API on, "automatically expose new tables" off).
 2. **Authentication → URL Configuration**
    - Site URL: `https://theilsanne.github.io/stoop/`
-   - Redirect URLs: the same, plus `http://localhost:5173/**`
+   - Redirect URLs: the same, plus `http://localhost:5173/**` and `https://theilsanne.github.io/stoop/previews/**` (so sign-in works on branch previews)
 3. **Authentication → Sign In / Providers:** Email on. Magic links come with it.
-4. **SQL Editor:** paste `supabase/migrations/20261006000000_init.sql` and run it.
+4. **Migrations:** `supabase link --project-ref <ref>`, then `supabase db push --linked`. Or paste `supabase/migrations/20261006000000_init.sql` into the SQL Editor and run it. After that, merges to `main` apply new migrations on their own (`.github/workflows/migrate.yml`).
 5. **Project Settings → Data API → Exposed schemas:** add `rentals`.
 6. **Authentication → Users:** invite both people. Each account gets one starter criterion ("Availability": available before April 1). Then turn off "Allow new users to sign up".
 
@@ -115,7 +116,7 @@ Then open **Table Editor → rentals.listings** and spot-check a few rows agains
 
 ### Database updates
 
-Run each file in `supabase/migrations/` in order in the SQL Editor. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run).
+Migrations in `supabase/migrations/` apply on merge to `main`, in filename order. After the first, `20261028000000_feed_buildings.sql` adds building records to the feed and `20261028010000_feed_commutes.sql` adds commute times (both safe to re-run). Then `20261028020000_avatars.sql` adds profile photos and `20261028030000_stamps.sql` adds listing stamps.
 
 ### Commute times
 
@@ -132,8 +133,10 @@ Each new listing's address is matched to a city building (BBL) with NYC Planning
    - `SUPABASE_URL` = `https://<your-project-ref>.supabase.co`
    - `SUPABASE_ANON_KEY` = the publishable (or legacy anon) key from **Supabase → Project Settings → API Keys**
    Both are meant to be public; row-level security and sign-in protect the data.
-3. **Actions tab → Deploy app to GitHub Pages → Run workflow** (later pushes deploy automatically).
+3. **Actions tab → Deploy to GitHub Pages → Run workflow** (later pushes deploy automatically).
 4. Open `https://theilsanne.github.io/stoop/`, sign in with your email, and on Android choose **Add to Home screen** from Chrome's menu.
+
+**Branch previews.** Pushing a branch that changes the app also publishes it at `https://theilsanne.github.io/stoop/previews/<branch>/`, with the link in that run's summary. A preview uses the real database, so run any new migrations first. Sign-in is per URL, so each preview asks for its own sign-in link. Deleting the branch removes its preview.
 
 ## Testing ingest by hand
 

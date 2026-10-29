@@ -1,14 +1,15 @@
 import type { AlertState } from "./push.ts";
 import type { ScorableListing } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
-import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Verdict } from "./types.ts";
+import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Stamp, Verdict } from "./types.ts";
 import { CATALOG, type FieldDef } from "./catalog.ts";
 import { IMPORTANT_WEIGHT, type Level, withLevel } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
+import { columnOf, waitingFor, type Column } from "./stages.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
-export type Filter = "passing" | "near" | "other";
+export type Filter = "passing" | "near" | "other" | "stamped";
 export type Sort = "score" | "newest" | "rent";
 export type Liked = "all" | "me" | "partner" | "both"; // map: whose thumbs-up a listing needs
 
@@ -18,6 +19,7 @@ export interface State {
   profiles: Profile[];
   feed: FeedRow[];
   ratings: Rating[];
+  stamps: Stamp[];         // "I really like this one", both people's
   criteria: Criterion[];   // both people's saved lists
   places: Place[];         // commute destinations, both people's
   draft: Criterion[];      // my list as being edited
@@ -53,7 +55,7 @@ function savedTab(): Tab {
 
 export function initState(api: Api) {
   Object.assign(S, {
-    api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
+    api, me: null, profiles: [], feed: [], ratings: [], stamps: [], criteria: [], places: [], draft: [],
     tab: savedTab(), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"),
     mapLiked: store<Liked>("mapLiked", "all"), whyOpen: new Set(), shown: 40,
@@ -71,6 +73,8 @@ export const partner = (): Profile | null => S.profiles.find((p) => p.id !== myI
 export const partnerId = () => partner()?.id ?? "";
 export const partnerName = () => partner()?.display_name || "Partner";
 export const nameOf = (id: string) => (id === myId() ? "You" : id === partnerId() ? partnerName() : "Someone");
+
+export const profileOf = (id: string): Profile | undefined => S.profiles.find((p) => p.id === id);
 
 export const myCriteria = () => S.criteria.filter((c) => c.owner_id === myId());
 export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === partnerId());
@@ -148,6 +152,26 @@ export const ratingOf = (listingId: string, userId: string): Rating | undefined 
   S.ratings.find((r) => r.listing_id === listingId && r.user_id === userId);
 export const verdictOf = (listingId: string, userId: string): Verdict | null =>
   ratingOf(listingId, userId)?.verdict ?? null;
+
+// ---------- stamps ----------
+// Stamps are shown and counted, never scored: they don't touch the scoring rules.
+export const stampedBy = (listingId: string, userId: string) =>
+  !!userId && S.stamps.some((s) => s.listing_id === listingId && s.user_id === userId);
+
+/** Which of you has stamped a listing. */
+export const stampsOf = (listingId: string) => ({ mine: stampedBy(listingId, myId()), theirs: stampedBy(listingId, partnerId()) });
+
+/** The pipeline column a listing is in, or null when it isn't on the board. */
+export function columnFor(row: FeedRow): Column | null {
+  const s = stampsOf(row.id);
+  return columnOf(row.stage, s.mine, s.theirs);
+}
+
+/** Listings your partner has stamped that are still waiting for your stamp. */
+export const waitingForMe = () => S.feed.filter((r) => {
+  const s = stampsOf(r.id);
+  return waitingFor(r.stage, s.mine, s.theirs) === "me";
+});
 
 /** Whether a listing has the thumbs-up(s) the map's filter asks for. */
 export function likedBy(listingId: string, who: Liked) {

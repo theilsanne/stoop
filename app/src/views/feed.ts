@@ -1,5 +1,6 @@
 import { icon } from "../icons.ts";
 import { cardPhotos } from "./photos.ts";
+import { cardStamp, waitingDot } from "./stamps.ts";
 import {
   S, isNewSinceVisit, placeName, myId, partnerId, partnerName, personScore, verdictOf, viewOf,
   type Filter, type Lens, type Sort, type View,
@@ -83,10 +84,11 @@ export function card(row: FeedRow, v: View) {
   const open = S.whyOpen.has(row.id);
   const fails = v.passes || !v.failed.length ? "" :
     `<div class="fails">${v.failed.map((f) => `<span class="chip ${v.near ? "near" : ""}">${v.near ? "Near miss: " : "✗ "}${esc(f)}</span>`).join("")}</div>`;
-  return `<article class="card" data-open="${row.id}" tabindex="0" aria-label="${esc(row.address)}">
+  return `<article class="card" data-open="${row.id}" data-stamp-id="${row.id}" tabindex="0" aria-label="${esc(row.address)}">
     <div class="ph">${cardPhotos(row.id, row.photos)}
       <div class="badges">${badges(row)}</div>
       ${v.scored ? `<button class="score ${tier(v.score)}" data-action="why" data-id="${row.id}" aria-expanded="${open}" aria-label="Score ${v.score}. Show why">${v.score}</button>` : ""}
+      ${cardStamp(row.id)}
     </div>
     <div class="cb">
       <div class="rent"><b>${money(row.net_effective_rent ?? row.price)}</b>${
@@ -118,6 +120,8 @@ export function groups() {
     passing: all.filter((x) => x.v.passes),
     near: all.filter((x) => !x.v.passes && x.v.near),
     other: all.filter((x) => !x.v.passes && !x.v.near),
+    // either of you stamped it; a stamp never changes which group a listing is in
+    stamped: all.filter((x) => S.stamps.some((s) => s.listing_id === x.row.id)),
   };
 }
 
@@ -137,6 +141,7 @@ export function renderFeed() {
     passing: "Nothing passes every dealbreaker right now. Check Near misses, or loosen a dealbreaker in My criteria.",
     near: "No near misses. Give a number dealbreaker a near-miss margin to see listings that miss it by a little.",
     other: "Nothing is filtered out.",
+    stamped: "Nothing stamped yet. Drag your stamp, bottom right, onto a listing you really like.",
   };
 
   if (!S.feed.length) {
@@ -144,8 +149,8 @@ export function renderFeed() {
   }
 
   return `<div class="toolbar">
-      <div class="seg" role="group" aria-label="Filter">${([["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
-        `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t} ${g[k].length}</button>`).join("")}</div>
+      <div class="seg" role="group" aria-label="Filter">${([["stamped", "Stamped"], ["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
+        `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t} ${g[k].length}${k === "stamped" ? waitingDot() : ""}</button>`).join("")}</div>
       <div class="toolbar-r">
         <select class="sm" id="sort" data-change="sort" aria-label="${S.feedView === "map" ? "Show" : "Sort"}" title="${S.feedView === "map" ? "Show" : "Sort"}">${sortOptions.map(([k, t]) =>
           `<option value="${k}" ${current === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
