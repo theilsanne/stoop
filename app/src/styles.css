@@ -20,7 +20,7 @@
   --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.5),0 14px 32px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07); --lift-bg:color-mix(in srgb,var(--surface) 93%,#fff); color-scheme:dark }
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body{overflow-x:clip;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -117,18 +117,14 @@ select.sm:hover{border-color:var(--ink-2)}
 .arrow:disabled{opacity:.35;cursor:default}
 .arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:700px){.pipe-arrows{display:none}}
-/* the board scrolls sideways. Every column is the same width and never narrower than that; the edges fade where there's more */
+/* the board scrolls sideways, and runs off the edge of the screen: it's as wide as the window, and its first column lines up with the page
+   (--gutter is the page's side margin: #app is 1080px wide and centred, with 16px of padding inside the body's 8px margin) */
 .board-wrap{position:relative}
-.board-wrap::before,.board-wrap::after{content:"";position:absolute;top:0;bottom:14px;z-index:3;width:44px;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
-.board-wrap::before{left:-2px;background:linear-gradient(to right,var(--bg),transparent)}
-.board-wrap::after{right:-2px;background:linear-gradient(to left,var(--bg),transparent)}
-.board-wrap[data-start="false"]::before,.board-wrap[data-end="false"]::after{opacity:1}
-.board{position:relative;display:flex;gap:12px;margin:0 -2px;padding:2px 2px 14px;overflow-x:auto;overscroll-behavior-x:contain;
-  scroll-snap-type:x proximity;scroll-padding-inline:2px;scrollbar-width:thin}
+.board{--gutter:calc(max(0px,50vw - 548px) + 24px);position:relative;display:flex;gap:12px;margin-inline:calc(-1 * var(--gutter));padding:2px var(--gutter) 14px;overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;scroll-padding-inline:var(--gutter);scrollbar-width:thin}
 .board:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-card)}
 /* snapping fights the board's own scrolling while a card is held near an edge */
 body.is-dragging .board{scroll-snap-type:none}
-@media (max-width:700px){.board{margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}}
 /* each column has a colour that deepens toward the end of the pipeline: Stamped in the stamp's ink, Won in the accent, Passed quiet */
 .col{--tone:color-mix(in srgb,var(--accent) calc(var(--step) * 16%),var(--line));--col-w:288px;position:relative;display:flex;flex:0 0 var(--col-w);flex-direction:column;gap:6px;
   min-height:300px;padding:14px 12px 12px;background:var(--surface-2);scroll-snap-align:start}

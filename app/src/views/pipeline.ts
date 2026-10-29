@@ -93,5 +93,5 @@ export function renderPipeline() {
         <button class="arrow" data-action="boardstep" data-v="next" aria-label="Next step">${icon("caret-right", { size: 14 })}</button>
       </div>
     </div>
-    <div class="board-wrap" data-start="true" data-end="false"><div class="board" role="region" aria-label="Pipeline board" tabindex="0">${board}</div></div>`;
+    <div class="board-wrap"><div class="board" role="region" aria-label="Pipeline board" tabindex="0">${board}</div></div>`;
 }

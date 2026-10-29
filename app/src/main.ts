@@ -211,19 +211,21 @@ function closeViewer() {
 // photo strips scroll sideways; keep their counters and arrows in step (scroll doesn't bubble, so capture)
 /**
  * The pipeline board scrolls sideways. Keep what follows it in step: the strip above highlights the
- * first column in view (sliding the highlight, and scrolling the strip itself on a phone), the arrows
- * dim at either end, and the edges fade where there's more to see. Plain DOM state, no redraw.
+ * first column in view (sliding the highlight, and scrolling the strip itself on a phone) and the arrows
+ * dim at either end. Plain DOM state, no redraw.
  */
 function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElement>(".board")) {
-  const wrap = board?.parentElement;
-  if (!board || !wrap) return;
+  if (!board) return;
   const atStart = board.scrollLeft < 4, atEnd = board.scrollLeft + board.clientWidth >= board.scrollWidth - 4;
-  wrap.dataset.start = String(atStart);
-  wrap.dataset.end = String(atEnd);
   for (const a of document.querySelectorAll<HTMLButtonElement>(".pipe-arrows .arrow")) a.disabled = a.dataset.v === "prev" ? atStart : atEnd;
   const cols = [...board.querySelectorAll<HTMLElement>(".col")];
-  // the first column that's mostly in view, so a half-hidden one doesn't count and the strip says what you scrolled to
-  const lead = cols.find((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55) ?? cols[0];
+  // the first column that's mostly in view, so a half-hidden one doesn't count. But a column you tapped in the
+  // strip stays the highlighted one while it's on screen, even if the board ran out of room to put it at the left
+  const mostlyIn = (c: HTMLElement) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55
+    && c.offsetLeft - board.scrollLeft <= board.clientWidth - c.offsetWidth * 0.55;
+  const tapped = jump ? cols.find((c) => c.dataset.col === jump!.col) : undefined;
+  if (jump && !(performance.now() < jump.until || (tapped && mostlyIn(tapped)))) jump = null;
+  const lead = (jump && tapped) || cols.find((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55) || cols[0];
   const nav = document.querySelector<HTMLElement>(".pipe-nav"), strip = nav?.querySelector<HTMLElement>(".stage-strip");
   if (!nav || !strip || !lead) return;
   const on = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
@@ -235,6 +237,12 @@ function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElemen
   if (now) strip.scrollTo({ left: now.offsetLeft - (strip.clientWidth - now.offsetWidth) / 2, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
+// the column last tapped in the strip, until you take over by scrolling yourself
+let jump: { col: string; until: number } | null = null;
+for (const ev of ["wheel", "pointerdown", "touchstart"] as const) {
+  document.addEventListener(ev, (e) => { if ((e.target as HTMLElement | null)?.closest?.(".board")) jump = null; }, { passive: true, capture: true });
+}
+
 /** Scroll the board so a column sits at its left edge, or step a column along. */
 function scrollBoard(to: { col: string } | { step: 1 | -1 }) {
   const board = document.querySelector<HTMLElement>(".board");
@@ -242,8 +250,9 @@ function scrollBoard(to: { col: string } | { step: 1 | -1 }) {
   const cols = [...board.querySelectorAll<HTMLElement>(".col")];
   const pad = parseFloat(getComputedStyle(board).paddingLeft) || 0;
   let target: HTMLElement | undefined;
-  if ("col" in to) target = cols.find((c) => c.dataset.col === to.col);
+  if ("col" in to) { target = cols.find((c) => c.dataset.col === to.col); jump = { col: to.col, until: performance.now() + 1500 }; }
   else {
+    jump = null;
     const i = cols.findIndex((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55);
     target = cols[Math.max(0, Math.min(cols.length - 1, (i < 0 ? 0 : i) + to.step))];
   }
