@@ -63,7 +63,9 @@ export function routeHTML(route: string) {
   }).join('<span class="sep" aria-hidden="true">›</span>');
 }
 
-/** Google Maps at a listing's street view, for opening in a new tab (null with no location). */
-export const streetViewUrl = (row: { lat: number | null; lng: number | null }) =>
-  row.lat == null || row.lng == null ? null
-    : `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${row.lat},${row.lng}`;
+/** Google Maps for a listing, to open in a new tab. By address when it has one, since the scraped pin can be a little off. */
+export function googleMapsUrl(row: { address: string | null; neighborhood: string | null; lat: number | null; lng: number | null }) {
+  const query = row.address ? [row.address, row.neighborhood, "NY"].filter(Boolean).join(", ")
+    : row.lat != null && row.lng != null ? `${row.lat},${row.lng}` : null;
+  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
+}

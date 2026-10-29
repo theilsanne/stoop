@@ -10,7 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { icon } from "../icons.ts";
 import type { FeedRow } from "../types.ts";
 import { S, likedBy, myId, partnerId, partnerName, verdictOf, type Liked, type View } from "../state.ts";
-import { beds, esc, money, save, store, streetViewUrl, LINE_COLORS } from "../util.ts";
+import { beds, esc, money, save, store, googleMapsUrl, LINE_COLORS } from "../util.ts";
 import { commuteLine, groups, sortRows } from "./feed.ts";
 import { cardPhotos, sized } from "./photos.ts";
 
@@ -132,7 +132,7 @@ function popup(row: FeedRow, v: View, width: number) {
   const photos = row.photos?.length ?? 0;
   const rent = money(row.net_effective_rent ?? row.price);
   const asking = row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `net · asking ${money(row.price)}` : "";
-  const street = streetViewUrl(row);
+  const maps = googleMapsUrl(row);
   return `<div class="pop" style="width:${width}px">
     <div class="ph pop-ph${photos ? " has-photo" : ""}">${cardPhotos(row.id, row.photos)}
       ${v.scored ? `<span class="score pop-score ${v.score >= 70 ? "hi" : v.score >= 50 ? "mid" : ""}" title="Score ${v.score}">${v.score}</span>` : ""}
@@ -146,7 +146,7 @@ function popup(row: FeedRow, v: View, width: number) {
       ${commuteLine(row)}
       ${likes(row.id)}
       <div class="pop-actions">
-        ${street ? `<a class="btn" href="${street}" target="_blank" rel="noopener">Street view ↗</a>` : ""}
+        ${maps ? `<a class="btn" href="${maps}" target="_blank" rel="noopener">Google Maps ↗</a>` : ""}
         <button class="btn primary" data-open="${row.id}">See more</button>
       </div>
     </div></div>`;
