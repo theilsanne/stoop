@@ -313,7 +313,10 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
   const sx = new Spring(0, 190, 26), sy = new Spring(0, 190, 26), sz = new Spring(REST_Z, 320, 30);
   const tx = new Spring(0, 210, 13), ty = new Spring(0, 210, 13), sq = new Spring(1, 700, 22);
   const vw = new Spring(REST_VIEW, 170, 19); // how the stamp is turned toward the page, see REST_VIEW
-  const springs = [sx, sy, sz, tx, ty, sq, vw];
+  // Where the perspective is centred: 1 on its pad (the stamp and pad are seen straight on, at their
+  // own size), 0 in use (centred on the screen, so a stamp off to the side shows its side, and it grows to match its print)
+  const cm = new Spring(1, 150, 20);
+  const springs = [sx, sy, sz, tx, ty, sq, vw, cm];
   let mode: Mode = "rest";
   let shown = false;
   let grab: { id: number; x0: number; y0: number; dx: number; dy: number; active: boolean } | null = null;
@@ -371,11 +374,11 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     };
     switch (mode) {
       case "rest":
-        sx.to = rest.x; sy.to = rest.y; sz.to = restZ; tx.to = ty.to = 0; vw.to = REST_VIEW;
+        sx.to = rest.x; sy.to = rest.y; sz.to = restZ; tx.to = ty.to = 0; vw.to = REST_VIEW; cm.to = 1;
         break;
       case "hover":
         // it lifts a little off the felt and leans toward the pointer: pick me up
-        sx.to = rest.x; sy.to = rest.y; sz.to = HOVER_Z * scale; vw.to = REST_VIEW + 0.08;
+        sx.to = rest.x; sy.to = rest.y; sz.to = HOVER_Z * scale; vw.to = REST_VIEW + 0.08; cm.to = 1;
         ty.to = clamp((pointer.x - rest.x) * 0.003, -0.18, 0.18);
         tx.to = clamp((pointer.y - rest.y) * 0.003, -0.18, 0.18);
         break;
@@ -386,11 +389,12 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         aim(card);
         sz.to = (card ? AIM_Z : CARRY_Z) * scale;
         vw.to = card ? AIM_VIEW : CARRY_VIEW; // upright in your hand, squaring up over a listing
+        cm.to = 0;
         swingFrom(vel.x, vel.y);
         break;
       }
       case "fly":
-        sx.to = press!.x; sy.to = press!.y; sz.to = CARRY_Z * scale; vw.to = AIM_VIEW;
+        sx.to = press!.x; sy.to = press!.y; sz.to = CARRY_Z * scale; vw.to = AIM_VIEW; cm.to = 0;
         swingFrom(sx.v, sy.v, 0.8);
         if (Math.hypot(press!.x - sx.x, press!.y - sy.x) < 3) setMode("press");
         break;
@@ -402,12 +406,13 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         const over = Math.hypot(press!.x - sx.x, press!.y - sy.x) < 4;
         const high = clamp(sz.x / (AIM_Z * scale), 0, 1); // 1 in the air, 0 at the page
         vw.to = LAND_VIEW + (AIM_VIEW - LAND_VIEW) * high;
+        cm.to = 0;
         tx.to = 0; ty.to = 0.1 * high;
         sz.to = over ? -6 : AIM_Z * scale;
         break;
       }
       case "lift":
-        sz.to = LIFT_Z * scale; tx.to = ty.to = 0; vw.to = AIM_VIEW;
+        sz.to = LIFT_Z * scale; tx.to = ty.to = 0; vw.to = AIM_VIEW; cm.to = 0;
         break;
       case "home": {
         // an arc back to the pad: up and over, turning from the hand's angle to the desk angle as it nears the pad
@@ -415,6 +420,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
         const d = Math.hypot(rest.x - sx.x, rest.y - sy.x);
         sz.to = d > 24 ? CARRY_Z * 0.8 * scale : restZ;
         vw.to = d > 60 ? CARRY_VIEW : REST_VIEW;
+        cm.to = d > 60 ? 0 : 1; // back to being seen straight on as it settles onto its pad
         tx.to = ty.to = 0; // level on the way home, not swung by the motion
         if (d < 1 && Math.abs(sz.x - restZ) < 0.6) setMode("rest");
         break;
@@ -461,14 +467,24 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     const [x, y] = world(sx.x, sy.x);
     rig.rotation.x = vw.x;
     swing.rotation.set(tx.x, ty.x, 0);
-    // With perspective, a point at height z is drawn at (x, y) only if it sits at (x, y) scaled toward
-    // the middle of the screen. That keeps the die exactly under the cursor however high it's lifted.
+    // Where the perspective is centred, on the page: the pad when the stamp rests (so it and the pad are
+    // seen straight on, as they were drawn), the middle of the screen when it's in use. The camera moves
+    // there, and the view shifts back by the same amount, so nothing on the page itself moves.
+    const [rx, ry] = world(rest.x, rest.y);
+    const fx = rx * cm.x, fy = ry * cm.x;
+    camera.position.set(fx, fy, camDist);
+    camera.setViewOffset(w, h, -fx, fy, w, h);
+    // A point at height z is drawn at (x, y) only if it sits at (x, y) pulled toward that centre. That
+    // keeps the die exactly under the cursor however high it's lifted.
     const near = (camDist - sz.x) / camDist;
+    // In use the stamp is drawn a little larger, the size of the seal it prints; on its pad, its own size.
+    const size = scale * (1 + (STAMP_GROW - 1) * (1 - cm.x));
+    rig.scale.setScalar(size);
     // The tilt turns about the handle, which moves the die. Work out where the die is after the tilt
     // (in the stamp's own units, so scaled), and shift the stamp so the die stays where it should be.
     const die = new THREE.Vector3(0, 0, -GRIP).applyEuler(swing.rotation).add(new THREE.Vector3(0, 0, GRIP))
-      .applyEuler(rig.rotation).multiplyScalar(scale * STAMP_GROW);
-    rig.position.set(x * near - die.x, y * near - die.y, sz.x - die.z);
+      .applyEuler(rig.rotation).multiplyScalar(size);
+    rig.position.set(fx + (x - fx) * near - die.x, fy + (y - fy) * near - die.y, sz.x - die.z);
     body.scale.z = sq.x;
     // over the pad its shadow falls on the felt, tipped like the pad; anywhere else, flat on the page
     const onPad = Math.abs(sx.x - rest.x) < (PAD_W / 2) * scale && Math.abs(sy.x - rest.y) < (PAD_D / 2) * Math.cos(REST_VIEW) * scale;
@@ -476,7 +492,7 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     const onFloor = (camDist - floor) / camDist;
     // the shadow falls down and to the right, further away the higher it's lifted
     foot.rotation.x = onPad ? REST_VIEW : 0;
-    foot.position.set((x + lift * 0.35) * onFloor, (y - lift * 0.35) * onFloor, floor + 0.3);
+    foot.position.set(fx + (x + lift * 0.35 - fx) * onFloor, fy + (y - lift * 0.35 - fy) * onFloor, floor + 0.3);
     foot.scale.setScalar(scale * (1 + lift / 140));
     footMat.opacity = clamp(1 - lift / 170, 0.25, 1);
     renderer.render(scene, camera);
@@ -542,13 +558,12 @@ export function mountStamp({ canStamp, onStamp, onRefused }: Options) {
     const [px, py] = world(rest.x, rest.y);
     pad.position.set(px, py, 0);
     pad.scale.setScalar(scale);
-    rig.scale.setScalar(scale * STAMP_GROW);
   }
 
   function toRest() {
     mode = "rest";
     sx.snap(rest.x); sy.snap(rest.y); sz.snap(REST_Z * scale);
-    tx.snap(0); ty.snap(0); sq.snap(1); vw.snap(REST_VIEW);
+    tx.snap(0); ty.snap(0); sq.snap(1); vw.snap(REST_VIEW); cm.snap(1);
   }
 
   // ---- your seal on the label, and your ink in the pad, the die and the aim ring
