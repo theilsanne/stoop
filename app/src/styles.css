@@ -700,3 +700,17 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
 @media (pointer:coarse){.leaflet-control-zoom{display:none}}
 @media (max-width:620px){.pop-ph{height:140px}.pop-rent b{font-size:21px}}
 @media (max-width:620px){.mapstage:has(.leaflet-popup) .maplist{display:none}} /* the popup needs the width; closing it brings the list back */
+
+/* ---- map pins and the popup's street view ---- */
+.pin{background:none;border:0}
+.pin-dot{position:absolute;inset:0;display:grid;place-items:center;box-sizing:border-box;border-radius:50%;background:var(--c);border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.4);color:#fff;transition:transform .12s var(--ease)}
+.pin:hover .pin-dot{transform:scale(1.15)}
+.pin-by{position:absolute;bottom:-7px;z-index:1;width:17px;height:17px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;font:700 10.5px/1 var(--mono);border:1.5px solid var(--surface)}
+.pin-by.me{left:-7px;background:var(--ink);color:var(--surface)}
+.pin-by.them{right:-7px;background:var(--surface);color:var(--ink);border-color:var(--ink)}
+.lg-like{display:inline-flex;align-items:center;gap:5px}
+.pop-street{height:200px;background:var(--surface-2)}
+.pop-street .street{height:100%;border-radius:0}
+.pop-actions{display:flex;gap:8px;margin-top:8px}
+.pop-actions .btn{flex:1;margin-top:0;align-self:auto}
+@media (prefers-reduced-motion:reduce){.pin-dot{transition:none}}

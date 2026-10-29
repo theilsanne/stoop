@@ -4,6 +4,7 @@ import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money, routeHTML } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
+import { streetSrc } from "./street.ts";
 
 export const history = new Map<string, PricePoint[]>(); // filled lazily when a sheet opens
 export const routes = new Map<string, Record<string, string>>(); // commute routes, same
@@ -41,24 +42,14 @@ export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b
   return out;
 }
 
-/**
- * Street view at the listing's pin, loaded on a tap because it's a heavy embed. With a Google Maps
- * key (public by design, locked to this site's address) it asks for outdoor imagery only. Without
- * one it falls back to the key-free embed, which shows whatever panorama is nearest, indoor
- * business photos included, so it can land inside a shop.
- */
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
-
+/** Street view at the listing's pin. It's a heavy embed, so it loads on a tap. */
 function streetView(row: FeedRow) {
-  if (row.lat == null || row.lng == null) return "";
-  const at = `${row.lat},${row.lng}`;
-  const src = MAPS_KEY
-    ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(MAPS_KEY)}&location=${at}&source=outdoor&radius=100&fov=90`
-    : `https://www.google.com/maps?layer=c&cbll=${at}&cbp=11,0,0,0,0&source=embed&output=svembed`;
+  const src = streetSrc(row);
+  if (!src) return "";
   return `<div class="box"><h3>Street view</h3>${S.streetOpen.has(row.id)
     ? `<iframe class="street" title="Street view near ${esc(row.address)}" src="${esc(src)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
     : `<button class="street-go" data-action="street" data-id="${row.id}">Show street view</button>`}
-    <a class="linkish small-link" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${at}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
+    <a class="linkish small-link" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${row.lat},${row.lng}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
 }
 
 /** My write-ins on this listing: what the description says, and my own tick to override it. */
