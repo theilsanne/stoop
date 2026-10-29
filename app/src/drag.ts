@@ -76,6 +76,14 @@ function autoScroll() {
       move(pointer.x, pointer.y); // the column under the card has changed
     }
   }
+  // and the column under the card scrolls up or down the same way when the card is near its top or bottom
+  const list = columnAt(pointer.x, pointer.y)?.querySelector<HTMLElement>(".col-body");
+  if (list && list.scrollHeight > list.clientHeight) {
+    const r = list.getBoundingClientRect();
+    const near = pointer.y < r.top + EDGE_PX ? -(1 - (pointer.y - r.top) / EDGE_PX)
+      : pointer.y > r.bottom - EDGE_PX ? 1 - (r.bottom - pointer.y) / EDGE_PX : 0;
+    if (near) list.scrollTop += Math.max(-1, Math.min(1, near)) * SCROLL_PX;
+  }
   scrollFrame = requestAnimationFrame(autoScroll);
 }
 

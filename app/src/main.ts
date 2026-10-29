@@ -114,11 +114,14 @@ export function render() {
   const focusKey = root.contains(document.activeElement) ? controlKey(document.activeElement) : null;
   const hold = anchor && performance.now() - anchor.at < 1000 ? anchor : null;
   anchor = null;
+  // the pipeline fits the window and its columns scroll inside it; every other tab is a page that scrolls
+  root.classList.toggle("fit", S.tab === "pipeline" && !S.loading);
   const inds = noteIndicators(root);
   // keep each photo strip on the photo you'd swiped to
   const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
   // and the pipeline board on the column you'd scrolled to
   const boardLeft = document.querySelector<HTMLElement>(".board")?.scrollLeft ?? 0;
+  const colTops = new Map([...document.querySelectorAll<HTMLElement>(".col")].map((c) => [c.dataset.col, c.querySelector<HTMLElement>(".col-body")?.scrollTop ?? 0]));
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
@@ -150,7 +153,11 @@ export function render() {
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
   if (!S.loading && S.tab === "criteria") liveBar(root);
   const board = root.querySelector<HTMLElement>(".board");
-  if (board) { board.scrollLeft = boardLeft; syncBoard(board); }
+  if (board) {
+    board.scrollLeft = boardLeft;
+    for (const c of board.querySelectorAll<HTMLElement>(".col")) c.querySelector<HTMLElement>(".col-body")!.scrollTop = colTops.get(c.dataset.col) ?? 0;
+    syncBoard(board);
+  }
 
   const key = viewKey();
   if (key !== lastView && !S.loading) {
