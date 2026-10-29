@@ -45,6 +45,11 @@ export function placeIndicators(scope: ParentNode = document, before?: Map<strin
     const on = chosen(c);
     if (!on || !on.offsetWidth) { ind.style.opacity = "0"; continue; }
     const to: Spot = { x: on.offsetLeft, w: on.offsetWidth };
+    // a bar that scrolls sideways keeps the chosen option in view
+    if (c.scrollWidth > c.clientWidth) {
+      if (to.x < c.scrollLeft) c.scrollLeft = to.x - 3;
+      else if (to.x + to.w > c.scrollLeft + c.clientWidth) c.scrollLeft = to.x + to.w - c.clientWidth + 3;
+    }
     ind.style.opacity = "1";
     ind.style.left = `${to.x}px`;
     ind.style.width = `${to.w}px`;

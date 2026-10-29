@@ -150,7 +150,7 @@ export function renderFeed() {
 
   return `<div class="toolbar">
       <div class="seg" role="group" aria-label="Filter">${([["stamped", "Stamped"], ["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
-        `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t} ${g[k].length}${k === "stamped" ? waitingDot() : ""}</button>`).join("")}</div>
+        `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t}<span class="n">${g[k].length}</span>${k === "stamped" ? waitingDot() : ""}</button>`).join("")}</div>
       <div class="toolbar-r">
         <select class="sm" id="sort" data-change="sort" aria-label="${S.feedView === "map" ? "Show" : "Sort"}" title="${S.feedView === "map" ? "Show" : "Sort"}">${sortOptions.map(([k, t]) =>
           `<option value="${k}" ${current === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>

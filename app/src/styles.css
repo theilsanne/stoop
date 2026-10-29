@@ -183,7 +183,7 @@ body.is-dragging .board{scroll-snap-type:none}
 /* the little dot for what's waiting on your stamp, in the stamp's ink */
 .dot.notify{display:inline-block;flex:none;width:8px;height:8px;margin:0 0 0 5px;border-radius:50%;background:var(--seal-0);box-shadow:0 0 0 2px var(--bg)}
 nav.tabs .dot.notify{background:var(--seal-0);vertical-align:5px}
-.seg .dot.notify{margin-left:6px;vertical-align:1px}
+.seg .dot.notify{margin-left:2px;vertical-align:1px}
 .col h3 .dot.notify,.wait .dot.notify{margin:0;box-shadow:none}
 .mv{display:flex;gap:4px}
 .mv button{border:1px solid var(--line);background:var(--surface);border-radius:6px;width:30px;height:26px;color:var(--ink-2)}
@@ -338,7 +338,7 @@ button.score:hover{transform:scale(1.05)}
 .toast-act{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:6px 12px;font-weight:700;flex:none;cursor:pointer}
 .mapwrap{position:relative;isolation:isolate;z-index:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:8px}
 .mapbar{margin-bottom:8px}
-.mapbar .seg button{display:inline-flex;align-items:center;gap:5px}
+
 .mapstage{position:relative}
 .map{height:min(70vh,640px);min-height:360px;width:100%;background:var(--surface-2)}
 .maplegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
@@ -458,6 +458,11 @@ button.who:active{transform:scale(.94)}
 /* ---- switches and tabs ---- */
 .seg{padding:3px}
 .seg>button{height:30px;padding:0 13px;cursor:pointer}
+/* One rule for every segmented control: a label never wraps (the pill is one line tall), and a bar
+   wider than its space scrolls sideways instead of spilling out. Counts are always a .n tag. */
+.seg{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg>button{flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
 .seg>button:not([aria-pressed="true"]):hover{color:var(--ink)}
 .seg>button:active{transform:scale(.97)}
 .seg>button{transition:color .2s,transform .12s var(--ease)}
@@ -656,7 +661,7 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 .nudge{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--warn-soft);font-size:13px}
 .critfilter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:16px}
 .agree{font-size:13px;color:var(--ink-2)}
-.seg .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:4px}
+.seg .n{font-family:var(--mono);font-size:11px;opacity:.7}
 
 /* ---- one row per feature: the name and what the market has, then one control for how much it matters ---- */
 .picks:empty{display:none}
