@@ -246,7 +246,18 @@ function maybeInstallTip() {
   }
 }
 
-function showError(e: unknown) {
+/** A dropped connection, not a real error: the phone couldn't reach the server. */
+function offline(e: unknown) {
+  const m = e instanceof Error ? e.message : String(e);
+  return !navigator.onLine || /failed to fetch|networkerror|load failed|network request failed/i.test(m);
+}
+
+/** Show an error. A dropped connection gets a quiet toast (with Retry, if given) instead of the red banner. */
+function showError(e: unknown, retry?: () => void) {
+  if (offline(e)) {
+    toast("No connection. That didn't save.", { ms: 6000, action: retry ? { label: "Retry", run: retry } : undefined });
+    return;
+  }
   S.error = e instanceof Error ? e.message : String(e);
   render();
 }
@@ -317,7 +328,7 @@ async function rate(id: string, v: Verdict) {
   else S.ratings.push({ listing_id: id, user_id: myId(), verdict: next, note });
   render();
   if (next) pop([...document.querySelectorAll(`.vbtn[data-id="${CSS.escape(id)}"][data-v="${next}"]`)]);
-  try { await api.setRating(id, next, note); } catch (e) { showError(e); }
+  try { await api.setRating(id, next, note); } catch (e) { showError(e, () => api.setRating(id, next, note).catch((e2) => showError(e2))); }
 }
 
 let noteTimer: number | undefined;
@@ -335,7 +346,7 @@ async function setStage(id: string, stage: Stage) {
   if (row) row.stage = stage;
   render();
   land(document.querySelector(`.mini[data-drag-id="${CSS.escape(id)}"]`));
-  try { await api.setStage(id, stage); } catch (e) { showError(e); }
+  try { await api.setStage(id, stage); } catch (e) { showError(e, () => setStage(id, stage)); }
 }
 
 async function saveCriteria() {
