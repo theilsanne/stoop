@@ -55,6 +55,15 @@ function samplePortrait(): string {
   return "data:image/svg+xml," + encodeURIComponent(svg);
 }
 
+// Sample listing descriptions, for write-in criteria to look in.
+const DESC: Record<string, string> = {
+  d1: "Sunny two-bedroom on a quiet, tree-lined block. Exposed brick, original moldings and a renovated kitchen.",
+  d2: "Floor-through with a private backyard, dishwasher and in-unit washer/dryer. Steps to the park.",
+  d3: "Top-floor one-bedroom with skylights and great light. Elevator building, laundry in the basement.",
+  d4: "Duplex with a roof deck, exposed brick and two full baths.",
+  d8: "Big eat-in kitchen, home office nook, bike storage.",
+};
+
 const T = true, F = false;
 const LISTINGS = [
   L("d1", "812 Sterling Pl #3R", "Crown Heights", 3450, 1, 12, 2, 1, "2026-12-01", [F, T, T, F, F], 3, [3550, 3450]),
@@ -95,7 +104,7 @@ const C = (owner: string, label: string, kind: Criterion["kind"], field: string,
 export class DemoApi implements Api {
   readonly demo = true;
   private criteriaRows: Criterion[] = [
-    C(YOU, "Available before April 1", "dealbreaker", "available_date", "before", "2027-04-01"),
+    C(YOU, "Availability", "dealbreaker", "available_date", "before", "2027-04-01"),
     C(YOU, "Net effective rent", "dealbreaker", "net_effective_rent", "lte", 3600, 5, 0.05),
     C(YOU, "Neighborhoods", "dealbreaker", "neighborhood", "in",
       ["Crown Heights", "Prospect Heights", "Bedford-Stuyvesant", "Stuyvesant Heights", "Clinton Hill", "Weeksville"]),
@@ -103,7 +112,7 @@ export class DemoApi implements Api {
     C(YOU, "Dishwasher", "want", "amenities.dishwasher", "is_true", null, 5),
     C(YOU, "Outdoor space", "want", "amenities.outdoor_space", "is_true", null, 5),
     C(YOU, "Second bedroom", "want", "beds", "gte", 2, 4),
-    C(PARTNER, "Available before April 1", "dealbreaker", "available_date", "before", "2027-04-01"),
+    C(PARTNER, "Availability", "dealbreaker", "available_date", "before", "2027-04-01"),
     C(PARTNER, "Net effective rent", "dealbreaker", "net_effective_rent", "lte", 3800, 5, 0.05),
     C(PARTNER, "Neighborhoods", "dealbreaker", "neighborhood", "in",
       ["Crown Heights", "Prospect Heights", "Clinton Hill", "Fort Greene"]),
@@ -111,7 +120,9 @@ export class DemoApi implements Api {
     C(PARTNER, "Dishwasher", "want", "amenities.dishwasher", "is_true", null, 7),
     C(PARTNER, "Outdoor space", "want", "amenities.outdoor_space", "is_true", null, 9),
     C(PARTNER, "Elevator", "want", "amenities.elevator", "is_true", null, 3),
+    C(PARTNER, "Exposed brick", "want", "write_in:exposed-brick", "mentions", ["exposed brick"], 6),
   ];
+  private markRows = new Map<string, boolean>(); // "criterion|listing" -> met
   private ratingRows: Rating[] = [
     { listing_id: "d4", user_id: YOU, verdict: "yes", note: null },
     { listing_id: "d4", user_id: PARTNER, verdict: "yes", note: "Great light. Ask about the second bathroom." },
@@ -152,7 +163,10 @@ export class DemoApi implements Api {
       const [v, c, n] = BLDG[l.id] ?? [null, null, null];
       const building = v == null ? null : { hpd_open_violations: v, hpd_class_c_open: c, complaints_311_12mo: n, rent_stabilized: null };
       const commutes = this.placeRows.length && MINUTES[l.id] ? { [this.placeRows[0].id]: MINUTES[l.id] } : {};
-      const s = scoreListing(byOwner, { ...l, building, commutes });
+      const marks: Record<string, boolean> = {};
+      for (const [k, met] of this.markRows) { const [cid, lid] = k.split("|"); if (lid === l.id) marks[cid] = met; }
+      const description = DESC[l.id] ?? null;
+      const s = scoreListing(byOwner, { ...l, building, commutes, description, marks });
       const verdicts: Record<string, Verdict | null> = {};
       for (const r of this.ratingRows.filter((r) => r.listing_id === l.id)) verdicts[r.user_id] = r.verdict;
       return { ...l, score: s.score, passes: s.passes, near_miss: s.near_miss, failed: s.failed,
@@ -160,7 +174,8 @@ export class DemoApi implements Api {
         bbl: v == null ? null : "30000000" + l.id.slice(1).padStart(2, "0"),
         hpd_open_violations: v ?? null, hpd_class_c_open: c ?? null, complaints_311_12mo: n ?? null,
         building_checked_at: v == null ? null : new Date().toISOString(),
-        commutes: Object.keys(commutes).length ? commutes : null };
+        commutes: Object.keys(commutes).length ? commutes : null,
+        description, marks: Object.keys(marks).length ? marks : null };
     });
   }
 
@@ -217,6 +232,10 @@ export class DemoApi implements Api {
   async savePushSubscription() {}
   async removePushSubscription() {}
   async testAlert() { return { phones: 0, sent: 0, failed: 0, removed: 0, errors: [] }; }
+  async setMark(criterionId: string, listingId: string, met: boolean | null) {
+    const k = `${criterionId}|${listingId}`;
+    if (met == null) this.markRows.delete(k); else this.markRows.set(k, met);
+  }
   async setAlertThreshold(n: number) {
     this.thresholds[YOU] = n;
   }

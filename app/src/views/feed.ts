@@ -22,16 +22,17 @@ export function verdictButtons(id: string) {
 export const verdictText = (v: Verdict | null) => (v ? v[0].toUpperCase() + v.slice(1) : "not rated");
 const tier = (n: number) => (n >= 70 ? "hi" : n >= 50 ? "mid" : "");
 
+/** The labels on a listing's photo. One badge style; data-tone only changes the color. */
 function badges(row: FeedRow) {
   const b: string[] = [];
-  if (isNewSinceVisit(row)) b.push('<span class="badge new">New</span>');
+  if (isNewSinceVisit(row)) b.push('<span class="badge" data-tone="accent">New</span>');
   if (row.no_fee) b.push('<span class="badge">No fee</span>');
   if (row.free_months) b.push(`<span class="badge">${row.free_months} mo free</span>`);
-  if (verdictOf(row.id, myId()) === "yes" && verdictOf(row.id, partnerId()) === "yes") b.push('<span class="badge both">Both yes</span>');
+  if (verdictOf(row.id, myId()) === "yes" && verdictOf(row.id, partnerId()) === "yes") b.push('<span class="badge" data-tone="good">Both yes</span>');
   if ((row.hpd_class_c_open ?? 0) > 0 || (row.hpd_open_violations ?? 0) >= 10 || (row.complaints_311_12mo ?? 0) >= 25)
-    b.push('<span class="badge bldg" title="See Building record on the listing">Building issues</span>');
+    b.push('<span class="badge" data-tone="bad" title="See Building on the listing">Building issues</span>');
   const me = personScore(row, "me"), them = personScore(row, "partner");
-  if (S.lens === "both" && me?.passes && them?.passes && Math.abs(me.score - them.score) >= 20) b.push('<span class="badge gap">You disagree</span>');
+  if (S.lens === "both" && me?.passes && them?.passes && Math.abs(me.score - them.score) >= 20) b.push('<span class="badge" data-tone="warn">You disagree</span>');
   return b.join("");
 }
 

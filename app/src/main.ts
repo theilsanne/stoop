@@ -3,19 +3,20 @@ import { icon } from "./icons.ts";
 import { alertState, turnOffAlerts, turnOnAlerts } from "./push.ts";
 import { stepStrip, syncStrip, viewer } from "./views/photos.ts";
 import { noteIndicators, placeIndicators } from "./indicator.ts";
-import { closeSheetMotion, enterView, inkBurst, inkSettle, land, openSheetMotion, pop, thunk, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
+import { initSheetDrag } from "./sheetdrag.ts";
+import { closeSheetMotion, enterView, growBars, inkBurst, inkSettle, land, liveBar, openSheetMotion, picked, pop, thunk, toastIn, toastOut, unfold, viewerIn, viewerOut } from "./motion.ts";
 import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
-  S, allFields, draftDirty, initState, myCriteria, myId, neighborhoods, persistDraft, ratingOf, resetDraft,
+  S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, stampedBy, verdictOf,
-  type Filter, type Lens, type Tab,
+  type Filter, type Lens, type Tab, draftChanges, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
-import type { Criterion, Stage, Verdict } from "./types.ts";
+import type { Stage, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
-import { changeLog, impactHTML, renderCriteria } from "./views/criteria.ts";
-import { diffRows, renderCompare } from "./views/compare.ts";
+import type { Level } from "./criteria-edit.ts";
+import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/criteria.ts";
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
@@ -35,13 +36,12 @@ initState(api);
 const $ = (id: string) => document.getElementById(id)!;
 
 // ---------- rendering ----------
-const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"], ["compare", "Compare"]];
+const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["criteria", "Criteria"]];
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
   if (t === "pipeline") return S.feed.filter((r) => r.stage !== "new" && r.stage !== "passed").length;
   if (t === "criteria") return S.draft.filter((c) => c.active).length;
-  if (t === "compare") return diffRows().filter((r) => r.how).length;
   return "";
 }
 
@@ -54,7 +54,7 @@ function controlKey(el: Element | null): string | null {
   if (!(el instanceof HTMLElement) || el === document.body) return null;
   if (el.id) return `#${CSS.escape(el.id)}`;
   const d = el.dataset;
-  const attrs = ["action", "change", "edit", "id", "v", "open", "note"]
+  const attrs = ["action", "change", "edit", "id", "v", "key", "open", "note"]
     .filter((k) => d[k] != null).map((k) => `[data-${k}="${CSS.escape(d[k]!)}"]`);
   return attrs.length ? el.tagName.toLowerCase() + attrs.join("") : null;
 }
@@ -94,6 +94,12 @@ function drawSheet() {
   }
 }
 
+/** The sticky tab bar's height, so the Criteria bar can stick right beneath it. */
+function syncTabsHeight() {
+  const nav = document.querySelector<HTMLElement>("nav.tabs");
+  if (nav) document.documentElement.style.setProperty("--tabs-h", `${nav.offsetHeight}px`);
+}
+
 export function render() {
   persistDraft();
   const root = $("app");
@@ -118,12 +124,13 @@ export function render() {
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
-      feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, compare: renderCompare, settings: renderSettings,
+      feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, settings: renderSettings,
     }[S.tab]()}</main>`;
   placeIndicators(root, inds);
   // the stamp is at hand on the list, and while a listing's sheet is open, where you can stamp it
   stamp.setShown((S.tab === "feed" && S.feedView === "list" && !S.loading && S.feed.length > 0) || !!S.openId);
   stamp.setFace(myFace(), inkOf(myId()), seal(myFace(), { size: 72, tilt: -8 }));
+  syncTabsHeight();
   window.scrollTo(0, y);
   if (hold) {
     const el = root.querySelector(hold.key);
@@ -136,6 +143,7 @@ export function render() {
     if (left) { s.scrollLeft = left; syncStrip(s); }
   }
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
+  if (!S.loading && S.tab === "criteria") liveBar(root);
 
   const key = viewKey();
   if (key !== lastView && !S.loading) {
@@ -148,11 +156,22 @@ export function render() {
   sheetShown = open;
 }
 
-function closeSheet() {
+// The open sheet gets a browser history entry, so the phone's back gesture closes it
+// instead of leaving the app. Closing it any other way steps that entry back off.
+let dragDy = 0;
+function closeSheet(fromDy = 0) {
+  if (!S.openId) return;
+  if (window.history.state?.sheet) { dragDy = fromDy; window.history.back(); return; } // popstate does the closing
+  shutSheet(fromDy);
+}
+function shutSheet(fromDy = 0) {
   if (!S.openId) return;
   S.openId = null; sheetShown = false;
-  closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; });
+  closeSheetMotion($("sheet-root"), () => { if (!S.openId) $("sheet-root").innerHTML = ""; }, fromDy);
 }
+window.addEventListener("popstate", () => {
+  if (S.openId && !window.history.state?.sheet) { const dy = dragDy; dragDy = 0; shutSheet(dy); }
+});
 
 // whether the last thing the person did was a key press (vs a tap or click)
 let usingKeyboard = false;
@@ -249,7 +268,11 @@ async function load() {
     Object.assign(S, { profiles, feed, ratings, stamps, criteria, places });
     resetDraft(false);
     const restored = restoreDraft();
-    if (restored === "restored") toast("Your unsaved criteria edits are back. Save them in Criteria, or Discard.");
+    if (restored === "restored") {
+      toast(`Unsaved criteria edits from earlier: ${draftChanges() || "small changes"}. Save them in Criteria, or discard them.`, {
+        ms: 12000, action: { label: "Discard", run: () => { resetDraft(); render(); toast("Discarded"); } },
+      });
+    }
     if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
     S.error = null;
   } catch (e) {
@@ -275,6 +298,8 @@ async function boot() {
 }
 
 async function openSheet(id: string) {
+  if (window.history.state?.sheet) window.history.replaceState({ sheet: id }, "");
+  else window.history.pushState({ sheet: id }, "");
   S.openId = id;
   S.bdWho = "me";
   render();
@@ -400,6 +425,40 @@ function testResult(r: TestResult) {
   console.warn("Test alert", r);
 }
 
+/** Add a write-in from the "Add your own" box: "exposed brick" becomes an Important want that looks for those words. */
+function addWriteIn() {
+  const box = document.getElementById("writein") as HTMLInputElement | null;
+  const phrase = box?.value.trim().replace(/\s+/g, " ") ?? "";
+  if (!phrase) { box?.focus(); toast("Type what to look for first, e.g. exposed brick"); return; }
+  const slug = phrase.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (S.draft.some((c) => c.field === "write_in:" + slug)) { toast(`You already have “${phrase}”`); return; }
+  const newId = "new-" + Date.now();
+  S.draft.push({
+    id: newId, owner_id: myId(), label: phrase[0].toUpperCase() + phrase.slice(1), kind: "want",
+    field: "write_in:" + slug, operator: "mentions", value: [phrase],
+    weight: 5, near_miss_margin: null, active: true,
+  });
+  render();
+}
+
+/** Tick or untick one of my write-ins on a listing (null: go back to what the listing says), then re-score. */
+let markTimer: number | undefined;
+function markWriteIn(criterionId: string, met: boolean | null) {
+  const row = S.feed.find((r) => r.id === S.openId);
+  if (!row) return;
+  const marks = { ...(row.marks ?? {}) };
+  if (met == null) delete marks[criterionId]; else marks[criterionId] = met;
+  row.marks = marks;
+  render();
+  api.setMark(criterionId, row.id, met).then(() => {
+    // scores are stored on the server; refresh them once the ticking stops
+    clearTimeout(markTimer);
+    markTimer = window.setTimeout(async () => {
+      try { await api.rescore(); S.feed = await api.feed(); render(); } catch (e) { showError(e); }
+    }, 800);
+  }, showError);
+}
+
 async function alertsAction(run: () => Promise<void>) {
   S.busy.add("alerts");
   render();
@@ -473,13 +532,12 @@ async function loadLog() {
 
 // ---------- events ----------
 const draftById = (id: string) => S.draft.find((c) => c.id === id)!;
-const refreshImpact = () => { const el = document.getElementById("impact"); if (el) el.innerHTML = impactHTML(); };
 
 document.addEventListener("click", (e) => {
   const t = e.target as HTMLElement;
   const a = t.closest<HTMLElement>("[data-action]");
   if (a) {
-    const { action, id = "", v = "" } = a.dataset;
+    const { action, id = "", v = "", key = "" } = a.dataset;
     if (action !== "tab" && action !== "peek") holdInPlace(a); // switching sections goes to the top instead
     switch (action) {
       case "closesheet": if (t === a) closeSheet(); return;
@@ -492,7 +550,7 @@ document.addEventListener("click", (e) => {
       case "closeviewer": closeViewer(); return;
       case "tab":
         S.tab = v as Tab; save("tab", v); S.shown = 40; window.scrollTo(0, 0);
-        if (v === "criteria" && changeLog.rows == null) loadLog();
+        if (v === "criteria") { resetLive(); if (changeLog.rows == null) loadLog(); }
         break;
       case "why": {
         const opening = !S.whyOpen.has(id);
@@ -510,26 +568,37 @@ document.addEventListener("click", (e) => {
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
-      case "move": setStage(id, v as Stage); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
-      case "kind": draftById(id).kind = v as Criterion["kind"]; break;
+      case "level": {
+        const row = a.closest<HTMLElement>(".pick"), wasSkip = row?.dataset.level === "skip";
+        setLevel(key ? { key } : { id }, v as Level);
+        render();
+        const now = row?.dataset.row ? document.querySelector(`.pick[data-row="${CSS.escape(row.dataset.row)}"]`) : null;
+        if (wasSkip) { unfold(now?.querySelector(".detail") ?? null); growBars(now); }
+        picked(now, v);
+        return;
+      }
+      case "info": {
+        const opening = !S.infoOpen.has(v);
+        if (opening) S.infoOpen.add(v); else S.infoOpen.delete(v);
+        render();
+        if (opening) unfold(document.querySelector(`.pick[data-row="${CSS.escape(v)}"] .about`));
+        return;
+      }
+      case "critfilter": S.critFilter = v as typeof S.critFilter; save("critFilter", v); break;
       case "hood": {
         const c = draftById(id), list = c.value as string[];
         c.value = list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
         break;
       }
       case "remove": S.draft = S.draft.filter((c) => c.id !== id); break;
-      case "add": {
-        const def = allFields().find((d) => d.key === ($("preset") as HTMLSelectElement).value);
-        if (!def) return;
-        S.draft.push({
-          id: "new-" + Date.now(), owner_id: myId(), label: def.label, kind: v as Criterion["kind"],
-          field: def.field, operator: def.operator,
-          // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
-          value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
-          weight: 5, near_miss_margin: def.unit === "money" ? 0.05 : null, active: true,
-        });
-        break;
+      case "writein": addWriteIn(); return;
+      case "unmark": markWriteIn(id, null); return;
+      case "history": {
+        S.historyOpen = !S.historyOpen; save("historyOpen", S.historyOpen);
+        render();
+        if (S.historyOpen) unfold(document.getElementById("history-list"));
+        return;
       }
       case "discard": resetDraft(); break;
       case "savecrit": saveCriteria(); return;
@@ -551,11 +620,6 @@ document.addEventListener("click", (e) => {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
         return;
       }
-      case "savename": {
-        const name = ($("myname") as HTMLInputElement).value.trim();
-        api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);
-        return;
-      }
       case "signout": api.signOut().then(() => { S.me = null; render(); }); return;
       case "resend": S.sentLinkTo = null; break;
       case "dismiss": S.error = null; break;
@@ -574,6 +638,8 @@ document.addEventListener("keydown", (e) => {
     const card = e.target as HTMLElement;
     if (card.matches?.(".card[data-stamp-id]")) { e.preventDefault(); stamp.stampCard(card); return; }
   }
+  // the "add your own" box: Enter adds it
+  if (e.key === "Enter" && (e.target as HTMLElement).id === "writein") { e.preventDefault(); addWriteIn(); return; }
   // the section tabs: arrow keys move between them (and open them), Home/End jump to the ends
   const tab = (e.target as HTMLElement).closest?.<HTMLElement>('nav.tabs [role="tab"]');
   if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
@@ -581,7 +647,7 @@ document.addEventListener("keydown", (e) => {
     const keys = TABS.map(([k]) => k), i = keys.indexOf(tab.dataset.v as Tab);
     const next = e.key === "Home" ? 0 : e.key === "End" ? keys.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + keys.length) % keys.length;
     S.tab = keys[next]; save("tab", S.tab); S.shown = 40; window.scrollTo(0, 0);
-    if (S.tab === "criteria" && changeLog.rows == null) loadLog();
+    if (S.tab === "criteria") { resetLive(); if (changeLog.rows == null) loadLog(); }
     render();
     document.getElementById(`tab-${S.tab}`)?.focus();
     return;
@@ -613,6 +679,7 @@ document.addEventListener("change", (e) => {
     input.value = ""; // so picking the same photo again still counts as a change
     if (file) changeAvatar(async () => api.setAvatar(await squareAvatar(file)), "Profile photo saved");
   }
+  if (t.dataset.mark) markWriteIn(t.dataset.mark, (t as unknown as HTMLInputElement).checked);
   if (t.dataset.change === "threshold") {
     const n = Number(t.value);
     api.setAlertThreshold(n).then(async () => { S.profiles = await api.profiles(); toast(`You'll be alerted at ${n} and up`); render(); }, showError);
@@ -626,20 +693,35 @@ document.addEventListener("input", (e) => {
   const f = t.dataset.edit;
   if (!f || !t.dataset.id) return;
   const c = draftById(t.dataset.id);
+  if (t.type === "range") t.style.setProperty("--fill", `${Math.round(((+t.value - +t.min) / (+t.max - +t.min)) * 100)}%`);
   if (f === "label") c.label = t.value;
-  else if (f === "active") { c.active = t.checked; render(); return; }
-  else if (f === "weight") { c.weight = +t.value; $("wl-" + c.id).textContent = t.value; }
+  else if (f === "words") c.value = t.value.split(",").map((w) => w.trim()).filter(Boolean);
   else if (f === "margin") { c.near_miss_margin = +t.value ? +t.value / 100 : null; $("ml-" + c.id).textContent = t.value + "%"; }
   else if (f === "value") {
     if (c.operator === "before") c.value = t.value || c.value;
-    else if (t.value !== "") { c.value = +t.value; const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value; }
+    else if (t.value !== "") {
+      c.value = +t.value;
+      const vl = document.getElementById("vl-" + c.id); if (vl) vl.textContent = t.value;
+      // a box and the slider beside it show the same number
+      for (const twin of document.querySelectorAll<HTMLInputElement>(`[data-edit="value"][data-id="${CSS.escape(c.id)}"]`)) {
+        if (twin === t || twin.value === t.value) continue;
+        twin.value = t.value;
+        if (twin.type === "range") twin.style.setProperty("--fill", `${Math.round(((+twin.value - +twin.min) / (+twin.max - +twin.min)) * 100)}%`);
+      }
+    }
   }
-  refreshImpact();
+  refreshBars();
   persistDraft();
 });
 
 document.addEventListener("submit", async (e) => {
   const form = e.target as HTMLFormElement;
+  if (form.id === "nameform") {
+    e.preventDefault();
+    const name = ($("myname") as HTMLInputElement).value.trim();
+    api.updateMyName(name).then(async () => { S.profiles = await api.profiles(); toast("Name saved"); render(); }, showError);
+    return;
+  }
   if (form.id === "addplace") {
     e.preventDefault();
     const label = ($("place-label") as HTMLInputElement).value.trim();
@@ -689,6 +771,7 @@ if ("serviceWorker" in navigator && !api.demo && import.meta.env.PROD && !import
 }
 
 initDrag((id, stage) => setStage(id, stage as Stage));
+initSheetDrag((dy) => closeSheet(dy));
 
 // the seals' shared lettering ring, crop and ink filters, once for the whole page
 document.body.insertAdjacentHTML("beforeend", inkDefs());
@@ -700,7 +783,7 @@ const stamp = mountStamp({
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
-window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => placeIndicators()); });
-document.fonts?.ready.then(() => placeIndicators());
+window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); }); });
+document.fonts?.ready.then(() => { placeIndicators(); syncTabsHeight(); });
 
 boot();

@@ -1,13 +1,12 @@
 import type { AlertState } from "./push.ts";
-import {
-  type ScorableListing, groupByOwner, scoreListing, scorePerson,
-} from "../../supabase/functions/_shared/scoring.ts";
+import type { ScorableListing } from "../../supabase/functions/_shared/scoring.ts";
 import type { Api } from "./api.ts";
 import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Stamp, Verdict } from "./types.ts";
 import { CATALOG, type FieldDef } from "./catalog.ts";
+import { IMPORTANT_WEIGHT, type Level, withLevel } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
 
-export type Tab = "feed" | "pipeline" | "criteria" | "compare" | "settings";
+export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
 export type Filter = "passing" | "near" | "other" | "stamped";
 export type Sort = "score" | "newest" | "rent";
@@ -37,18 +36,30 @@ export interface State {
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
   sentLinkTo: string | null;
+  historyOpen: boolean;    // Criteria → Change history expanded (remembered on this device)
+  infoOpen: Set<string>;   // Criteria rows with their (i) explanation open, by row key
+  critFilter: "all" | "picks" | "differ"; // Criteria shows every feature, only the ones I've picked, or only where we differ
   alerts: AlertState;      // phone alerts on this device
 }
 
 export const S = {} as State;
 
+/** The tab to open on: the one used last, except Compare, which now lives inside Criteria. */
+function savedTab(): Tab {
+  const t = store<string>("tab", "feed");
+  return (t === "compare" ? "criteria" : t) as Tab;
+}
+
 export function initState(api: Api) {
   Object.assign(S, {
     api, me: null, profiles: [], feed: [], ratings: [], stamps: [], criteria: [], places: [], draft: [],
-    tab: store<Tab>("tab", "feed"), lens: "both",
+    tab: savedTab(), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
     loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
+    critFilter: store<"all" | "picks" | "differ">("critFilter", "all"),
+    historyOpen: store<boolean>("historyOpen", false),
+    infoOpen: new Set(),
   } satisfies State);
 }
 
@@ -68,13 +79,31 @@ export const partnerCriteria = () => S.criteria.filter((c) => c.owner_id === par
  * formats numbers, and the order neighborhoods were ticked in.
  */
 export function settingsOf(list: Criterion[]) {
-  const norm = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : typeof v === "number" ? Number(v) : v ?? null);
+  // titles aren't editable, so they're left out: a title can only change on the server (a rename), never as an edit of yours
   return JSON.stringify(list.map((c) => [
-    c.id, c.label.trim(), c.kind, c.field, c.operator, norm(c.value),
+    c.id, c.kind, c.field, c.operator, norm(c.value),
     Number(c.weight), Math.round(Number(c.near_miss_margin ?? 0) * 100), !!c.active,
   ]));
 }
+const norm = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort() : typeof v === "number" ? Number(v) : v ?? null);
 export const draftDirty = () => settingsOf(myCriteria()) !== settingsOf(S.draft);
+
+/** What the unsaved edits are, in words: "Availability changed, order changed, 1 added". */
+export function draftChanges(): string {
+  const saved = myCriteria(), byId = new Map(saved.map((c) => [c.id, c]));
+  const one = (c: Criterion) => settingsOf([c]);
+  const changed = S.draft.filter((c) => byId.has(c.id) && one(c) !== one(byId.get(c.id)!)).map((c) => c.label);
+  const added = S.draft.filter((c) => !byId.has(c.id)).length;
+  const removed = saved.filter((c) => !S.draft.some((d) => d.id === c.id)).length;
+  const kept = S.draft.filter((c) => byId.has(c.id)).map((c) => c.id);
+  const reordered = kept.join() !== saved.filter((c) => kept.includes(c.id)).map((c) => c.id).join();
+  return [
+    changed.length ? `${changed.join(", ")} changed` : "",
+    reordered ? "order changed" : "",
+    added ? `${added} added` : "",
+    removed ? `${removed} removed` : "",
+  ].filter(Boolean).join(", ");
+}
 
 // ---------- unsaved criteria edits ----------
 // Kept on this device so they survive a reload, a new tab, or closing the app.
@@ -106,8 +135,12 @@ export function restoreDraft(): "restored" | "stale" | null {
     // only worth mentioning if the dropped edits actually changed something
     return settingsOf(d.draft) !== d.base ? "stale" : null;
   }
-  S.draft = clone(d.draft);
-  return draftDirty() ? "restored" : null;
+  // titles always come from what's saved (they can be renamed on the server, never edited here)
+  const saved = new Map(myCriteria().map((c) => [c.id, c.label]));
+  S.draft = clone(d.draft).map((c) => (saved.has(c.id) ? { ...c, label: saved.get(c.id)! } : c));
+  if (draftDirty()) return "restored";
+  resetDraft(); // nothing real was waiting: start clean
+  return null;
 }
 
 // ---------- ratings ----------
@@ -151,18 +184,8 @@ function scorable(row: FeedRow): ScorableListing {
   return { ...row, amenities: row.amenities ?? {}, building, commutes: row.commutes ?? {} };
 }
 
-/** Score every listing locally with a candidate version of my criteria (for the editor preview). */
-export function previewCounts(mine: Criterion[]) {
-  const others = partnerCriteria().filter((c) => c.active);
-  const minePass = { pass: 0, near: 0 }, both = { pass: 0 };
-  const byOwner = groupByOwner([...mine.filter((c) => c.active).map((c) => ({ ...c, owner_id: myId() })), ...others]);
-  for (const row of S.feed) {
-    const p = scorePerson(mine.filter((c) => c.active), scorable(row));
-    if (p.passes) minePass.pass++; else if (p.near_miss) minePass.near++;
-    if (scoreListing(byOwner, scorable(row)).passes) both.pass++;
-  }
-  return { mine: minePass, both };
-}
+/** Every listing in my feed, in the shape scoring wants (for the Criteria page's live numbers). */
+export const scorableRows = (): ScorableListing[] => S.feed.map(scorable);
 
 // ---------- places ----------
 /** "Office", or "Noah's office" for the other person's place. */
@@ -175,6 +198,7 @@ export function allFields(): FieldDef[] {
   const commutes: FieldDef[] = S.places.map((p) => ({
     key: "place:" + p.id, label: "Commute to " + placeName(p), field: "commute:" + p.id,
     operator: "within_minutes", value: 35, group: "Commute",
+    info: `The subway trip from the listing to ${placeName(p)}, door to door: the walk to a station, a wait of half the gap between trains, the ride, any transfers and the walk at the end, for a weekday morning. Listings without a time yet are skipped, not penalized.`,
   }));
   return [...CATALOG, ...commutes];
 }
@@ -185,3 +209,47 @@ export const neighborhoods = () => {
   for (const r of S.feed) if (r.neighborhood) counts.set(r.neighborhood, (counts.get(r.neighborhood) ?? 0) + 1);
   return counts;
 };
+
+// ---------- how much each feature matters ----------
+let newCount = 0;
+const newId = () => `new-${Date.now()}-${newCount++}`;
+
+/** Prefix on the key of a row that is my partner's own criterion, with no match on my list yet. */
+export const THEIRS = "their:";
+
+/** A criterion for a catalog feature, ready to go on my list. */
+function newCriterion(def: FieldDef): Criterion {
+  return {
+    id: newId(), owner_id: myId(), label: def.label, kind: "want",
+    field: def.field, operator: def.operator,
+    // a new neighborhoods list starts with every neighborhood in your listings; untick the ones you don't want
+    value: def.operator === "in" ? [...neighborhoods().keys()].sort() : structuredClone(def.value),
+    weight: IMPORTANT_WEIGHT, near_miss_margin: null, active: true,
+  };
+}
+
+/** My criterion for a catalog feature, if I've picked it. */
+export const criterionFor = (def: Pick<FieldDef, "field" | "operator">) =>
+  S.draft.find((c) => c.field === def.field && c.operator === def.operator);
+
+/**
+ * Set how much a feature matters to me. A feature you haven't touched gets its criterion on the
+ * first pick. Skip turns a saved one off, keeping its settings; one that was never saved just goes.
+ * Name a catalog feature by its key, or one of your own by its criterion id. A THEIRS id picks up
+ * one of my partner's own criteria and puts a copy on my list.
+ */
+export function setLevel(target: { key?: string; id?: string }, level: Level) {
+  const def = target.key ? allFields().find((d) => d.key === target.key) : undefined;
+  const theirs = target.id?.startsWith(THEIRS) ? partnerCriteria().find((x) => THEIRS + x.id === target.id) : undefined;
+  let c = theirs ? undefined : target.id ? S.draft.find((x) => x.id === target.id) : def && criterionFor(def);
+  if (!c) {
+    if (level === "skip" || (!def && !theirs)) return;
+    c = theirs
+      ? { ...clone(theirs), id: newId(), owner_id: myId(), kind: "want", weight: IMPORTANT_WEIGHT, active: true }
+      : newCriterion(def!);
+    S.draft.push(c);
+  }
+  const keep = c;
+  if (level === "skip" && !myCriteria().some((x) => x.id === keep.id)) { S.draft = S.draft.filter((x) => x !== keep); return; }
+  S.draft[S.draft.indexOf(keep)] = withLevel(keep, level, def?.unit === "money" ? 0.05 : null);
+}

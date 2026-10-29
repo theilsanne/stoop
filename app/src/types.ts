@@ -50,6 +50,8 @@ export interface FeedRow extends Listing {
   complaints_311_12mo: number | null;
   building_checked_at: string | null;
   commutes: Record<string, number> | null; // place id -> transit minutes
+  description: string | null;               // the listing's own text (write-ins look in it)
+  marks: Record<string, boolean> | null;    // write-ins ticked/unticked by hand, by criterion id
 }
 
 export interface Place {

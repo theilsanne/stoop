@@ -3,7 +3,7 @@
   --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7ece9; --ink:#15201a; --ink-2:#56645c; --line:#d3dcd6;
   --accent:#007a45; --accent-ink:#ffffff; --accent-soft:#d9eee2; --seal-0:#c23a2b; --seal-1:#24479a;
   --good:#1b7a44; --good-soft:#dcf0e3; --warn:#9a5c00; --warn-soft:#fbecd2; --bad:#bb3227; --bad-soft:#f9dfdc;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06);
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%2356645c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#dfe7e2; --ph-b:#cbd7d0; --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.06); --lift:0 2px 4px rgba(20,32,26,.08),0 10px 26px rgba(20,32,26,.16); --lift-bg:var(--surface);
   --display:'Archivo','Arial Narrow',system-ui,sans-serif;
   --body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -12,12 +12,12 @@
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.5),0 14px 32px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07); --lift-bg:color-mix(in srgb,var(--surface) 93%,#fff); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#0f1512; --surface:#17201b; --surface-2:#202a24; --ink:#e6ece8; --ink-2:#9aa89f; --line:#2b3730;
   --accent:#3cc47f; --accent-ink:#04130a; --accent-soft:#163525; --seal-0:#ff7d68; --seal-1:#8fb0ff;
   --good:#52c887; --good-soft:#15301f; --warn:#e3a645; --warn-soft:#352812; --bad:#f06e62; --bad-soft:#3a1916;
-  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%239aa89f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); --ph-a:#1f2b25; --ph-b:#26342c; --shadow:0 1px 2px rgba(0,0,0,.3); --lift:0 2px 6px rgba(0,0,0,.5),0 14px 32px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.07); --lift-bg:color-mix(in srgb,var(--surface) 93%,#fff); color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
@@ -63,10 +63,13 @@ select.sm:hover{border-color:var(--ink-2)}
   repeating-linear-gradient(0deg,transparent 0 17px,var(--ph-b) 17px 18px),
   repeating-linear-gradient(90deg,transparent 0 17px,var(--ph-b) 17px 18px),var(--ph-a)}
 .badges{position:absolute;left:12px;top:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
-.badge{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:var(--surface);color:var(--ink)}
-.badge.new{background:var(--accent);color:var(--accent-ink)}
-.badge.drop{background:var(--good-soft);color:var(--good)}
-.badge.both{background:var(--accent-soft);color:var(--accent)}
+/* Badge: the small uppercase label on a listing photo. One shape and size; data-tone picks the color. */
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10.5px;line-height:1.3;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  padding:3px 8px;border-radius:6px;background:var(--surface);color:var(--ink);white-space:nowrap}
+.badge[data-tone="accent"]{background:var(--accent);color:var(--accent-ink)}
+.badge[data-tone="good"]{background:var(--good-soft);color:var(--good)}
+.badge[data-tone="warn"]{background:var(--warn-soft);color:var(--warn)}
+.badge[data-tone="bad"]{background:var(--bad-soft);color:var(--bad)}
 .score{position:absolute;right:12px;top:10px;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-weight:600;font-size:18px;background:var(--surface);color:var(--ink-2);border:3px solid var(--line)}
 .score.hi{border-color:var(--accent);color:var(--accent)}
 .score.mid{border-color:var(--warn);color:var(--warn)}
@@ -110,11 +113,10 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 .hint{font-size:13px;color:var(--ink-2);margin:0 0 12px}
 
 /* criteria */
-.critbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 50px);z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow)}
-.impact{padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.critbar .addrow{border-top:1px solid var(--line);padding:10px 14px}
-.critbar .addrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.critbar .addrow select{flex:0 1 auto}
+/* Sticks a little below the tabs. The gap is real: listings scroll up through it and are cut off by the tab bar's bottom line, which sits above them. */
+.critstick{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--tabs-h,50px) + 10px);z-index:4;margin-bottom:18px}
+.critbar{--ring:var(--lift-bg);background:var(--lift-bg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--lift)}
+.impact{padding:10px 14px}
 .btn.sm-btn{padding:6px 10px;font-size:13px}
 /* ---- icons ---- */
 .brand h1{display:inline-flex;align-items:center;gap:8px}
@@ -125,28 +127,16 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important}
 button.who{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0 !important;border-radius:50% !important}
 button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 @media (max-width:620px){
-  .critbar .impact{padding:8px 12px;gap:6px}
-  .critbar .impact .nums{font-size:12.5px}
-  .critbar .impact .nums b{font-size:14px}
-  .critbar .acts .btn{padding:5px 10px;font-size:13px}
-  .critbar .addrow{padding:8px 12px;flex-wrap:nowrap;gap:6px}
+  .impact{padding:8px 12px}
   .btn.sm-btn{padding:6px 8px;white-space:nowrap}
 }
 .toast{cursor:pointer}
-.impact .nums{font-size:14px;color:var(--ink-2)}
-.impact .nums b{font-family:var(--mono);color:var(--ink);font-size:16px}
-.impact .arrow{color:var(--accent);font-weight:700}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn:disabled{opacity:.45;cursor:default}
 .sect{margin-bottom:26px}
 .sect h2{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:22px;text-transform:uppercase;margin:0 0 2px}
 .sect p.lede{margin:0 0 12px;color:var(--ink-2);font-size:14px;max-width:62ch}
-.crit{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
-.crit.off{opacity:.55}
-.crit-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.crit-head input.lbl{flex:1 1 200px;min-width:0;border:0;border-bottom:1px dashed var(--line);background:transparent;font-weight:600;font-size:15px;padding:4px 0}
-.crit-body{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
 .ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ctl input[type=number],.ctl input[type=date]{width:150px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:14px}
 .ctl input[type=range]{width:150px;accent-color:var(--accent)}
@@ -157,7 +147,6 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .switch{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)}
 .switch input{accent-color:var(--accent);width:16px;height:16px}
 .x{border:0;background:none;color:var(--ink-2);font-size:13px;text-decoration:underline;padding:4px}
-.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .log{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 .log li{padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;display:flex;gap:10px;flex-wrap:wrap}
 .log time{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:7ch}
@@ -203,37 +192,11 @@ textarea{width:100%;min-height:70px;background:var(--bg);border:1px solid var(--
 /* two people */
 .split{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .split b{font-family:var(--mono);color:var(--ink)}
-.gap{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
 .lens{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px}
 .lens-k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
 .lens-d{font-size:13px;color:var(--ink-2);flex:1 1 260px;min-width:0}
 .whose{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:14px;color:var(--ink-2)}
 .whose b{color:var(--ink)}
-.cmp-sum{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;margin-bottom:14px;font-size:14px;color:var(--ink-2)}
-.cmp-sum b{font-family:var(--mono);font-size:20px;color:var(--ink);margin-right:4px}
-.peek{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-.tblwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-table.cmp{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
-table.cmp th,table.cmp td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
-table.cmp thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;background:var(--surface-2)}
-table.cmp tbody th{font-weight:600}
-table.cmp tbody tr:last-child>*{border-bottom:0}
-table.cmp tr.diff{background:color-mix(in srgb,var(--warn-soft) 55%,transparent)}
-.desc{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.kind{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2)}
-.kind.db{color:var(--bad)}
-.wbar{display:inline-block;width:56px;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
-.wbar span{display:block;height:100%;background:var(--accent)}
-.wnum{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
-.desc>span:last-child{width:100%}
-.none{color:var(--ink-2);font-style:italic}
-.flag{font-size:12.5px;font-weight:600;color:var(--warn)}
-.same{font-size:12.5px;color:var(--ink-2)}
-.out{font-size:12.5px;font-weight:600;color:var(--bad)}
-.hcs{display:flex;flex-wrap:wrap;gap:8px}
-.hc{font-size:13.5px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
-.hc.both{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
-.hc.you,.hc.partner{border-style:dashed}
 .linkish{border:0;background:none;padding:0;font-weight:600;color:var(--accent);text-align:left;text-decoration:underline;text-underline-offset:2px}
 
 /* ---- app additions ---- */
@@ -282,8 +245,6 @@ button.score:hover{transform:scale(1.05)}
 .wchips{display:flex;flex-wrap:wrap;gap:4px}
 .wchip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--surface)}
 .wchip.ok{color:var(--good)} .wchip.part{color:var(--warn)} .wchip.no{color:var(--ink-2);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--ink-2) 50%,transparent)}
-.badge.gap{background:var(--warn-soft);color:var(--warn)}
-.badge.bldg{background:var(--bad-soft);color:var(--bad)}
 .places{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .places li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border-radius:10px}
 .placeform{display:flex;flex-wrap:wrap;gap:8px}
@@ -372,7 +333,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
   border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);color:var(--ink);
   font-size:14px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;text-decoration:none;
   transition:background-color .15s var(--ease),border-color .15s var(--ease),transform .12s var(--ease),opacity .15s}
-.btn.sm-btn,.close,.critbar .acts .btn{height:var(--h-sm);padding:0 14px;font-size:13px}
+.btn.sm-btn,.close,.savebar .acts .btn{height:var(--h-sm);padding:0 14px;font-size:13px}
 .btn:hover:not(:disabled),.close:hover{background:color-mix(in srgb,var(--surface) 100%,var(--ink) 5%);border-color:color-mix(in srgb,var(--line) 60%,var(--ink-2))}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 88%,var(--ink));border-color:transparent}
@@ -432,7 +393,7 @@ input.text:focus,textarea:focus,.ctl input:focus{border-color:var(--accent);box-
 input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80%,transparent)}
 
 /* ---- chips: status, neutral, selectable (photo badges keep their own look) ---- */
-.chip,.hpill,.pill,.gap,.wchip,.hc,.tag{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;line-height:1.3;padding:3px 10px;border-radius:var(--r-pill);font-weight:500}
+.chip,.hpill,.pill,.wchip,.tag{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;line-height:1.3;padding:3px 10px;border-radius:var(--r-pill);font-weight:500}
 .tag{font-size:11px}
 .hchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;font-size:13px;cursor:pointer;
   transition:background-color .15s,border-color .15s,color .15s,transform .12s var(--ease)}
@@ -440,7 +401,7 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--ink-2) 80
 .hchip:active{transform:scale(.96)}
 
 /* ---- cards ---- */
-.card,.mini,.panel,.box,.crit,.tblwrap,.critbar,.lens,.empty,.col{border-radius:var(--r-card)}
+.card,.mini,.panel,.box,.picks,.critbar,.lens,.empty,.col{border-radius:var(--r-card)}
 .card{transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .15s}
 .card:active{transform:scale(.995)}
 .mini{padding:12px;transition:border-color .15s,box-shadow .15s}
@@ -507,3 +468,231 @@ img.av{object-fit:cover;background:var(--surface-2)}
 .ink-fx{position:fixed;z-index:27;pointer-events:none;border-radius:50%}
 .ink-ring{width:84px;height:84px;margin:-42px 0 0 -42px;border:3px solid currentColor}
 .ink-drop{width:var(--d);height:var(--d);margin:calc(var(--d) / -2) 0 0 calc(var(--d) / -2);background:currentColor}
+
+/* ---- on/off switch (a checkbox underneath, so it works with keyboards and screen readers) ---- */
+.switch{cursor:pointer;user-select:none}
+.switch input{-webkit-appearance:none;appearance:none;flex:none;margin:0;width:38px;height:22px;border-radius:var(--r-pill);
+  background:var(--surface-2);border:1px solid var(--line);position:relative;cursor:pointer;transition:background-color .2s var(--ease),border-color .2s var(--ease)}
+.switch input::before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s var(--ease)}
+.switch input:checked{background:var(--accent);border-color:var(--accent)}
+.switch input:checked::before{transform:translateX(16px)}
+.switch input:active::before{width:19px}
+.switch input:checked:active::before{transform:translateX(13px)}
+.switch input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- slider: filled track up to the value, a round thumb ---- */
+.ctl input[type=range]{-webkit-appearance:none;appearance:none;width:min(220px,100%);height:24px;margin:0;background:transparent;cursor:pointer;accent-color:auto}
+.ctl input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--accent) var(--fill,50%),var(--surface-2) var(--fill,50%))}
+.ctl input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--surface-2)}
+.ctl input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+.ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;border-radius:50%;background:#fff;
+  border:1px solid color-mix(in srgb,var(--line) 60%,var(--ink-2));box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .12s var(--ease),box-shadow .15s}
+.ctl input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid color-mix(in srgb,var(--line) 60%,var(--ink-2));box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.ctl input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+.ctl input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ctl input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ctl label{color:var(--ink-2)}
+
+/* ---- Settings: people, places ---- */
+.two{align-items:start}
+.panel{container-type:inline-size}
+.people{padding:0}
+.people-grid{display:grid;grid-template-columns:1fr 1fr}
+.people .person{padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.people .person + .person{border-left:1px solid var(--line)}
+@container (max-width:520px){.people-grid{grid-template-columns:1fr}.people .person + .person{border-left:0;border-top:1px solid var(--line)}}
+.people h2{margin:0}
+.people p{margin:0}
+.inline-form{display:flex;gap:8px}
+.inline-form input.text{flex:1 1 auto;width:auto;min-width:0}
+.placeform{display:grid;grid-template-columns:minmax(80px,.4fr) 1fr auto;gap:8px}
+.placeform input.text,.placeform #place-label{width:100%;min-width:0;flex:none}
+@container (max-width:460px){.placeform{grid-template-columns:1fr auto;grid-template-areas:"name name" "addr add"}.placeform #place-label{grid-area:name}.placeform #place-address{grid-area:addr}.placeform button{grid-area:add}}
+.panel-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.panel > p.small{margin:-4px 0 0}
+
+/* ---- listing sheet: commute and building ---- */
+.commutes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.commutes li{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:baseline}
+.c-place{font-size:15px}
+.c-min{font-family:var(--mono);font-weight:600;font-size:15px}
+.c-route{grid-column:1 / -1;display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--ink-2)}
+.c-route .sep{opacity:.6}
+.c-route .bullet{width:22px;height:22px;font-size:12.5px}
+.small-link{font-size:13px;align-self:flex-start}
+
+/* a slider's label sits above it, and its value stays on the same line as the track */
+.ctl:has(> input[type=range]){display:grid;grid-template-columns:minmax(0,220px) auto auto;column-gap:10px;row-gap:2px;align-items:center;justify-content:start}
+.ctl:has(> input[type=range]) > label{grid-column:1 / -1}
+.ctl:has(> input[type=range]) > input[type=range]{width:100%}
+
+/* small round icon button (e.g. remove a criterion) */
+.iconbtn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--h-sm);height:var(--h-sm);padding:0;border:0;border-radius:50%;
+  background:none;color:var(--ink-2);cursor:pointer;transition:background-color .15s,color .15s,transform .12s var(--ease)}
+.iconbtn:hover{background:var(--hover);color:var(--ink)}
+.iconbtn.remove:hover{background:var(--bad-soft);color:var(--bad)}
+.iconbtn:active{transform:scale(.92)}
+@media (pointer:coarse){.iconbtn{position:relative}.iconbtn::after{content:"";position:absolute;inset:-6px}}
+@media (prefers-reduced-motion:reduce){.iconbtn{transition:none}.iconbtn:active{transform:none}}
+
+.ctl.words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;width:100%}
+.ctl.words input{width:100%}
+.ctl.words .small{grid-column:2}
+.writeins{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.writeins li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
+.writeins .switch{font-size:14.5px;color:var(--ink);gap:10px}
+
+/* ---- the live bar: how many listings fit, the best of them as faces, what the last tap changed ---- */
+.lede{margin:0 0 12px;color:var(--ink-2);font-size:14px;max-width:62ch}
+.fit{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.big{font-size:15px;color:var(--ink-2);display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.big b{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.delta{font-family:var(--mono);font-size:13px;font-weight:600;padding:1px 8px;border-radius:999px;animation:delta 2.6s ease-out forwards}
+.delta.up{color:var(--good);background:var(--good-soft)}
+.delta.down{color:var(--bad);background:var(--bad-soft)}
+@keyframes delta{0%{opacity:0;transform:translateY(5px) scale(.9)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+.faces{display:flex;flex:none;padding-left:8px}
+.face{position:relative;width:30px;height:30px;margin-left:-8px;padding:0;overflow:hidden;border-radius:50%;border:2px solid var(--ring,var(--surface));background:var(--surface-2);
+  display:inline-flex;align-items:center;justify-content:center;font:700 12px var(--body);color:var(--ink-2);transition:transform .15s var(--ease)}
+.face img{width:100%;height:100%;object-fit:cover;display:block}
+button.face{cursor:pointer}
+button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
+.face.rest{font-family:var(--mono);font-size:11px;font-weight:600}
+.odo{display:inline-flex;height:1em;overflow:hidden;vertical-align:top}
+.wheel{display:block;width:.62em;height:1em;overflow:hidden}
+/* scoped to the rolling-number wheel: .strip is also the photo strip's class */
+.wheel .strip{display:block;transform:translateY(calc(var(--d) * -1em))}
+.wheel .strip i{display:block;height:1em;line-height:1;font-style:normal;text-align:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sub{margin-top:6px;font-size:13px;color:var(--ink-2)}
+.stamp{display:inline-block;margin:0 9px 0 4px;padding:1px 7px;border:1.5px solid currentColor;border-radius:5px;outline:1px solid currentColor;outline-offset:2px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);transform:rotate(-3deg)}
+.stamp[data-tone="warn"]{color:var(--warn)}
+.stamp[data-tone="bad"]{color:var(--bad)}
+.nudge{margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--warn-soft);font-size:13px}
+.critfilter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:16px}
+.agree{font-size:13px;color:var(--ink-2)}
+.seg .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-left:4px}
+
+/* ---- one row per feature: the name and what the market has, then one control for how much it matters ---- */
+.picks:empty{display:none}
+.picks{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.pick{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:8px 14px;padding:10px 14px;border-top:1px solid var(--line);--lvl:var(--line)}
+.pick[data-level="nice"]{--lvl:color-mix(in srgb,var(--accent) 55%,var(--line));--wash:var(--accent-soft)}
+.pick[data-level="important"]{--lvl:var(--accent);--wash:var(--accent-soft)}
+.pick[data-level="dealbreaker"]{--lvl:var(--ink);--wash:color-mix(in srgb,var(--ink) 12%,transparent)}
+.pick.flash::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--wash);animation:wash .75s ease-out forwards}
+@keyframes wash{from{opacity:1}to{opacity:0}}
+/* three little stairs by each name: none for Skip, up to all three for a Dealbreaker. Your picks read as a staircase down the page. */
+.steps{display:flex;align-items:flex-end;gap:2px;height:16px;align-self:start;margin-top:3px}
+.steps i{display:block;width:5px;border-radius:1.5px 1.5px 0 0;background:var(--line);transform-origin:bottom}
+.steps i:nth-child(1){height:6px}
+.steps i:nth-child(2){height:11px}
+.steps i:nth-child(3){height:16px}
+.steps[data-n="1"] i:nth-child(-n+1),.steps[data-n="2"] i:nth-child(-n+2),.steps[data-n="3"] i{background:var(--lvl)}
+.pick:first-child{border-top:0}
+.pick-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 10px;min-width:0}
+.pick-head .lbl{margin:0;font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.pick[data-level="skip"] .lbl{font-weight:500;color:var(--ink-2)}
+.pick .stat{order:3;flex-basis:100%;display:flex;flex-wrap:wrap;gap:0 10px;font-size:12.5px;color:var(--ink-2);min-height:1.45em}
+.stat .faint{opacity:.7}
+.stat .cut{color:var(--bad);font-weight:600}
+.theirs{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.theirs.same{background:var(--accent-soft);color:var(--accent)}
+.theirs.differ{background:var(--warn-soft);color:var(--warn)}
+/* a dot on a neighborhood my partner picked too */
+.hchip.theirs::after{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--ink-2)}
+.hchip.theirs[aria-pressed="true"]::after{background:var(--accent)}
+.pick-head .iconbtn{margin:-6px 0}
+/* the (i) beside a name opens a plain-language note under the row */
+.info{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;align-self:center;border:0;border-radius:50%;background:none;color:var(--ink-2);cursor:pointer;
+  transition:background-color .15s,color .15s,transform .12s var(--ease)}
+.info:hover{background:var(--hover);color:var(--ink)}
+.info:active{transform:scale(.92)}
+.info[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent)}
+@media (pointer:coarse){.info{position:relative}.info::after{content:"";position:absolute;inset:-8px}}
+.pick .about{grid-column:2 / -1;margin:0;padding:8px 12px;border-radius:8px;background:var(--surface-2);color:var(--ink-2);font-size:13.5px;line-height:1.45;max-width:62ch}
+.pick .detail{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;font-size:14px;color:var(--ink-2)}
+
+/* the ladder: Skip, Nice, Important, Dealbreaker. The highlight darkens as the step gets stronger. */
+.seg.ladder > button{padding:0 12px;font-size:13px}
+.seg.ladder[data-level="nice"] > .ind{background:var(--accent-soft)}
+.seg.ladder[data-level="nice"] > button[aria-pressed="true"]{color:var(--accent)}
+.seg.ladder[data-level="important"] > .ind{background:var(--accent)}
+.seg.ladder[data-level="important"] > button[aria-pressed="true"]{color:var(--accent-ink)}
+.seg.ladder[data-level="dealbreaker"] > .ind{background:var(--ink)}
+.seg.ladder[data-level="dealbreaker"] > button[aria-pressed="true"]{color:var(--surface)}
+@media (max-width:620px){
+  .pick{grid-template-columns:18px minmax(0,1fr)}
+  .pick .detail{grid-column:1 / -1}
+  .pick .about{grid-column:1 / -1}
+  .seg.ladder{display:grid;grid-column:1 / -1;grid-template-columns:1fr 1fr 1.25fr 1.5fr;width:100%}
+  .seg.ladder > button{padding:0 2px;font-size:12.5px;white-space:nowrap}
+  .face{width:26px;height:26px}
+}
+
+/* the bars behind a rent or size slider: where the current listings sit, and which the cap lets through */
+.ctl.market:has(> input[type=range]){display:block;width:100%;max-width:440px}
+.hist{display:flex;align-items:flex-end;gap:2px;height:44px;padding:0 10px}
+.hb{flex:1;min-height:3px;border-radius:2px 2px 0 0;background:var(--surface-2)}
+.hb.on{background:color-mix(in srgb,var(--accent) 55%,var(--surface))}
+.ctl.market input[type=range]{width:100%}
+
+.writein{display:flex;gap:8px;margin-top:10px}
+.writein input{flex:1;min-width:0}
+
+@media (prefers-reduced-motion:reduce){.delta,.pick.flash::after{animation:none}button.face:hover{transform:none}.info{transition:none}.info:active{transform:none}}
+
+/* ---- the save bar sits at the bottom of the page, and only shows while there are unsaved edits ---- */
+#savebar{position:sticky;bottom:0;z-index:4;padding-bottom:env(safe-area-inset-bottom,0px)}
+#savebar:empty{display:none}
+.savebar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 12px;box-shadow:var(--shadow)}
+.savebar > span{font-size:14px;color:var(--ink-2)}
+.savebar .acts .btn:disabled{opacity:.6}
+
+/* ---- disclosure heading (Change history) ---- */
+.disclose{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:4px 0;margin:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.disclose .ic{transition:transform .2s var(--ease);color:var(--ink-2)}
+.disclose[aria-expanded="true"] .ic{transform:rotate(90deg)}
+.disclose .n{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:0}
+.disclose:hover .ic,.disclose:hover .n{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.disclose .ic{transition:none}}
+
+/* ---- phone: the listing sheet is a bottom sheet with a grab handle ---- */
+.grabber{display:none}
+@media (max-width:619px){
+  .overlay{align-items:flex-end;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px))}
+  .sheet{width:100%;height:calc(100% - 28px - env(safe-area-inset-top,0px));border-radius:18px;box-shadow:0 -8px 30px rgba(0,0,0,.18);
+    padding-bottom:28px;scrollbar-width:none;overscroll-behavior:contain}
+  .sheet::-webkit-scrollbar{display:none}
+  .sheet-head{padding-top:6px;border-radius:18px 18px 0 0;touch-action:none}
+  .sheet-head .sheet-top,.sheet-head .stage-row{touch-action:manipulation}
+  .grabber{display:flex;justify-content:center;padding:4px 0 6px;margin:0 -20px;cursor:grab;touch-action:none}
+  .grabber span{width:40px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink-2) 45%,transparent)}
+  .sheet.dragging{transition:none;user-select:none}
+}
+
+/* ---- wider screens: the side sheet floats, inset from the edges, with rounded corners ---- */
+@media (min-width:620px){
+  .overlay{padding:12px}
+  .sheet{height:100%;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08);border:1px solid var(--line)}
+  .sheet-head{border-radius:18px 18px 0 0;padding-top:16px}
+}
+
+/* while a sheet is open, the feed behind it doesn't scroll, and a pull down doesn't reload the app */
+body:has(.overlay){overflow:hidden}
+html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
+
+/* Icon buttons change as one piece on hover: the icon gets its color from its own rule, at the
+   same moment as the background. (Left to inherit, Safari can repaint the icon only once the
+   pointer is over the icon itself, so the background and icon seem to change separately.) */
+.ic{transition:color .15s var(--ease)}
+.vbtn:hover:not([aria-pressed="true"]) .ic,button.who:hover .ic,.grip:hover .ic,.iconbtn:hover .ic{color:var(--ink)}
+.iconbtn.remove:hover .ic{color:var(--bad)}
+.vbtn:not([aria-pressed="true"]) .ic,button.who .ic,.grip .ic,.iconbtn .ic{color:var(--ink-2)}
+.vbtn[aria-pressed="true"][data-v="yes"] .ic{color:var(--good)}
+.vbtn[aria-pressed="true"][data-v="maybe"] .ic{color:var(--warn)}
+.vbtn[aria-pressed="true"][data-v="no"] .ic{color:var(--bad)}
+button.who[aria-pressed="true"] .ic{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.ic{transition:none}}

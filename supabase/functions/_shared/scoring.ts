@@ -10,9 +10,12 @@
 //  - Combined: passes only if it passes for everyone; score = average.
 //  - Missing data (no commute yet, no building record) is skipped, never
 //    counted against a listing.
+//  - Write-ins ("mentions"): met if the person ticked it on the listing, not met
+//    if they unticked it; otherwise met if the description mentions any of its
+//    phrases, and unknown (skipped) if it doesn't.
 
 export type Operator =
-  | "lte" | "gte" | "eq" | "in" | "not_in" | "is_true" | "before" | "within_minutes";
+  | "lte" | "gte" | "eq" | "in" | "not_in" | "is_true" | "before" | "within_minutes" | "mentions";
 
 export interface Criterion {
   id: string;
@@ -49,6 +52,23 @@ export interface ScorableListing {
   building?: Building | null;
   /** minutes keyed by place id; every place belongs to one of you */
   commutes?: Record<string, number>;
+  /** the listing's own description, for write-in criteria */
+  description?: string | null;
+  /** write-ins ticked (true) or unticked (false) by hand, keyed by criterion id */
+  marks?: Record<string, boolean> | null;
+}
+
+const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Does the text mention any of the phrases? Whole words, any case, plurals allowed ("brick wall" finds "brick walls"). */
+export function mentions(text: string | null | undefined, phrases: unknown): boolean {
+  if (!text || !Array.isArray(phrases)) return false;
+  const hay = ` ${fold(text)} `;
+  return phrases.some((p) => {
+    const f = fold(String(p ?? ""));
+    if (!f) return false;
+    return hay.includes(` ${f} `) || hay.includes(` ${f}s `) || hay.includes(` ${f}es `);
+  });
 }
 
 export interface CriterionResult {
@@ -95,7 +115,12 @@ export function netEffectiveRent(
   return Math.round((price * (term - free)) / term);
 }
 
-function getValue(l: ScorableListing, field: string): Value {
+function getValue(l: ScorableListing, field: string, c?: Criterion): Value {
+  if (c?.operator === "mentions") {
+    const mark = l.marks?.[c.id];
+    if (mark != null) return mark;
+    return mentions(l.description, c.value) ? true : UNKNOWN;
+  }
   if (field === "net_effective_rent") return l.net_effective_rent ?? l.price ?? UNKNOWN;
   if (field === "commute") {
     const mins = Object.values(l.commutes ?? {});
@@ -136,7 +161,7 @@ export function evaluate(c: Criterion, l: ScorableListing): CriterionResult {
   const base = {
     criterion_id: c.id, label: c.label, kind: c.kind, weight: c.weight,
   };
-  const v = getValue(l, c.field);
+  const v = getValue(l, c.field, c);
   if (v === UNKNOWN) {
     return { ...base, pass: true, credit: 0, near: false, known: false, shown: "unknown" };
   }
@@ -166,7 +191,7 @@ export function evaluate(c: Criterion, l: ScorableListing): CriterionResult {
       pass = (c.value as unknown[]).includes(v); credit = pass ? 1 : 0; break;
     case "not_in":
       pass = !(c.value as unknown[]).includes(v); credit = pass ? 1 : 0; break;
-    case "is_true":
+    case "is_true": case "mentions":
       pass = !!v; credit = pass ? 1 : 0; break;
     case "before":
       pass = String(v) < String(c.value); credit = pass ? 1 : 0; break;
@@ -180,7 +205,10 @@ export function evaluate(c: Criterion, l: ScorableListing): CriterionResult {
       break;
     }
   }
-  return { ...base, pass, credit, near, known: true, shown: fmt(v, c.field) };
+  const shown = c.operator === "mentions"
+    ? (l.marks?.[c.id] != null ? (v ? "you ticked it" : "you unticked it") : "mentioned")
+    : fmt(v, c.field);
+  return { ...base, pass, credit, near, known: true, shown };
 }
 
 export function scorePerson(criteria: Criterion[], l: ScorableListing): PersonScore {

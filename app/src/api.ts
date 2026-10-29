@@ -53,6 +53,8 @@ export interface Api {
   savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
   removePushSubscription(endpoint: string): Promise<void>;
   testAlert(): Promise<TestResult>;
+  /** Tick (true) or untick (false) one of my write-ins on a listing; null goes back to reading the description. */
+  setMark(criterionId: string, listingId: string, met: boolean | null): Promise<void>;
   /** Alert me about new listings scoring at least this. */
   setAlertThreshold(n: number): Promise<void>;
 }
@@ -77,6 +79,7 @@ const FEED_COLUMNS = [
   "listed_at", "first_seen_at", "last_seen_at",
   "score", "passes", "near_miss", "failed", "per_person", "stage", "verdicts",
   "bbl", "hpd_open_violations", "hpd_class_c_open", "complaints_311_12mo", "building_checked_at", "commutes",
+  "description", "marks",
 ].join(",");
 
 const CRITERION_COLUMNS =
@@ -360,6 +363,14 @@ export class SupabaseApi implements Api {
     const { data, error } = await this.sb.functions.invoke("alerts", { body: { action: "test" } });
     await failFn("Sending a test alert", data, error);
     return data as TestResult;
+  }
+
+  async setMark(criterionId: string, listingId: string, met: boolean | null) {
+    const q = this.sb.from("criterion_marks");
+    const { error } = met == null
+      ? await q.delete().eq("criterion_id", criterionId).eq("listing_id", listingId)
+      : await q.upsert({ criterion_id: criterionId, listing_id: listingId, met, updated_at: new Date().toISOString() }, { onConflict: "criterion_id,listing_id" });
+    fail("Saving your tick", error);
   }
 
   async setAlertThreshold(n: number) {
