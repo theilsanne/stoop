@@ -10,7 +10,7 @@ An author reviewing their own diff sees what they meant to write. A reviewer who
 ## Invariants
 
 0. **The loop runs when the user invokes it.** It costs time and tokens they chose to spend. A go to merge a PR they've already seen merges it through *On the user's go*, with no loop first.
-1. **The loop ends at the user, and the user decides the merge** (CLAUDE.md, working discipline 6).
+1. **The loop ends at the user, and the user decides the merge** (CLAUDE.md, working discipline 8).
    - A "merge it" that started the loop is spent on the loop.
    - A "merge" given in answer to the hand-off is the go. It merges and does not start another loop.
    - The merge is one call, made after the go. Auto-merge stays off.

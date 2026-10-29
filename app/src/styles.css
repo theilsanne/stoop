@@ -255,16 +255,20 @@ button.score:hover{transform:scale(1.05)}
 .toast{display:flex;align-items:center;gap:12px;justify-content:space-between}
 .toast-act{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:6px 12px;font-weight:700;flex:none;cursor:pointer}
 .mapwrap{position:relative;isolation:isolate;z-index:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:8px}
+.mapbar{margin-bottom:8px}
+.mapbar .seg button{display:inline-flex;align-items:center;gap:5px}
+.mapstage{position:relative}
 .map{height:min(70vh,640px);min-height:360px;width:100%;background:var(--surface-2)}
 .maplegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
 .maplegend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .maplegend .switch{margin-left:auto}
 .leaflet-container{font-family:var(--body)}
 .map.dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6)}
-.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink)}
+.leaflet-container .leaflet-popup-content-wrapper,.leaflet-container .leaflet-popup-tip{background:var(--surface);color:var(--ink)}
 .leaflet-popup-content{margin:12px 14px;font-size:14px;line-height:1.4}
-.pop{display:flex;flex-direction:column;gap:3px;min-width:180px}
-.pop .btn{margin-top:6px;align-self:flex-start;padding:6px 12px;font-size:13px}
+.pop{display:flex;flex-direction:column}
+.pop .cb{padding:12px 14px 14px;gap:3px}
+.pop .btn{margin-top:8px;align-self:stretch;padding:8px 12px;font-size:13px;text-align:center}
 .leaflet-container a.leaflet-popup-close-button{color:var(--ink-2)}
 @media (max-width:620px){
   table.cmp{min-width:0}
@@ -642,3 +646,68 @@ html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
 .vbtn[aria-pressed="true"][data-v="no"] .ic{color:var(--bad)}
 button.who[aria-pressed="true"] .ic{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.ic{transition:none}}
+
+/* ---- map: floating list of listings ---- */
+.maplist{position:absolute;z-index:1000;top:10px;left:10px;bottom:10px;width:230px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;pointer-events:none}
+.maplist > *{pointer-events:auto}
+.maplist-toggle{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border-radius:var(--r-pill);height:30px;padding:0 13px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s var(--ease),border-color .2s}
+.maplist-toggle:hover{border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
+.maplist-toggle:active{transform:scale(.97)}
+.maplist ul{position:relative;list-style:none;margin:0;padding:0 2px 2px 0;width:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;pointer-events:none}
+.maplist li{pointer-events:auto;flex:none}
+.mi{all:unset;box-sizing:border-box;width:100%;display:flex;gap:10px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);cursor:pointer;color:var(--ink);transition:transform .12s var(--ease),border-color .2s,box-shadow .2s}
+.mi:hover{border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
+.mi:active{transform:scale(.98)}
+.mi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mi[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow)}
+.mi-ph{flex:none;width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--ph-a)}
+.mi-ph img{display:block;width:100%;height:100%;object-fit:cover}
+.mi-b{min-width:0;display:flex;flex-direction:column;gap:1px;font-size:12.5px;line-height:1.3}
+.mi-rent{display:flex;align-items:center;gap:6px;font-size:14px}
+.mi-rent i{flex:none;width:9px;height:9px;border-radius:50%}
+.mi-s{color:var(--ink-2)}
+.mi-a,.mi-s{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-likes{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--accent)}
+.pop .mi-likes{margin-top:2px}
+.mi-empty{pointer-events:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow)}
+@media (max-width:620px){
+  .maplist{width:98px}
+  .mi{flex-direction:column;gap:6px}
+  .mi-ph{width:100%;height:56px}
+  .mi-a,.mi-likes{display:none}
+}
+@media (prefers-reduced-motion:reduce){.maplist-toggle,.mi{transition:none}.maplist-toggle:active,.mi:active{transform:none}}
+
+/* ---- map popup: a small card with the photo running edge to edge ---- */
+.stoop-pop .leaflet-popup-content-wrapper{padding:0;border-radius:16px;overflow:hidden;box-shadow:var(--lift)}
+.stoop-pop .leaflet-popup-content{margin:0}
+.pop-ph{height:176px;cursor:default}
+.pop-ph.has-photo::after{content:"";position:absolute;inset:auto 0 0;height:65%;background:linear-gradient(transparent,rgba(8,14,11,.78));pointer-events:none}
+.pop-score{left:10px;right:auto;top:10px;z-index:1;width:42px;height:42px;font-size:15px;border-width:2.5px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.pop-rent{position:absolute;left:14px;right:70px;bottom:10px;z-index:1;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.5);pointer-events:none}
+.pop-rent b{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.pop-rent span{font-size:12px;opacity:.9}
+.pop-ph:hover .ph-nav{opacity:1}
+@media (pointer:coarse){.pop-ph .ph-nav{display:none}}
+.leaflet-container .stoop-pop a.leaflet-popup-close-button{top:10px;right:10px;width:28px;height:28px;padding:0;border-radius:50%;background:rgba(10,16,13,.55);color:#fff;font:400 18px/27px var(--body);text-align:center;transition:background .15s}
+.leaflet-container .stoop-pop a.leaflet-popup-close-button:hover{background:rgba(10,16,13,.8)}
+.leaflet-container .stoop-pop a.leaflet-popup-close-button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+@media (pointer:coarse){.leaflet-control-zoom{display:none}}
+@media (max-width:620px){.pop-ph{height:140px}.pop-rent b{font-size:21px}}
+@media (max-width:620px){.mapstage:has(.leaflet-popup) .maplist{display:none}} /* the popup needs the width; closing it brings the list back */
+
+/* ---- map pins and the popup's buttons ---- */
+.pin{background:none;border:0}
+.pin-dot{position:absolute;inset:0;display:grid;place-items:center;box-sizing:border-box;border-radius:50%;background:var(--c);border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.4);color:#fff;transition:transform .12s var(--ease)}
+.pin:hover .pin-dot{transform:scale(1.15)}
+.pin-by{position:absolute;bottom:-7px;z-index:1;width:17px;height:17px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;font:700 10.5px/1 var(--mono);border:1.5px solid var(--surface)}
+.pin-by.me{left:-7px;background:var(--ink);color:var(--surface)}
+.pin-by.them{right:-7px;background:var(--surface);color:var(--ink);border-color:var(--ink)}
+.lg-like{display:inline-flex;align-items:center;gap:5px}
+.pop-actions{display:flex;gap:8px;margin-top:8px}
+.pop-actions .btn{flex:1;margin-top:0;align-self:auto;white-space:nowrap}
+.pop-actions a.btn{display:inline-flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}
+.ext-row{display:flex;gap:8px;flex-wrap:wrap}
+.box a.btn.ext{color:var(--ink)}
+.box a.btn.primary.ext{color:var(--accent-ink)}
+@media (prefers-reduced-motion:reduce){.pin-dot{transition:none}}

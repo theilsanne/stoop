@@ -28,10 +28,11 @@ Layout:
 1. **Commit and push as you go.** Small commits with clear messages, pushed to the working branch as checkpoints.
 2. **Branch names** are short, kebab-case, and named after the work. No agent or bot prefix. Develop on the branch the session names.
 3. **Verify before hand-off:** `npm test`, `cd app && npm run build`, then the change's own steps. For a UI change, check it in `npm run dev` with `?demo`, or say plainly that it wasn't checked.
-4. **Hand over with steps the user can run**, then wait for them to say it's done. Self-checks are due diligence, not sign-off.
-5. **Ask** when a choice changes what the two of you see or how scoring works. Decide how things are built.
-6. **Open a PR only when asked.**
-7. **Merging to `main` is the user's call, every time, autonomous agents included.** A PR merges on the user's go, given after they've seen the hand-off. The adversarial-merge review loop runs only when the user invokes it.
+4. **Previews are the branch's GitHub Pages preview, never an artifact.** Pushing a branch that changes the app deploys it to `https://theilsanne.github.io/stoop/previews/<slug>/` (`pages.yml`; the slug is the branch name with each run of characters other than letters, digits, `.`, `_` and `-` turned into one `-`). Give that link once the run for the pushed commit is green. Never publish an artifact as a preview.
+5. **Hand over with steps the user can run**, then wait for them to say it's done. Self-checks are due diligence, not sign-off.
+6. **Ask** when a choice changes what the two of you see or how scoring works. Decide how things are built.
+7. **Open a PR only when asked.**
+8. **Merging to `main` is the user's call, every time, autonomous agents included.** A PR merges on the user's go, given after they've seen the hand-off. The adversarial-merge review loop runs only when the user invokes it.
 
 ## Commands
 

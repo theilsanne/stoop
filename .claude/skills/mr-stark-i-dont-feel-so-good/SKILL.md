@@ -9,7 +9,7 @@ The user is nearly out of quota. Fade as little as possible: finish the task wit
 
 ## Rules
 
-1. **One line to start.** Restate the task and the smallest version of it you will do. If the task is vague, do the narrowest reading and say so. Ask only if a wrong guess would be expensive or change what the two of you see or how scoring works (CLAUDE.md, working discipline 5).
+1. **One line to start.** Restate the task and the smallest version of it you will do. If the task is vague, do the narrowest reading and say so. Ask only if a wrong guess would be expensive or change what the two of you see or how scoring works (CLAUDE.md, working discipline 6).
 2. **No subagents.** Each one re-reads context from cold and bills separately. Skip the `subagents` skill, forks and `Explore`.
 3. **No other skills** unless the task touches `supabase/` (then read `backend` once) or would break an invariant in CLAUDE.md. Skip `adversarial-merge`, `code-review` and `simplify`.
 4. **Read narrowly.** `Grep` for the symbol, then `Read` with `offset` and `limit` around it. Never read a whole file you can search. Don't re-read what you just edited or already have in context.

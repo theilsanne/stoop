@@ -10,6 +10,7 @@ export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
 export type Filter = "passing" | "near" | "other";
 export type Sort = "score" | "newest" | "rent";
+export type Liked = "all" | "me" | "partner" | "both"; // map: whose thumbs-up a listing needs
 
 export interface State {
   api: Api;
@@ -25,6 +26,7 @@ export interface State {
   filter: Filter;
   sort: Sort;
   feedView: "list" | "map";
+  mapLiked: Liked;         // the map shows every listing, or only those with a thumbs-up from you, your partner or both
   whyOpen: Set<string>;    // feed cards with their score explanation expanded
   shown: number;           // feed cards rendered so far
   openId: string | null;   // listing detail sheet
@@ -53,7 +55,8 @@ export function initState(api: Api) {
   Object.assign(S, {
     api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
     tab: savedTab(), lens: "both",
-    filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"), whyOpen: new Set(), shown: 40,
+    filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"),
+    mapLiked: store<Liked>("mapLiked", "all"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
     loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
     critFilter: store<"all" | "picks" | "differ">("critFilter", "all"),
@@ -145,6 +148,12 @@ export const ratingOf = (listingId: string, userId: string): Rating | undefined 
   S.ratings.find((r) => r.listing_id === listingId && r.user_id === userId);
 export const verdictOf = (listingId: string, userId: string): Verdict | null =>
   ratingOf(listingId, userId)?.verdict ?? null;
+
+/** Whether a listing has the thumbs-up(s) the map's filter asks for. */
+export function likedBy(listingId: string, who: Liked) {
+  const me = verdictOf(listingId, myId()) === "yes", them = verdictOf(listingId, partnerId()) === "yes";
+  return who === "all" || (who === "me" ? me : who === "partner" ? them : me && them);
+}
 
 // ---------- scores ----------
 export interface View { score: number; passes: boolean; near: boolean; failed: string[]; scored: boolean }
