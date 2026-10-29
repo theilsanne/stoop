@@ -130,7 +130,7 @@ export class DemoApi implements Api {
     { listing_id: "d8", user_id: PARTNER, verdict: "maybe", note: null },
     { listing_id: "d2", user_id: PARTNER, verdict: "yes", note: null },
   ];
-  private stages = new Map<string, Stage>([["d4", "shortlisted"], ["d2", "shortlisted"], ["d3", "tour_requested"], ["d8", "toured"]]);
+  private stages = new Map<string, Stage>([["d2", "shortlisted"], ["d3", "tour_requested"], ["d8", "toured"]]);
   private log: CriteriaChange[] = [];
   private names: Record<string, string> = { [YOU]: "You", [PARTNER]: "Partner" };
   private signedIn = true;
@@ -141,6 +141,8 @@ export class DemoApi implements Api {
     { listing_id: "d8", user_id: YOU, stamped_at: new Date(Date.now() - 2 * 864e5).toISOString() },
     { listing_id: "d4", user_id: PARTNER, stamped_at: new Date(Date.now() - 5 * 864e5).toISOString() },
     { listing_id: "d2", user_id: PARTNER, stamped_at: new Date(Date.now() - 864e5).toISOString() },
+    { listing_id: "d2", user_id: YOU, stamped_at: new Date(Date.now() - 6 * 36e5).toISOString() },  // both stamped: shortlisted
+    { listing_id: "d1", user_id: YOU, stamped_at: new Date(Date.now() - 3 * 36e5).toISOString() },  // waiting for the partner
   ];
 
   async me(): Promise<Me | null> { return this.signedIn ? { id: YOU, email: "you@example.com" } : null; }

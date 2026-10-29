@@ -1,4 +1,4 @@
-import { S, myId, partner, partnerName, profileOf } from "../state.ts";
+import { S, myId, partner, partnerName, profileOf, waitingForMe } from "../state.ts";
 import type { Profile, Stamp } from "../types.ts";
 import { esc, fmtDay, hueOf, initials, sealName } from "../util.ts";
 
@@ -8,6 +8,8 @@ type Face = Pick<Profile, "id" | "display_name" | "avatar_url">;
 export const INKS = ["#c23a2b", "#24479a"];
 const inkIndex = (userId: string) => Math.max(0, S.profiles.map((p) => p.id).sort().indexOf(userId)) % INKS.length;
 export const inkOf = (userId: string) => INKS[inkIndex(userId)];
+/** The same ink as a CSS color that follows the theme (lighter in dark mode), for use in styles. */
+export const inkVar = (userId: string) => `var(--seal-${inkIndex(userId)})`;
 
 // Your own profile, or a stand-in if it hasn't loaded yet.
 export const myFace = (): Face => profileOf(myId()) ?? { id: myId(), display_name: "", avatar_url: null };
@@ -111,4 +113,12 @@ export function sheetStamp(id: string) {
       ${them ? `<span>${theirs ? `<b>${esc(partnerName())}</b> stamped it${theirs.s.stamped_at ? ` on ${fmtDay(theirs.s.stamped_at)}` : ""}` : `${esc(partnerName())} hasn't stamped it yet`}</span>` : ""}
     </div>
   </div>`;
+}
+
+/** The little dot for what's waiting on your stamp: your partner stamped it, you haven't. Empty when nothing is. */
+export function waitingDot() {
+  const n = waitingForMe().length;
+  if (!n) return "";
+  const what = `${n} waiting for your stamp`;
+  return `<span class="dot notify" title="${what}" aria-label="${what}"></span>`;
 }

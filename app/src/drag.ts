@@ -33,7 +33,8 @@ function start(p: Pending, x: number, y: number) {
   p.card.classList.add("dragging");
   active = {
     id: p.id, card: p.card, ghost, dx: x - rect.left, dy: y - rect.top,
-    from: (p.card.closest("[data-stage]") as HTMLElement).dataset.stage!, over: null,
+    // a card in Stamped has no stage to come from: that column takes no drops, but its cards can leave it
+    from: (p.card.closest("[data-stage]") as HTMLElement | null)?.dataset.stage ?? "", over: null,
   };
   document.body.classList.add("is-dragging");
   if (p.touch) navigator.vibrate?.(10);

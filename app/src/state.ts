@@ -5,6 +5,7 @@ import type { Criterion, FeedRow, Me, PersonScore, Place, Profile, Rating, Stamp
 import { CATALOG, type FieldDef } from "./catalog.ts";
 import { IMPORTANT_WEIGHT, type Level, withLevel } from "./criteria-edit.ts";
 import { clone, save, store } from "./util.ts";
+import { columnOf, waitingFor, type Column } from "./stages.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
@@ -153,6 +154,21 @@ export const verdictOf = (listingId: string, userId: string): Verdict | null =>
 // Stamps are shown and counted, never scored: they don't touch the scoring rules.
 export const stampedBy = (listingId: string, userId: string) =>
   !!userId && S.stamps.some((s) => s.listing_id === listingId && s.user_id === userId);
+
+/** Which of you has stamped a listing. */
+export const stampsOf = (listingId: string) => ({ mine: stampedBy(listingId, myId()), theirs: stampedBy(listingId, partnerId()) });
+
+/** The pipeline column a listing is in, or null when it isn't on the board. */
+export function columnFor(row: FeedRow): Column | null {
+  const s = stampsOf(row.id);
+  return columnOf(row.stage, s.mine, s.theirs);
+}
+
+/** Listings your partner has stamped that are still waiting for your stamp. */
+export const waitingForMe = () => S.feed.filter((r) => {
+  const s = stampsOf(r.id);
+  return waitingFor(r.stage, s.mine, s.theirs) === "me";
+});
 
 // ---------- scores ----------
 export interface View { score: number; passes: boolean; near: boolean; failed: string[]; scored: boolean }

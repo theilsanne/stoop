@@ -9,7 +9,7 @@ import { SupabaseApi, type Api, type TestResult } from "./api.ts";
 import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
-  restoreDraft, stampedBy, verdictOf,
+  restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
   type Filter, type Lens, type Tab, draftChanges, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
@@ -20,10 +20,12 @@ import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/crite
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
-import { inkDefs, inkOf, myFace, seal } from "./views/stamps.ts";
+import { inkDefs, inkOf, myFace, seal, waitingDot } from "./views/stamps.ts";
 import { mountStamp } from "./stamp3d.ts";
 import { mountMap, showSubway } from "./views/map.ts";
-import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
+import { renderSettings, renderSignIn } from "./views/other.ts";
+import { renderPipeline } from "./views/pipeline.ts";
+import { shouldShortlist } from "./stages.ts";
 
 // ---------- backend ----------
 const env = import.meta.env;
@@ -40,7 +42,7 @@ const TABS: [Tab, string][] = [["feed", "Feed"], ["pipeline", "Pipeline"], ["cri
 
 function tabCount(t: Tab) {
   if (t === "feed") return S.feed.filter((r) => (S.lens === "both" ? r.passes : r.per_person?.[S.lens === "me" ? myId() : (S.profiles.find((p) => p.id !== myId())?.id ?? "")]?.passes)).length;
-  if (t === "pipeline") return S.feed.filter((r) => r.stage !== "new" && r.stage !== "passed").length;
+  if (t === "pipeline") return S.feed.filter((r) => { const c = columnFor(r); return c !== null && c !== "passed"; }).length;
   if (t === "criteria") return S.draft.filter((c) => c.active).length;
   return "";
 }
@@ -121,7 +123,8 @@ export function render() {
     </header>
     <nav class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, t]) =>
       `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
-        k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}</button>`).join("")}</nav>
+        k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}${
+        k === "pipeline" && !S.loading ? waitingDot() : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
     <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, settings: renderSettings,
@@ -280,6 +283,7 @@ async function load() {
   }
   S.loading = false;
   render();
+  void shortlistMutual();
   openFromLink();
   alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); },
     (e) => { S.alerts = "on"; S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); render(); });
@@ -342,7 +346,23 @@ async function placeStamp(id: string) {
   const card = document.querySelector(`.card[data-stamp-id="${CSS.escape(id)}"]`);
   inkSettle(card?.querySelector(".seal.mine") ?? null);
   thunk(card);
-  try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); }
+  try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); return; }
+  await shortlistMutual(true);
+}
+
+/**
+ * Both of you stamped a listing that hasn't moved on: it's a shortlist. Saved as a real stage change,
+ * so your partner sees it too, and the listing's sheet shows it. `say` announces it with a toast.
+ */
+async function shortlistMutual(say = false) {
+  const rows = S.feed.filter((r) => { const s = stampsOf(r.id); return shouldShortlist(r.stage, s.mine, s.theirs); });
+  if (!rows.length) return;
+  for (const r of rows) r.stage = "shortlisted";
+  render();
+  for (const r of rows) land(document.querySelector(`.mini[data-drag-id="${CSS.escape(r.id)}"]`));
+  if (say) toast(rows.length === 1 ? "You both stamped it, so it's shortlisted" : `${rows.length} listings you both stamped are shortlisted`);
+  try { await Promise.all(rows.map((r) => api.setStage(r.id, "shortlisted"))); }
+  catch (e) { for (const r of rows) r.stage = "new"; showError(e); }
 }
 
 /** Take your seal back off a listing. Undo puts it back, and a failed save puts it back too. */

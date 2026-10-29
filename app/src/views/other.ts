@@ -1,24 +1,7 @@
-import { S, myId, partner, partnerId, partnerName, placeName, verdictOf, viewOf } from "../state.ts";
+import { S, myId, partner, partnerName, placeName } from "../state.ts";
 import { icon } from "../icons.ts";
-import { STAGES } from "../types.ts";
-import { esc, money } from "../util.ts";
-import { verdictText } from "./feed.ts";
+import { esc } from "../util.ts";
 import { avatar } from "./avatar.ts";
-
-export function renderPipeline() {
-  return `<p class="hint">Drag a card to another column as you tour and apply (on a phone, press and hold first). To add one, or move one without dragging, open it and set its stage.</p>
-  <div class="board">${STAGES.slice(1).map(([k, t]) => {
-    const items = S.feed.filter((r) => r.stage === k);
-    return `<section class="col" data-stage="${k}" aria-label="${t}"><h3>${t}<span>${items.length}</span></h3>
-      ${items.map((r) => {
-        const v = viewOf(r);
-        return `<div class="mini" data-drag-id="${r.id}"><button class="t linkish" data-open="${r.id}">${esc(r.address)}</button>
-          <div class="row"><span>${money(r.net_effective_rent ?? r.price)} · ${esc(r.neighborhood)}</span><span class="val">${v.scored ? v.score : "–"}</span></div>
-          <div class="row"><span>You ${verdictText(verdictOf(r.id, myId()))} · ${esc(partnerName())} ${verdictText(verdictOf(r.id, partnerId()))}</span></div></div>`;
-      }).join("") || '<div class="small" style="padding:4px">Empty</div>'}
-    </section>`;
-  }).join("")}</div>`;
-}
 
 export function renderSettings() {
   const me = S.profiles.find((p) => p.id === myId());
