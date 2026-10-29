@@ -62,3 +62,8 @@ export function routeHTML(route: string) {
     return w ? `<span class="walk">${w[1]} min walk</span>` : bullet(part);
   }).join('<span class="sep" aria-hidden="true">›</span>');
 }
+
+/** Google Maps at a listing's street view, for opening in a new tab (null with no location). */
+export const streetViewUrl = (row: { lat: number | null; lng: number | null }) =>
+  row.lat == null || row.lng == null ? null
+    : `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${row.lat},${row.lng}`;

@@ -9,11 +9,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { icon } from "../icons.ts";
 import type { FeedRow } from "../types.ts";
-import { S, likedBy, myId, partnerId, partnerName, verdictOf, viewOf, type Liked, type View } from "../state.ts";
-import { beds, esc, money, save, store, LINE_COLORS } from "../util.ts";
+import { S, likedBy, myId, partnerId, partnerName, verdictOf, type Liked, type View } from "../state.ts";
+import { beds, esc, money, save, store, streetViewUrl, LINE_COLORS } from "../util.ts";
 import { commuteLine, groups, sortRows } from "./feed.ts";
 import { cardPhotos, sized } from "./photos.ts";
-import { streetSrc } from "./street.ts";
 
 const SUBWAY_URL = "https://data.ny.gov/resource/s692-irgq.geojson?$limit=5000";
 const BROOKLYN: L.LatLngExpression = [40.68, -73.95];
@@ -26,7 +25,6 @@ const markers = new Map<string, L.Marker>(); // by listing id, for the list to p
 let selected: string | null = null;                // the listing whose popup is open
 let listTop = 0;                                   // the list's scroll position, kept across redraws
 let restoring = false;                             // reopening the popup after a redraw, so the list shouldn't scroll
-let popWidth = 264;                                // the popups' width, for redrawing one in place
 let live = false;                                  // false while the map is being torn down
 
 export const showSubway = { on: store<boolean>("subway", true) };
@@ -130,34 +128,28 @@ export function renderMapShell() {
 }
 
 /** The pin's popup: a photo you can swipe, the price over it, the facts, and the way into the full listing. */
-function popup(row: FeedRow, v: View, width: number, street = false) {
+function popup(row: FeedRow, v: View, width: number) {
   const photos = row.photos?.length ?? 0;
   const rent = money(row.net_effective_rent ?? row.price);
   const asking = row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `net · asking ${money(row.price)}` : "";
-  const src = streetSrc(row);
+  const street = streetViewUrl(row);
   return `<div class="pop" style="width:${width}px">
-    ${street && src ? `<div class="pop-street"><iframe class="street" title="Street view near ${esc(row.address)}" src="${esc(src)}" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>` : `<div class="ph pop-ph${photos ? " has-photo" : ""}">${cardPhotos(row.id, row.photos)}
+    <div class="ph pop-ph${photos ? " has-photo" : ""}">${cardPhotos(row.id, row.photos)}
       ${v.scored ? `<span class="score pop-score ${v.score >= 70 ? "hi" : v.score >= 50 ? "mid" : ""}" title="Score ${v.score}">${v.score}</span>` : ""}
       ${photos ? `<div class="pop-rent"><b>${rent}</b>${asking ? `<span>${asking}</span>` : ""}</div>` : ""}
-    </div>`}
+    </div>
     <div class="cb">
-      ${photos && !street ? "" : `<div class="rent"><b>${rent}</b>${asking ? `<span>${asking}</span>` : ""}</div>`}
+      ${photos ? "" : `<div class="rent"><b>${rent}</b>${asking ? `<span>${asking}</span>` : ""}</div>`}
       <div class="addr">${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</div>
       <div class="hood">${esc(row.neighborhood)}</div>
       <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""}</div>
       ${commuteLine(row)}
       ${likes(row.id)}
       <div class="pop-actions">
-        ${src ? `<button class="btn" data-action="popstreet" data-id="${row.id}" data-v="${street ? "off" : "on"}">${street ? "Photos" : "Street view"}</button>` : ""}
+        ${street ? `<a class="btn" href="${street}" target="_blank" rel="noopener">Street view ↗</a>` : ""}
         <button class="btn primary" data-open="${row.id}">See more</button>
       </div>
     </div></div>`;
-}
-
-/** Swap an open popup between the listing's photos and its street view. */
-export function showStreet(id: string, on: boolean) {
-  const row = S.feed.find((r) => r.id === id);
-  if (row) markers.get(id)?.getPopup()?.setContent(popup(row, viewOf(row), popWidth, on));
 }
 
 /** Mark one listing as the selected one in the list, and bring it into view there. */
@@ -218,7 +210,7 @@ export async function mountMap() {
   const bounds: L.LatLngTuple[] = [];
   // keep a popup clear of the floating list when it pans into view
   const listW = innerWidth <= 620 ? 0 : document.querySelector<HTMLElement>(".maplist")?.offsetWidth ?? 0;
-  popWidth = Math.min(264, innerWidth - 90);
+  const popWidth = Math.min(264, innerWidth - 90);
   const touch = matchMedia("(pointer: coarse)").matches;
   // draw low scores first so the best ones sit on top
   for (const { row, v } of items.sort((a, b) => a.v.score - b.v.score)) {

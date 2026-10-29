@@ -25,7 +25,7 @@ preferences, and shows them in an installable web app at
 
 | Screen | What it does |
 | --- | --- |
-| Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. Switch between **List** and **Map**: pins colored by score on OpenStreetMap tiles (no API key), with MTA subway lines from NY Open Data (`s692-irgq`). On the map, filter to what you, your partner or both of you have thumbs-upped; a floating list of listings on the left flies to a pin and opens its popup (photo and summary), and **See more** opens the full listing. The listing page has a **Street view** (Google's key-free embed, loaded on tap). |
+| Feed | Listings scored for both of you, just you, or just your partner. Passing / near misses / filtered out. Rate yes/maybe/no from the card. Switch between **List** and **Map**: pins colored by score on OpenStreetMap tiles (no API key), with MTA subway lines from NY Open Data (`s692-irgq`). On the map, filter to what you, your partner or both of you have thumbs-upped; a floating list of listings on the left flies to a pin and opens its popup (photo and summary), and **See more** opens the full listing. The popup and the listing page have a **Street view ↗** button that opens Google Maps at that spot in a new tab. |
 | Listing | Photos, rent and concessions, amenities, why it scores what it does for each of you, both verdicts and notes, stage, price history. |
 | Criteria | Every feature you can care about in one list, each with one control for how much it matters: Skip, Nice, Important or Dealbreaker. Each row shows how many current listings fit and what a dealbreaker costs; rent has a histogram of the listings behind its slider; your partner's pick sits beside yours (green where you agree, amber where you differ, with a "We differ" view and a dot on neighborhoods you both picked), and you can pick up one of their own phrases with a tap. A bar at the top shows how many listings fit you before you save (saving re-scores everything), and nudges you when a dealbreaker is keeping out too many. Add your own phrase at the bottom. Change history for both of you. |
 | Pipeline | Shortlisted → tour requested → toured → applied → won. |
@@ -132,7 +132,6 @@ Each new listing's address is matched to a city building (BBL) with NYC Planning
    - `SUPABASE_URL` = `https://<your-project-ref>.supabase.co`
    - `SUPABASE_ANON_KEY` = the publishable (or legacy anon) key from **Supabase → Project Settings → API Keys**
    Both are meant to be public; row-level security and sign-in protect the data.
-   Optional, for Street view that shows the street outside instead of whatever panorama is nearest (it can be the inside of a shop): create a key in Google Cloud with only the **Maps Embed API** enabled, restrict it to the HTTP referrer `https://theilsanne.github.io/*`, and add it as a variable named `GOOGLE_MAPS_KEY`. The Embed API's Street view is free.
 3. **Actions tab → Deploy app to GitHub Pages → Run workflow** (later pushes deploy automatically).
 4. Open `https://theilsanne.github.io/stoop/`, sign in with your email, and on Android choose **Add to Home screen** from Chrome's menu.
 

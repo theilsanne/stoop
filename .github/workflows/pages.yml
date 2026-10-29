@@ -77,7 +77,6 @@ jobs:
           # Both are public by design; set them under Settings → Secrets and variables → Actions → Variables.
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_KEY: ${{ vars.GOOGLE_MAPS_KEY }}
 
       - name: Check whether the site has the live app yet
         id: site
@@ -101,7 +100,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_KEY: ${{ vars.GOOGLE_MAPS_KEY }}
 
       - name: Put this build in the site
         if: ${{ github.event_name != 'delete' }}

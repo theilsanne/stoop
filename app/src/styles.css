@@ -647,7 +647,7 @@ html:has(.overlay),body:has(.overlay){overscroll-behavior-y:none}
 button.who[aria-pressed="true"] .ic{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.ic{transition:none}}
 
-/* ---- map: floating list of listings, street view ---- */
+/* ---- map: floating list of listings ---- */
 .maplist{position:absolute;z-index:1000;top:10px;left:10px;bottom:10px;width:230px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;pointer-events:none}
 .maplist > *{pointer-events:auto}
 .maplist-toggle{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border-radius:var(--r-pill);height:30px;padding:0 13px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s var(--ease),border-color .2s}
@@ -676,12 +676,7 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
   .mi-ph{width:100%;height:56px}
   .mi-a,.mi-likes{display:none}
 }
-.street,.street-go{display:block;width:100%;height:240px;border:0;border-radius:10px;background:var(--surface-2)}
-.street-go{border:1px dashed var(--line);color:var(--ink-2);font-size:14px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s,transform .12s var(--ease)}
-.street-go:hover{color:var(--ink);border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2))}
-.street-go:active{transform:scale(.99)}
-.street-go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){.maplist-toggle,.mi,.street-go{transition:none}.maplist-toggle:active,.mi:active,.street-go:active{transform:none}}
+@media (prefers-reduced-motion:reduce){.maplist-toggle,.mi{transition:none}.maplist-toggle:active,.mi:active{transform:none}}
 
 /* ---- map popup: a small card with the photo running edge to edge ---- */
 .stoop-pop .leaflet-popup-content-wrapper{padding:0;border-radius:16px;overflow:hidden;box-shadow:var(--lift)}
@@ -701,7 +696,7 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
 @media (max-width:620px){.pop-ph{height:140px}.pop-rent b{font-size:21px}}
 @media (max-width:620px){.mapstage:has(.leaflet-popup) .maplist{display:none}} /* the popup needs the width; closing it brings the list back */
 
-/* ---- map pins and the popup's street view ---- */
+/* ---- map pins and the popup's buttons ---- */
 .pin{background:none;border:0}
 .pin-dot{position:absolute;inset:0;display:grid;place-items:center;box-sizing:border-box;border-radius:50%;background:var(--c);border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.4);color:#fff;transition:transform .12s var(--ease)}
 .pin:hover .pin-dot{transform:scale(1.15)}
@@ -709,8 +704,10 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
 .pin-by.me{left:-7px;background:var(--ink);color:var(--surface)}
 .pin-by.them{right:-7px;background:var(--surface);color:var(--ink);border-color:var(--ink)}
 .lg-like{display:inline-flex;align-items:center;gap:5px}
-.pop-street{height:200px;background:var(--surface-2)}
-.pop-street .street{height:100%;border-radius:0}
 .pop-actions{display:flex;gap:8px;margin-top:8px}
-.pop-actions .btn{flex:1;margin-top:0;align-self:auto}
+.pop-actions .btn{flex:1;margin-top:0;align-self:auto;white-space:nowrap}
+.pop-actions a.btn{display:inline-flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}
+.ext-row{display:flex;gap:8px;flex-wrap:wrap}
+.box a.btn.ext{color:var(--ink)}
+.box a.btn.primary.ext{color:var(--accent-ink)}
 @media (prefers-reduced-motion:reduce){.pin-dot{transition:none}}

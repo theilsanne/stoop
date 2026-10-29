@@ -1,10 +1,9 @@
 import { mentions } from "../../../supabase/functions/_shared/scoring.ts";
 import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf, myCriteria } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
-import { ago, beds, esc, fmtDate, money, routeHTML } from "../util.ts";
+import { ago, beds, esc, fmtDate, money, routeHTML, streetViewUrl } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
 import { sheetPhotos } from "./photos.ts";
-import { streetSrc } from "./street.ts";
 
 export const history = new Map<string, PricePoint[]>(); // filled lazily when a sheet opens
 export const routes = new Map<string, Record<string, string>>(); // commute routes, same
@@ -40,16 +39,6 @@ export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b
   }
   if (n != null) out.push({ text: `311 complaints, past year: ${n}`, tone: n >= 25 ? "b" : n >= 10 ? "w" : "" });
   return out;
-}
-
-/** Street view at the listing's pin. It's a heavy embed, so it loads on a tap. */
-function streetView(row: FeedRow) {
-  const src = streetSrc(row);
-  if (!src) return "";
-  return `<div class="box"><h3>Street view</h3>${S.streetOpen.has(row.id)
-    ? `<iframe class="street" title="Street view near ${esc(row.address)}" src="${esc(src)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
-    : `<button class="street-go" data-action="street" data-id="${row.id}">Show street view</button>`}
-    <a class="linkish small-link" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${row.lat},${row.lng}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
 }
 
 /** My write-ins on this listing: what the description says, and my own tick to override it. */
@@ -106,7 +95,8 @@ export function renderSheet() {
       <div><span>Listed</span><b>${ago(row.listed_at ?? row.first_seen_at)}</b></div>
     </div>
     ${amen.length ? `<div class="amen">${amen.map((a) => `<span class="pill">${esc(a)}</span>`).join("")}</div>` : ""}
-    ${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ↗</a>` : ""}</div>
+    <div class="ext-row">${row.url ? `<a class="btn primary ext" href="${esc(row.url)}" target="_blank" rel="noopener">Open on StreetEasy ↗</a>` : ""}${
+      streetViewUrl(row) ? `<a class="btn ext" href="${streetViewUrl(row)}" target="_blank" rel="noopener">Street view ↗</a>` : ""}</div></div>
 
     <div class="box"><h3>Why it scores ${v.scored ? v.score : "–"} for both of you</h3>
       <div class="seg" role="group" aria-label="Whose breakdown">${(["me", "partner"] as const).map((w) => {
@@ -129,7 +119,6 @@ export function renderSheet() {
     </div>` : ""}
 
     ${writeIns(row)}
-    ${streetView(row)}
     <div class="box"><h3${row.building_checked_at ? ` title="NYC HPD and 311 records, checked ${esc(ago(row.building_checked_at))}"` : ""}>Building</h3>
       ${buildingLines(row).length
         ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>

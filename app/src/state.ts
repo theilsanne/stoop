@@ -27,7 +27,6 @@ export interface State {
   sort: Sort;
   feedView: "list" | "map";
   mapLiked: Liked;         // the map shows every listing, or only those with a thumbs-up from you, your partner or both
-  streetOpen: Set<string>; // listing sheets with their street view loaded (it's a heavy embed, so it waits for a tap)
   whyOpen: Set<string>;    // feed cards with their score explanation expanded
   shown: number;           // feed cards rendered so far
   openId: string | null;   // listing detail sheet
@@ -57,7 +56,7 @@ export function initState(api: Api) {
     api, me: null, profiles: [], feed: [], ratings: [], criteria: [], places: [], draft: [],
     tab: savedTab(), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"),
-    mapLiked: store<Liked>("mapLiked", "all"), streetOpen: new Set(), whyOpen: new Set(), shown: 40,
+    mapLiked: store<Liked>("mapLiked", "all"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
     loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
     critFilter: store<"all" | "picks" | "differ">("critFilter", "all"),

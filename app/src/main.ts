@@ -19,7 +19,7 @@ import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/crite
 import { history, renderSheet, routes } from "./views/detail.ts";
 import { parseSort, renderFeed } from "./views/feed.ts";
 import { initDrag } from "./drag.ts";
-import { focusOnMap, mountMap, showList, showStreet, showSubway } from "./views/map.ts";
+import { focusOnMap, mountMap, showList, showSubway } from "./views/map.ts";
 import { renderPipeline, renderSettings, renderSignIn } from "./views/other.ts";
 
 // ---------- backend ----------
@@ -519,8 +519,6 @@ document.addEventListener("click", (e) => {
       case "mapliked": S.mapLiked = v as Liked; save("mapLiked", v); break;
       case "maplist": showList.on = !showList.on; save("mapList", showList.on); break;
       case "mapfocus": focusOnMap(id); return;
-      case "popstreet": showStreet(id, v === "on"); return;
-      case "street": S.streetOpen.add(id); drawSheet(); return;
       case "rate": rate(id, v as Verdict); return;
       case "bdwho": S.bdWho = v as "me" | "partner"; drawSheet(); return;
       case "peek": S.lens = v as Lens; S.sort = "score"; S.tab = "feed"; S.filter = "passing"; window.scrollTo(0, 0); break;
