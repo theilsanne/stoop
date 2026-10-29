@@ -102,15 +102,11 @@ select.sm:hover{border-color:var(--ink-2)}
 .stat b{color:var(--ink);font-family:var(--mono);font-weight:600}
 .stat.ask{border-color:color-mix(in srgb,var(--seal-0) 45%,var(--line));color:var(--ink)}
 .stat .dot.notify{margin:0;box-shadow:none}
-.pipe-hint{max-width:34ch;margin:0;color:var(--ink-2);text-align:right}
-@media (max-width:700px){.pipe-hint{max-width:none;text-align:left}}
 /* the strip: every step at a glance, with its count. Tap one and the board scrolls to it; the highlight follows the board as it scrolls */
 .pipe-nav{display:flex;align-items:center;gap:10px;margin:0 0 12px}
 .stage-strip{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 .stage-strip::-webkit-scrollbar{display:none}
 .stage-strip > button{display:inline-flex;align-items:center;gap:6px;flex:none;white-space:nowrap}
-.stage-strip .ic{opacity:.7;transition:opacity .2s,color .2s}
-.stage-strip > button[aria-pressed="true"] .ic{opacity:1;color:var(--accent)}
 .stage-strip .n{margin-left:1px}
 .stage-strip .dot.notify{margin:0 0 0 1px;box-shadow:none}
 .pipe-arrows{display:flex;flex:none;gap:6px}

@@ -65,7 +65,7 @@ export function renderPipeline() {
   const counts = new Map(COLUMNS.map(([k]) => [k, placed.filter((x) => x.c === k).length]));
 
   // the strip: every step at a glance, counts and all. It's also how you jump along the board
-  const strip = COLUMNS.map(([k, name], i) => `<button data-action="jump" data-v="${k}" aria-pressed="${i === 0}" title="${name}">${icon(META[k].icon, { size: 15 })}<span class="sn-t">${name}</span><span class="n">${counts.get(k)}</span>${k === "stamped" && waiting ? '<span class="dot notify" aria-hidden="true"></span>' : ""}</button>`).join("");
+  const strip = COLUMNS.map(([k, name], i) => `<button data-action="jump" data-v="${k}" aria-pressed="${i === 0}" title="${name}"><span class="sn-t">${name}</span><span class="n">${counts.get(k)}</span>${k === "stamped" && waiting ? '<span class="dot notify" aria-hidden="true"></span>' : ""}</button>`).join("");
 
   const board = COLUMNS.map(([k, name], i) => {
     const items = placed.filter((x) => x.c === k).map((x) => x.r);
@@ -85,7 +85,6 @@ export function renderPipeline() {
   return `<header class="pipe-head">
       <div><h2>Pipeline</h2>
         <div class="pipe-stats"><span class="stat"><b>${inPlay}</b> in play</span>${waiting ? `<span class="stat ask"><span class="dot notify" aria-hidden="true"></span><b>${waiting}</b> waiting for your stamp</span>` : ""}</div></div>
-      <p class="small pipe-hint">Drag a card to move it, back into Stamped too. On a phone, press and hold first.</p>
     </header>
     <div class="pipe-nav">
       <div class="seg stage-strip" role="group" aria-label="Pipeline steps">${strip}</div>
