@@ -102,6 +102,16 @@ export function card(row: FeedRow, v: View) {
     </div></article>`;
 }
 
+/** A copy of the rows in the order picked in the sort dropdown. */
+export function sortRows<T extends { row: FeedRow; v: View }>(rows: T[]): T[] {
+  const by = {
+    score: (a: T, b: T) => b.v.score - a.v.score,
+    newest: (a: T, b: T) => Date.parse(b.row.first_seen_at) - Date.parse(a.row.first_seen_at),
+    rent: (a: T, b: T) => (a.row.net_effective_rent ?? a.row.price ?? 1e9) - (b.row.net_effective_rent ?? b.row.price ?? 1e9),
+  } as const;
+  return rows.slice().sort(by[S.sort]);
+}
+
 export function groups() {
   const all = S.feed.map((row) => ({ row, v: viewOf(row) }));
   return {
@@ -113,13 +123,7 @@ export function groups() {
 
 export function renderFeed() {
   const g = groups();
-  const list = g[S.filter].slice();
-  const sorters = {
-    score: (a: { v: View }, b: { v: View }) => b.v.score - a.v.score,
-    newest: (a: { row: FeedRow }, b: { row: FeedRow }) => Date.parse(b.row.first_seen_at) - Date.parse(a.row.first_seen_at),
-    rent: (a: { row: FeedRow }, b: { row: FeedRow }) => (a.row.net_effective_rent ?? a.row.price ?? 1e9) - (b.row.net_effective_rent ?? b.row.price ?? 1e9),
-  } as const;
-  list.sort(sorters[S.sort] as (a: typeof list[0], b: typeof list[0]) => number);
+  const list = sortRows(g[S.filter]);
 
   const newCount = S.feed.filter(isNewSinceVisit).length;
   const lastPull = S.feed.reduce((m, r) => (r.last_seen_at > m ? r.last_seen_at : m), "");

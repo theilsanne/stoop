@@ -41,6 +41,19 @@ export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b
   return out;
 }
 
+/**
+ * Street view at the listing's pin. It uses Google's key-free embed, which loads a lot, so it
+ * waits for a tap; the link below opens the same spot in Google Maps.
+ */
+function streetView(row: FeedRow) {
+  if (row.lat == null || row.lng == null) return "";
+  const at = `${row.lat},${row.lng}`;
+  return `<div class="box"><h3>Street view</h3>${S.streetOpen.has(row.id)
+    ? `<iframe class="street" title="Street view near ${esc(row.address)}" src="https://www.google.com/maps?layer=c&cbll=${at}&cbp=11,0,0,0,0&source=embed&output=svembed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
+    : `<button class="street-go" data-action="street" data-id="${row.id}">Show street view</button>`}
+    <a class="linkish small-link" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${at}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
+}
+
 /** My write-ins on this listing: what the description says, and my own tick to override it. */
 function writeIns(row: FeedRow) {
   const mine = myCriteria().filter((c) => c.operator === "mentions" && c.active);
@@ -118,6 +131,7 @@ export function renderSheet() {
     </div>` : ""}
 
     ${writeIns(row)}
+    ${streetView(row)}
     <div class="box"><h3${row.building_checked_at ? ` title="NYC HPD and 311 records, checked ${esc(ago(row.building_checked_at))}"` : ""}>Building</h3>
       ${buildingLines(row).length
         ? `<div class="health">${buildingLines(row).map((l) => `<span class="hpill ${l.tone}">${esc(l.text)}</span>`).join("")}</div>

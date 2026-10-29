@@ -1,14 +1,17 @@
 // Map view of the feed: one pin per listing, colored by score for the current
-// "Scored for" lens and filtered like the list. Tap a pin for a summary and a link
-// to the full listing. Subway lines come from NY Open Data (MTA Subway Service Lines)
+// "Scored for" lens and filtered like the list, plus a thumbs-up filter. A floating list
+// down the left side mirrors the pins: pick a listing there and the map flies to it and
+// opens its popup (photo, summary, "See more" for the full listing sheet). Subway lines come from NY Open Data (MTA Subway Service Lines)
 // and are optional: if they fail to load, the map still works.
 // Base map: OpenStreetMap tiles (no key needed).
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { S } from "../state.ts";
+import { icon } from "../icons.ts";
+import { S, likedBy, myId, partnerId, partnerName, verdictOf, type Liked } from "../state.ts";
 import { beds, esc, money, save, store, LINE_COLORS } from "../util.ts";
-import { groups } from "./feed.ts";
+import { groups, sortRows } from "./feed.ts";
+import { sized } from "./photos.ts";
 
 const SUBWAY_URL = "https://data.ny.gov/resource/s692-irgq.geojson?$limit=5000";
 const BROOKLYN: L.LatLngExpression = [40.68, -73.95];
@@ -17,8 +20,14 @@ const BROOKLYN: L.LatLngExpression = [40.68, -73.95];
 let map: L.Map | null = null;
 let subway: GeoJSON.FeatureCollection | null | "failed" = null;
 let view = store<{ c: [number, number]; z: number } | null>("mapView", null);
+const markers = new Map<string, L.CircleMarker>(); // by listing id, for the list to point at
+let selected: string | null = null;                // the listing whose popup is open
+let listTop = 0;                                   // the list's scroll position, kept across redraws
+let restoring = false;                             // reopening the popup after a redraw, so the list shouldn't scroll
+let live = false;                                  // false while the map is being torn down
 
 export const showSubway = { on: store<boolean>("subway", true) };
+export const showList = { on: store<boolean>("mapList", true) };
 
 const tierColor = (score: number) =>
   score >= 70 ? "var(--accent)" : score >= 50 ? "var(--warn)" : "var(--ink-2)";
@@ -41,29 +50,100 @@ async function loadSubway() {
   }
 }
 
+/** Listings with a location that pass the Passing / Near misses / Filtered out switch. */
+const located = () => groups()[S.filter].filter((x) => x.row.lat != null && x.row.lng != null);
+
+/** Who gave a listing a thumbs-up, as names. */
+function likers(id: string) {
+  return [verdictOf(id, myId()) === "yes" ? "You" : "", verdictOf(id, partnerId()) === "yes" ? partnerName() : ""].filter(Boolean);
+}
+const likes = (id: string) => {
+  const who = likers(id);
+  return who.length ? `<span class="mi-likes">${icon("thumbs-up", { fill: true, size: 13 })}${esc(who.join(" + "))}</span>` : "";
+};
+
+
+function listItem({ row, v }: ReturnType<typeof located>[number]) {
+  const photo = row.photos?.[0];
+  return `<li><button class="mi" data-action="mapfocus" data-id="${row.id}" aria-current="${selected === row.id}">
+      <span class="mi-ph">${photo ? `<img src="${esc(sized(photo, "medium"))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">` : ""}</span>
+      <span class="mi-b">
+        <span class="mi-rent"><i style="background:${tierColor(v.score)}"></i><b>${money(row.net_effective_rent ?? row.price)}</b></span>
+        <span class="mi-s">${beds(row.beds)}${v.scored ? ` · score ${v.score}` : ""}</span>
+        <span class="mi-a">${esc(row.address)}${row.unit ? " " + esc(row.unit) : ""}</span>
+        ${likes(row.id)}
+      </span></button></li>`;
+}
+
 export function renderMapShell() {
-  const items = groups()[S.filter];
-  const located = items.filter((x) => x.row.lat != null && x.row.lng != null).length;
-  const missing = items.length - located;
-  return `<div class="mapwrap">
-      <div id="map" class="map" role="region" aria-label="Map of listings"></div>
+  const all = groups()[S.filter];
+  const here = located();
+  const shown = sortRows(here.filter((x) => likedBy(x.row.id, S.mapLiked)));
+  const missing = all.length - here.length;
+  const filtered = S.mapLiked !== "all";
+  const LIKED: [Liked, string][] = [["all", "All"], ["me", "You"], ["partner", partnerName()], ["both", "Both"]];
+  return `<div class="mapbar"><div class="seg" role="group" aria-label="Thumbs up">${LIKED.map(([k, t]) =>
+      `<button data-action="mapliked" data-v="${k}" aria-pressed="${S.mapLiked === k}">${k !== "all" ? icon("thumbs-up", { fill: true, size: 14 }) : ""}${esc(t)}<span class="n">${here.filter((x) => likedBy(x.row.id, k)).length}</span></button>`).join("")}</div></div>
+    <div class="mapwrap">
+      <div class="mapstage">
+        <div id="map" class="map" role="region" aria-label="Map of listings"></div>
+        <aside class="maplist" aria-label="Listings on the map">
+          <button class="maplist-toggle" data-action="maplist" aria-expanded="${showList.on}">${showList.on ? "Hide list" : `Show list · ${shown.length}`}</button>
+          ${showList.on ? `<ul>${shown.length ? shown.map(listItem).join("")
+            : `<li class="mi-empty">${filtered ? "No thumbs-up here yet." : "Nothing to show."}</li>`}</ul>` : ""}
+        </aside>
+      </div>
       <div class="maplegend">
         <span><i style="background:var(--accent)"></i>70+</span><span><i style="background:var(--warn)"></i>50–69</span><span><i style="background:var(--ink-2)"></i>under 50</span>
         <label class="switch"><input type="checkbox" role="switch" id="subway-toggle" data-change="subway" ${showSubway.on ? "checked" : ""}> Subway lines</label>
       </div>
     </div>
-    <p class="summary"><b>${located}</b> on the map${missing ? ` · ${missing} without a location` : ""}</p>`;
+    <p class="summary"><b>${shown.length}</b> on the map${filtered ? ` · ${here.length - shown.length} hidden by the thumbs-up filter` : ""}${missing ? ` · ${missing} without a location` : ""}</p>`;
+}
+
+/** Mark one listing as the selected one in the list, and bring it into view there. */
+function select(id: string | null, scroll = true) {
+  selected = id;
+  const list = document.querySelector<HTMLElement>(".maplist ul");
+  for (const b of document.querySelectorAll<HTMLElement>(".maplist .mi")) {
+    const on = b.dataset.id === id;
+    b.setAttribute("aria-current", String(on));
+    if (on && scroll && list) {
+      const li = b.parentElement!, top = li.offsetTop - 4, bottom = li.offsetTop + li.offsetHeight + 4;
+      if (top < list.scrollTop) list.scrollTop = top;
+      else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
+    }
+  }
+}
+
+/** Fly to a listing's pin and open its popup (the list calls this). */
+export function focusOnMap(id: string) {
+  const m = markers.get(id);
+  if (!map || !m) return;
+  // open the popup once the map has settled, so its auto-pan doesn't fight the move
+  map.once("moveend", () => m.openPopup());
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  map.setView(m.getLatLng(), Math.max(map.getZoom(), 15), { animate: !calm, duration: 0.6 });
 }
 
 /** Called after every render while the map is showing: (re)builds the Leaflet map in #map. */
 export async function mountMap() {
   const el = document.getElementById("map");
+  live = false; // taking the old map down closes its popup; that isn't the person closing it
   if (map) { map.remove(); map = null; }
+  markers.clear();
   if (!el) return;
+  const list = document.querySelector<HTMLElement>(".maplist ul");
+  if (list) {
+    list.scrollTop = listTop;
+    list.addEventListener("scroll", () => { listTop = list.scrollTop; }, { passive: true });
+  }
 
   const dark = document.documentElement.dataset.theme === "dark"
     || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
-  map = L.map(el, { zoomControl: true, attributionControl: true, preferCanvas: true });
+  // zoom buttons go top right: the list floats over the top left
+  map = L.map(el, { zoomControl: false, attributionControl: true, preferCanvas: true });
+  L.control.zoom({ position: "topright" }).addTo(map);
   // OpenStreetMap's standard tiles: open, no API key. Their usage policy asks for the credit
   // below and light use, which two people browsing listings is. Dark mode darkens them with CSS.
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -78,23 +158,32 @@ export async function mountMap() {
   const css = getComputedStyle(document.documentElement);
   const resolve = (c: string) => (c.startsWith("var(") ? css.getPropertyValue(c.slice(4, -1)).trim() : c);
 
-  const items = groups()[S.filter].filter((x) => x.row.lat != null && x.row.lng != null);
+  const items = located().filter((x) => likedBy(x.row.id, S.mapLiked));
   const bounds: L.LatLngTuple[] = [];
+  // keep a popup clear of the floating list when it pans into view
+  const listW = document.querySelector<HTMLElement>(".maplist")?.offsetWidth ?? 0;
   // draw low scores first so the best ones sit on top
   for (const { row, v } of items.sort((a, b) => a.v.score - b.v.score)) {
     const at: L.LatLngTuple = [row.lat!, row.lng!];
     bounds.push(at);
-    L.circleMarker(at, {
+    const photo = row.photos?.[0];
+    const marker = L.circleMarker(at, {
       radius: v.score >= 70 ? 8 : 6, weight: 2, color: resolve("var(--surface)"),
       fillColor: resolve(tierColor(v.score)), fillOpacity: 0.95,
     }).bindPopup(
-      `<div class="pop"><div><b>${money(row.net_effective_rent ?? row.price)}</b> · ${beds(row.beds)}${v.scored ? ` · score ${v.score}` : ""}</div>
+      `<div class="pop">${photo ? `<img class="pop-ph" src="${esc(sized(photo, "medium"))}" alt="" referrerpolicy="no-referrer" draggable="false">` : ""}
+        <div><b>${money(row.net_effective_rent ?? row.price)}</b> · ${beds(row.beds)}${v.scored ? ` · score ${v.score}` : ""}</div>
         <div>${esc(row.address)}${row.unit ? " " + esc(row.unit) : ""}</div>
         <div class="small">${esc(row.neighborhood)}</div>
-        <button class="btn primary" data-open="${row.id}">Open listing</button></div>`,
-      { closeButton: true, autoPanPadding: [24, 24] },
+        ${likes(row.id)}
+        <button class="btn primary" data-open="${row.id}">See more</button></div>`,
+      { closeButton: true, minWidth: 210, maxWidth: 240, autoPanPaddingTopLeft: [listW + 20, 20], autoPanPaddingBottomRight: [56, 20] },
     ).addTo(map);
+    marker.on("popupopen", () => select(row.id, !restoring));
+    marker.on("popupclose", () => { if (live) select(null); });
+    markers.set(row.id, marker);
   }
+  live = true;
 
   if (view) map.setView(view.c, view.z);
   else if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
@@ -105,6 +194,10 @@ export async function mountMap() {
     view = { c: [c.lat, c.lng], z: map.getZoom() };
     save("mapView", view);
   });
+
+  // a redraw (rating from the sheet, say) rebuilds the map: put the open popup back
+  const again = selected && markers.get(selected);
+  if (again) { restoring = true; again.openPopup(); restoring = false; } else selected = null;
 
   if (showSubway.on) {
     const current = map;
