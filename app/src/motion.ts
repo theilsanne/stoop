@@ -11,7 +11,10 @@ const SOFT = { type: "spring", stiffness: 260, damping: 30 } as const;
 
 /** Clear the inline styles an animation leaves behind, so CSS (hover lifts etc.) works again. */
 const tidy = (els: Element[], props: string[]) => () => {
-  for (const el of els) for (const p of props) (el as HTMLElement).style.removeProperty(p);
+  const clear = () => { for (const el of els) for (const p of props) (el as HTMLElement).style.removeProperty(p); };
+  clear();
+  // the last element of a staggered group gets its final frame written just after the animation reports done
+  requestAnimationFrame(clear);
 };
 
 /**
@@ -21,6 +24,8 @@ const tidy = (els: Element[], props: string[]) => () => {
  */
 export function enterView(main: Element | null, newSection = true) {
   if (!main || reduced()) return;
+  // the pipeline has its own entrance: the columns slide in along the board
+  if (main.querySelector(".board")) { if (newSection) boardIn(main); return; }
   const items = [...main.querySelectorAll(".card, .mini, .panel, .pick")].slice(0, 14);
   if (!newSection) {
     if (items.length) {
@@ -38,6 +43,29 @@ export function enterView(main: Element | null, newSection = true) {
   if (items.length) {
     animate(items, { opacity: [0, 1], y: [14, 0] }, { ...SOFT, delay: stagger(0.035, { startDelay: 0.04 }) })
       .finished.then(tidy(items, ["opacity", "transform"]));
+  }
+}
+
+/**
+ * The pipeline arrives: its heading and strip settle, the columns slide in from the right one after
+ * another, and the first cards in each follow. A column that starts off-screen just arrives with the rest.
+ */
+export function boardIn(main: Element) {
+  if (reduced()) return;
+  const head = [...main.querySelectorAll(".pipe-head, .pipe-nav")];
+  const cols = [...main.querySelectorAll(".col")];
+  const cards = [...main.querySelectorAll(".col .mini, .col-empty")].slice(0, 18);
+  if (head.length) {
+    animate(head, { opacity: [0, 1], y: [6, 0] }, { duration: 0.22, ease: "easeOut", delay: stagger(0.05) })
+      .finished.then(tidy(head, ["opacity", "transform"]));
+  }
+  if (cols.length) {
+    animate(cols, { opacity: [0, 1], x: [44, 0] }, { ...SOFT, delay: stagger(0.06, { startDelay: 0.08 }) })
+      .finished.then(tidy(cols, ["opacity", "transform"]));
+  }
+  if (cards.length) {
+    animate(cards, { opacity: [0, 1], y: [10, 0] }, { duration: 0.28, ease: "easeOut", delay: stagger(0.035, { startDelay: 0.3 }) })
+      .finished.then(tidy(cards, ["opacity", "transform"]));
   }
 }
 

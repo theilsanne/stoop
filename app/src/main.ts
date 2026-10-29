@@ -117,6 +117,8 @@ export function render() {
   const inds = noteIndicators(root);
   // keep each photo strip on the photo you'd swiped to
   const strips = new Map([...document.querySelectorAll<HTMLElement>("[data-strip]")].map((s) => [s.dataset.strip + (s.closest(".sheet") ? ":sheet" : ""), s.scrollLeft]));
+  // and the pipeline board on the column you'd scrolled to
+  const boardLeft = document.querySelector<HTMLElement>(".board")?.scrollLeft ?? 0;
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
@@ -147,6 +149,8 @@ export function render() {
   }
   if (!S.loading && S.tab === "feed" && S.feedView === "map") mountMap();
   if (!S.loading && S.tab === "criteria") liveBar(root);
+  const board = root.querySelector<HTMLElement>(".board");
+  if (board) { board.scrollLeft = boardLeft; syncBoard(board); }
 
   const key = viewKey();
   if (key !== lastView && !S.loading) {
@@ -205,9 +209,55 @@ function closeViewer() {
 }
 
 // photo strips scroll sideways; keep their counters and arrows in step (scroll doesn't bubble, so capture)
+/**
+ * The pipeline board scrolls sideways. Keep what follows it in step: the strip above highlights the
+ * first column in view (sliding the highlight, and scrolling the strip itself on a phone), the arrows
+ * dim at either end, and the edges fade where there's more to see. Plain DOM state, no redraw.
+ */
+function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElement>(".board")) {
+  const wrap = board?.parentElement;
+  if (!board || !wrap) return;
+  const atStart = board.scrollLeft < 4, atEnd = board.scrollLeft + board.clientWidth >= board.scrollWidth - 4;
+  wrap.dataset.start = String(atStart);
+  wrap.dataset.end = String(atEnd);
+  for (const a of document.querySelectorAll<HTMLButtonElement>(".pipe-arrows .arrow")) a.disabled = a.dataset.v === "prev" ? atStart : atEnd;
+  const cols = [...board.querySelectorAll<HTMLElement>(".col")];
+  // the first column that's mostly in view, so a half-hidden one doesn't count and the strip says what you scrolled to
+  const lead = cols.find((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55) ?? cols[0];
+  const nav = document.querySelector<HTMLElement>(".pipe-nav"), strip = nav?.querySelector<HTMLElement>(".stage-strip");
+  if (!nav || !strip || !lead) return;
+  const on = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
+  if (on?.dataset.v === lead.dataset.col) return;
+  const before = noteIndicators(nav);
+  for (const b of strip.querySelectorAll<HTMLElement>("button")) b.setAttribute("aria-pressed", String(b.dataset.v === lead.dataset.col));
+  placeIndicators(nav, before);
+  const now = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
+  if (now) strip.scrollTo({ left: now.offsetLeft - (strip.clientWidth - now.offsetWidth) / 2, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/** Scroll the board so a column sits at its left edge, or step a column along. */
+function scrollBoard(to: { col: string } | { step: 1 | -1 }) {
+  const board = document.querySelector<HTMLElement>(".board");
+  if (!board) return;
+  const cols = [...board.querySelectorAll<HTMLElement>(".col")];
+  const pad = parseFloat(getComputedStyle(board).paddingLeft) || 0;
+  let target: HTMLElement | undefined;
+  if ("col" in to) target = cols.find((c) => c.dataset.col === to.col);
+  else {
+    const i = cols.findIndex((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55);
+    target = cols[Math.max(0, Math.min(cols.length - 1, (i < 0 ? 0 : i) + to.step))];
+  }
+  if (target) board.scrollTo({ left: target.offsetLeft - pad, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
 let stripTick = 0;
 document.addEventListener("scroll", (e) => {
   const s = e.target as HTMLElement;
+  if (s instanceof HTMLElement && s.classList.contains("board")) {
+    cancelAnimationFrame(stripTick);
+    stripTick = requestAnimationFrame(() => syncBoard(s));
+    return;
+  }
   if (!(s instanceof HTMLElement) || !s.dataset?.strip) return;
   cancelAnimationFrame(stripTick);
   stripTick = requestAnimationFrame(() => syncStrip(s));
@@ -283,7 +333,6 @@ async function load() {
   }
   S.loading = false;
   render();
-  void shortlistMutual();
   openFromLink();
   alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); },
     (e) => { S.alerts = "on"; S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); render(); });
@@ -347,12 +396,20 @@ async function placeStamp(id: string) {
   inkSettle(card?.querySelector(".seal.mine") ?? null);
   thunk(card);
   try { await api.setStamp(id, true); } catch (e) { S.stamps = before; showError(e); return; }
+  // your partner may have stamped it since this phone last loaded: look again before deciding
+  try {
+    const fresh = await api.stamps();
+    const changed = fresh.length !== S.stamps.length;
+    S.stamps = fresh;
+    if (changed) render();
+  } catch { /* keep what we have: the shortlist can still be made by hand */ }
   await shortlistMutual(true);
 }
 
 /**
  * Both of you stamped a listing that hasn't moved on: it's a shortlist. Saved as a real stage change,
- * so your partner sees it too, and the listing's sheet shows it. `say` announces it with a toast.
+ * so your partner sees it too, and the listing's sheet shows it. This runs when a stamp is placed, not
+ * when the app loads, so a listing you drag back into Stamped stays there. `say` announces it.
  */
 async function shortlistMutual(say = false) {
   const rows = S.feed.filter((r) => { const s = stampsOf(r.id); return shouldShortlist(r.stage, s.mine, s.theirs); });
@@ -398,9 +455,14 @@ function noteChanged(id: string, text: string) {
 
 async function setStage(id: string, stage: Stage) {
   const row = S.feed.find((r) => r.id === id);
+  const before = row?.stage;
   if (row) row.stage = stage;
   render();
   land(document.querySelector(`.mini[data-drag-id="${CSS.escape(id)}"]`));
+  // back into Stamped sets the stage to "new". A listing nobody stamped isn't on the board then, so say so
+  if (row && before && stage === "new" && !columnFor(row)) {
+    toast("Back in the feed. Nobody stamped it, so it isn't on the board.", { action: { label: "Undo", run: () => void setStage(id, before) } });
+  }
   try { await api.setStage(id, stage); } catch (e) { showError(e); }
 }
 
@@ -584,6 +646,8 @@ document.addEventListener("click", (e) => {
       case "feedview": S.feedView = v as "list" | "map"; save("feedView", v); break;
       case "rate": rate(id, v as Verdict); return;
       case "stamphint": toast("Drag it onto a listing to stamp it"); return;
+      case "jump": scrollBoard({ col: v }); return;
+      case "boardstep": scrollBoard({ step: v === "next" ? 1 : -1 }); return;
       case "takeback": void takeBack(id); return;
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;
@@ -803,7 +867,7 @@ const stamp = mountStamp({
 
 // highlights follow layout changes (rotating the phone, web fonts arriving)
 let resizeTick = 0;
-window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); }); });
+window.addEventListener("resize", () => { cancelAnimationFrame(resizeTick); resizeTick = requestAnimationFrame(() => { placeIndicators(); syncTabsHeight(); syncBoard(); }); });
 document.fonts?.ready.then(() => { placeIndicators(); syncTabsHeight(); });
 
 boot();
