@@ -42,14 +42,21 @@ export function buildingLines(row: FeedRow): { text: string; tone: "" | "w" | "b
 }
 
 /**
- * Street view at the listing's pin. It uses Google's key-free embed, which loads a lot, so it
- * waits for a tap; the link below opens the same spot in Google Maps.
+ * Street view at the listing's pin, loaded on a tap because it's a heavy embed. With a Google Maps
+ * key (public by design, locked to this site's address) it asks for outdoor imagery only. Without
+ * one it falls back to the key-free embed, which shows whatever panorama is nearest, indoor
+ * business photos included, so it can land inside a shop.
  */
+const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+
 function streetView(row: FeedRow) {
   if (row.lat == null || row.lng == null) return "";
   const at = `${row.lat},${row.lng}`;
+  const src = MAPS_KEY
+    ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(MAPS_KEY)}&location=${at}&source=outdoor&radius=100&fov=90`
+    : `https://www.google.com/maps?layer=c&cbll=${at}&cbp=11,0,0,0,0&source=embed&output=svembed`;
   return `<div class="box"><h3>Street view</h3>${S.streetOpen.has(row.id)
-    ? `<iframe class="street" title="Street view near ${esc(row.address)}" src="https://www.google.com/maps?layer=c&cbll=${at}&cbp=11,0,0,0,0&source=embed&output=svembed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
+    ? `<iframe class="street" title="Street view near ${esc(row.address)}" src="${esc(src)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
     : `<button class="street-go" data-action="street" data-id="${row.id}">Show street view</button>`}
     <a class="linkish small-link" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${at}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`;
 }

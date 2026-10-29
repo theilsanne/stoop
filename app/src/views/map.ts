@@ -8,10 +8,11 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { icon } from "../icons.ts";
-import { S, likedBy, myId, partnerId, partnerName, verdictOf, type Liked } from "../state.ts";
+import type { FeedRow } from "../types.ts";
+import { S, likedBy, myId, partnerId, partnerName, verdictOf, type Liked, type View } from "../state.ts";
 import { beds, esc, money, save, store, LINE_COLORS } from "../util.ts";
-import { groups, sortRows } from "./feed.ts";
-import { sized } from "./photos.ts";
+import { commuteLine, groups, sortRows } from "./feed.ts";
+import { cardPhotos, sized } from "./photos.ts";
 
 const SUBWAY_URL = "https://data.ny.gov/resource/s692-irgq.geojson?$limit=5000";
 const BROOKLYN: L.LatLngExpression = [40.68, -73.95];
@@ -101,6 +102,27 @@ export function renderMapShell() {
     <p class="summary"><b>${shown.length}</b> on the map${filtered ? ` · ${here.length - shown.length} hidden by the thumbs-up filter` : ""}${missing ? ` · ${missing} without a location` : ""}</p>`;
 }
 
+/** The pin's popup: a photo you can swipe, the price over it, the facts, and the way into the full listing. */
+function popup(row: FeedRow, v: View, width: number) {
+  const photos = row.photos?.length ?? 0;
+  const rent = money(row.net_effective_rent ?? row.price);
+  const asking = row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `net · asking ${money(row.price)}` : "";
+  return `<div class="pop" style="width:${width}px">
+    <div class="ph pop-ph${photos ? " has-photo" : ""}">${cardPhotos(row.id, row.photos)}
+      ${v.scored ? `<span class="score pop-score ${v.score >= 70 ? "hi" : v.score >= 50 ? "mid" : ""}" title="Score ${v.score}">${v.score}</span>` : ""}
+      ${photos ? `<div class="pop-rent"><b>${rent}</b>${asking ? `<span>${asking}</span>` : ""}</div>` : ""}
+    </div>
+    <div class="cb">
+      ${photos ? "" : `<div class="rent"><b>${rent}</b>${asking ? `<span>${asking}</span>` : ""}</div>`}
+      <div class="addr">${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</div>
+      <div class="hood">${esc(row.neighborhood)}</div>
+      <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""}</div>
+      ${commuteLine(row)}
+      ${likes(row.id)}
+      <button class="btn primary" data-open="${row.id}">See more</button>
+    </div></div>`;
+}
+
 /** Mark one listing as the selected one in the list, and bring it into view there. */
 function select(id: string | null, scroll = true) {
   selected = id;
@@ -161,24 +183,20 @@ export async function mountMap() {
   const items = located().filter((x) => likedBy(x.row.id, S.mapLiked));
   const bounds: L.LatLngTuple[] = [];
   // keep a popup clear of the floating list when it pans into view
-  const listW = document.querySelector<HTMLElement>(".maplist")?.offsetWidth ?? 0;
+  const listW = innerWidth <= 620 ? 0 : document.querySelector<HTMLElement>(".maplist")?.offsetWidth ?? 0;
+  const popW = Math.min(264, innerWidth - 90);
+  const touch = matchMedia("(pointer: coarse)").matches;
   // draw low scores first so the best ones sit on top
   for (const { row, v } of items.sort((a, b) => a.v.score - b.v.score)) {
     const at: L.LatLngTuple = [row.lat!, row.lng!];
     bounds.push(at);
-    const photo = row.photos?.[0];
     const marker = L.circleMarker(at, {
       radius: v.score >= 70 ? 8 : 6, weight: 2, color: resolve("var(--surface)"),
       fillColor: resolve(tierColor(v.score)), fillOpacity: 0.95,
-    }).bindPopup(
-      `<div class="pop">${photo ? `<img class="pop-ph" src="${esc(sized(photo, "medium"))}" alt="" referrerpolicy="no-referrer" draggable="false">` : ""}
-        <div><b>${money(row.net_effective_rent ?? row.price)}</b> · ${beds(row.beds)}${v.scored ? ` · score ${v.score}` : ""}</div>
-        <div>${esc(row.address)}${row.unit ? " " + esc(row.unit) : ""}</div>
-        <div class="small">${esc(row.neighborhood)}</div>
-        ${likes(row.id)}
-        <button class="btn primary" data-open="${row.id}">See more</button></div>`,
-      { closeButton: true, minWidth: 210, maxWidth: 240, autoPanPaddingTopLeft: [listW + 20, 20], autoPanPaddingBottomRight: [56, 20] },
-    ).addTo(map);
+    }).bindPopup(popup(row, v, popW), {
+      closeButton: true, className: "stoop-pop", minWidth: popW, maxWidth: popW,
+      autoPanPaddingTopLeft: [listW + 20, 20], autoPanPaddingBottomRight: [touch ? 20 : 56, 20], // the zoom buttons sit top right, except on phones
+    }).addTo(map);
     marker.on("popupopen", () => select(row.id, !restoring));
     marker.on("popupclose", () => { if (live) select(null); });
     markers.set(row.id, marker);

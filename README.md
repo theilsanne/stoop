@@ -132,6 +132,7 @@ Each new listing's address is matched to a city building (BBL) with NYC Planning
    - `SUPABASE_URL` = `https://<your-project-ref>.supabase.co`
    - `SUPABASE_ANON_KEY` = the publishable (or legacy anon) key from **Supabase → Project Settings → API Keys**
    Both are meant to be public; row-level security and sign-in protect the data.
+   Optional, for Street view that shows the street outside instead of whatever panorama is nearest (it can be the inside of a shop): create a key in Google Cloud with only the **Maps Embed API** enabled, restrict it to the HTTP referrer `https://theilsanne.github.io/*`, and add it as a variable named `GOOGLE_MAPS_KEY`. The Embed API's Street view is free.
 3. **Actions tab → Deploy app to GitHub Pages → Run workflow** (later pushes deploy automatically).
 4. Open `https://theilsanne.github.io/stoop/`, sign in with your email, and on Android choose **Add to Home screen** from Chrome's menu.
 
