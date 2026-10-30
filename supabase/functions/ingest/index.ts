@@ -6,13 +6,16 @@
 // 4. Mark listings not seen for OFF_MARKET_DAYS (default 30) as off-market.
 // 5. Look up building records (HPD, 311) for them, then score and save.
 // 6. Work out which ones deserve an alert (sending comes with web push).
+// 7. Once a week, start the re-check of stamped and pipeline listings (_shared/recheck.ts).
+//    A listing StreetEasy says is rented or gone is saved as off-market in step 3.
 //
 // Deploy with:  supabase functions deploy ingest --no-verify-jwt
-// Secrets:      APIFY_TOKEN, WEBHOOK_SECRET
+// Secrets:      APIFY_TOKEN, WEBHOOK_SECRET, optional RECHECK_TASK
 
 import { sendAlerts } from "../_shared/push.ts";
 import { chunk, computeCommutes, enrichBuildings, scoreAndStore, serviceClient } from "../_shared/pipeline.ts";
-import { normalize, type ListingRow } from "../_shared/normalize.ts";
+import { marketStatus, normalize, type ListingRow } from "../_shared/normalize.ts";
+import { maybeRecheck } from "../_shared/recheck.ts";
 
 // Capped runs (Apify's free plan returns 50 per run) only fetch the newest listings,
 // so not appearing in one doesn't mean a listing is gone. Default to a long window;
@@ -68,12 +71,12 @@ Deno.serve(async (req) => {
   const db = serviceClient();
 
   // normalize, and keep one row per listing (the same listing can show up in two searches)
-  const byKey = new Map<string, ListingRow>();
+  const byKey = new Map<string, ListingRow & { status: "active" | "off_market" }>();
   let skipped = 0;
   for (const item of items) {
     const row = normalize(item);
     if (!row) { skipped++; continue; }
-    byKey.set(`${row.source}|${row.source_id}`, row);
+    byKey.set(`${row.source}|${row.source_id}`, { ...row, status: marketStatus(item) });
   }
   const rows = [...byKey.values()];
 
@@ -88,11 +91,11 @@ Deno.serve(async (req) => {
 
   // upsert; first_seen_at is left out so it keeps its original value
   const now = new Date().toISOString();
-  const touched: { id: string; source_id: string; price: number }[] = [];
+  const touched: { id: string; source_id: string; price: number; status: string }[] = [];
   for (const part of chunk(rows, 200)) {
     const { data, error } = await db.from("listings")
-      .upsert(part.map((r) => ({ ...r, status: "active", last_seen_at: now })), { onConflict: "source,source_id" })
-      .select("id, source_id, price");
+      .upsert(part.map((r) => ({ ...r, last_seen_at: now })), { onConflict: "source,source_id" })
+      .select("id, source_id, price, status");
     if (error) return json({ error: `save listings: ${error.message}` }, 500);
     touched.push(...data);
   }
@@ -115,20 +118,32 @@ Deno.serve(async (req) => {
   // score this run's listings
   const scores = await scoreAndStore(db, touched.map((t) => t.id));
 
-  // alerts to your phones (fails soft: listings are saved either way)
-  const newIds = touched.filter((t) => !before.has(t.source_id)).map((t) => t.id);
-  const drops = touched.flatMap((t) => {
+  // alerts to your phones (fails soft: listings are saved either way). Only for listings still for rent.
+  const live = touched.filter((t) => t.status === "active");
+  const newIds = live.filter((t) => !before.has(t.source_id)).map((t) => t.id);
+  const drops = live.flatMap((t) => {
     const old = before.get(t.source_id)?.price;
     return old != null && t.price < old ? [{ id: t.id, from: old, to: t.price }] : [];
   });
   const alerts = await sendAlerts(db, newIds, drops, scores).catch((e) => ({ error: String(e) }));
 
+  // the weekly re-check of the listings you care about (fails soft)
+  const recheckTask = Deno.env.get("RECHECK_TASK");
+  const recheck = recheckTask
+    ? await maybeRecheck(db, {
+      token: Deno.env.get("APIFY_TOKEN") ?? "", secret, task: recheckTask,
+      ingestUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/ingest`,
+    }).catch((e) => ({ error: String(e) }))
+    : null;
+
   const summary = {
     items: items.length, skipped_unusable: skipped, saved: touched.length,
+    gone: touched.length - live.length,
     new: newIds.length, price_drops: drops.length, went_off_market: wentOff ?? 0,
     alerts,
     buildings,
     commutes,
+    recheck,
   };
   console.log("ingest", JSON.stringify(summary));
   return json(summary);

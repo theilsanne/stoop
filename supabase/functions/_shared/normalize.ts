@@ -198,6 +198,17 @@ function photosFrom(item: Item): string[] {
     .slice(0, 12);
 }
 
+/**
+ * Is the listing still for rent? memo23 sends StreetEasy's status: ACTIVE, or IN_CONTRACT, RENTED,
+ * NO_LONGER_AVAILABLE, TEMPORARILY_OFF_MARKET once it's gone. No status (search results from
+ * another scraper) counts as active, since it was just found in a search.
+ */
+export function marketStatus(item: Item): "active" | "off_market" {
+  const s = pick(item, ["status", "latestListing_status"]);
+  if (typeof s !== "string" || !s.trim()) return "active";
+  return s.trim().toUpperCase() === "ACTIVE" ? "active" : "off_market";
+}
+
 export function normalize(item: Item, source = "streeteasy"): ListingRow | null {
   const sourceId = pick(item, ["id", "listingId", "listingRef", "listing_id"]);
   const price = toNumber(pick(item, ["price", "pricing_price", "rent", "listPrice", "listed_price"]));

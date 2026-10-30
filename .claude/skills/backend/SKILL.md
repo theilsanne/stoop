@@ -37,7 +37,7 @@ Stoop runs on one Supabase project with one schema, `rentals`. There is no dev o
 ## Secrets
 
 - Set with `supabase secrets set NAME=value`. They are per project and never go in git.
-- Current secrets: `APIFY_TOKEN`, `WEBHOOK_SECRET`, optional `OFF_MARKET_DAYS` (default 30) and `NYC_OPENDATA_TOKEN`.
+- Current secrets: `APIFY_TOKEN`, `WEBHOOK_SECRET`, optional `OFF_MARKET_DAYS` (default 30), `RECHECK_TASK` (the Apify task for the weekly re-check, `_shared/recheck.ts`) and `NYC_OPENDATA_TOKEN`.
 - `openssl rand -hex 32` makes a good webhook secret. A new secret gets a line in the README's setup section.
 - The app's `.env` holds only the publishable anon key and the project URL. Never the service role key, never a webhook secret.
 
