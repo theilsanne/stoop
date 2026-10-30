@@ -73,8 +73,8 @@ In a test it kept the search URL's filters and newest-first sort; another scrape
 
 **Off-market window.** Listings not seen for `OFF_MARKET_DAYS` days (default 30) are marked off-market. On Apify's free plan memo23 returns at most 50 listings per run, so older listings aren't re-seen and a long window keeps them in the feed. Once you're on a paid plan with a weekly full pull, shorten it: `supabase secrets set OFF_MARKET_DAYS=8`.
 
-**Weekly re-check.** Once a week, after a normal pull, `ingest` asks Apify again about every listing either of you stamped or moved into the pipeline (shortlisted through applied), so a rented one is marked off-market and a live one stays. Set it up once:
-1. In Apify, open the StreetEasy scraper → **Use Actor**. Turn **monitoring mode off**, set Max Listings to `100`, put any one listing link in Start URLs, and **Save as task** (e.g. "Stoop recheck"). Don't add a webhook to this task; `ingest` adds one to each run it starts.
+**Weekly re-check.** Once a week, after a normal pull, `ingest` asks Apify again about every listing either of you stamped or said Yes to, so a rented one is marked off-market and a live one stays. Set it up once:
+1. In Apify, open the StreetEasy scraper → **Use Actor**. Turn **monitoring mode off**, set Max Listings to `100`, put any one listing link in Start URLs (a placeholder Apify needs to save; each run gets the real links), and **Save as task** (e.g. "Stoop recheck"). Don't add a webhook to this task; `ingest` adds one to each run it starts.
 2. Copy the task's id (from its URL or API tab) and run `supabase secrets set RECHECK_TASK=<task id>`.
 
 Field notes (handled in `normalize.ts`): memo23 sends `0` for unknown size and for "no concession", has no pet field (listings from a pets-allowed search are marked pets allowed), and has no no-fee flag (a listing is no-fee when its fee list has no broker fee).

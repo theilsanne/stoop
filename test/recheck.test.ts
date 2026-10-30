@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { marketStatus, normalize } from "../supabase/functions/_shared/normalize.ts";
-import { RECHECK_STAGES, recheckDue } from "../supabase/functions/_shared/recheck.ts";
+import { recheckDue } from "../supabase/functions/_shared/recheck.ts";
 
 test("StreetEasy's status decides whether a listing is still for rent", () => {
   assert.equal(marketStatus({ status: "ACTIVE" }), "active");
@@ -27,6 +27,3 @@ test("the re-check runs about weekly", () => {
   assert.equal(recheckDue("garbage", now), true);
 });
 
-test("the re-check covers the stages still in play", () => {
-  assert.deepEqual(RECHECK_STAGES, ["shortlisted", "tour_requested", "toured", "applied"]);
-});

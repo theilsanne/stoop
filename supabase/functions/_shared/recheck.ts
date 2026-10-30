@@ -1,5 +1,5 @@
-// The weekly re-check: ask Apify again about the listings you two care about (stamped, or moved
-// along the pipeline), so a rented one is marked gone and a live one isn't swept off the feed.
+// The weekly re-check: ask Apify again about the listings you two really like (stamped by either
+// of you, or a Yes from either of you), so a rented one is marked gone and a live one isn't swept off the feed.
 //
 // It rides on ingest: after each normal pull, ingest calls maybeRecheck. If the recheck task last
 // ran over a week ago, it starts that task with those listings' links. The task's results come back
@@ -10,8 +10,6 @@
 
 import type { DB } from "./pipeline.ts";
 
-/** Pipeline stages still in play. New is the feed; won and passed are done with. */
-export const RECHECK_STAGES = ["shortlisted", "tour_requested", "toured", "applied"];
 export const RECHECK_EVERY_DAYS = 7;
 /** Listings not seen for this long aren't asked about any more. */
 export const RECHECK_WITHIN_DAYS = 60;
@@ -34,15 +32,15 @@ export async function maybeRecheck(db: DB, opts: { token: string; secret: string
   const lastRun = (await last.json())?.data?.items?.[0];
   if (!recheckDue(lastRun?.startedAt ?? null)) return { started: false, why: "ran this week" };
 
-  // the listings either of you stamped, or that are somewhere in the pipeline
-  const [stamps, tracked] = await Promise.all([
+  // the listings either of you stamped or said Yes to
+  const [stamps, yes] = await Promise.all([
     db.from("stamps").select("listing_id"),
-    db.from("tracking").select("listing_id").in("stage", RECHECK_STAGES),
+    db.from("ratings").select("listing_id").eq("verdict", "yes"),
   ]);
   if (stamps.error) throw new Error(`stamps: ${stamps.error.message}`);
-  if (tracked.error) throw new Error(`tracking: ${tracked.error.message}`);
-  const ids = [...new Set([...stamps.data, ...tracked.data].map((r) => r.listing_id as string))];
-  if (!ids.length) return { started: false, why: "nothing stamped or in the pipeline" };
+  if (yes.error) throw new Error(`ratings: ${yes.error.message}`);
+  const ids = [...new Set([...stamps.data, ...yes.data].map((r) => r.listing_id as string))];
+  if (!ids.length) return { started: false, why: "nothing stamped or rated Yes" };
 
   const since = new Date(Date.now() - RECHECK_WITHIN_DAYS * 86400e3).toISOString();
   const { data: rows, error } = await db.from("listings").select("url").in("id", ids).gte("last_seen_at", since);

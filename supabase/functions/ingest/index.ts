@@ -6,7 +6,7 @@
 // 4. Mark listings not seen for OFF_MARKET_DAYS (default 30) as off-market.
 // 5. Look up building records (HPD, 311) for them, then score and save.
 // 6. Work out which ones deserve an alert (sending comes with web push).
-// 7. Once a week, start the re-check of stamped and pipeline listings (_shared/recheck.ts).
+// 7. Once a week, start the re-check of stamped and Yes listings (_shared/recheck.ts).
 //    A listing StreetEasy says is rented or gone is saved as off-market in step 3.
 //
 // Deploy with:  supabase functions deploy ingest --no-verify-jwt
