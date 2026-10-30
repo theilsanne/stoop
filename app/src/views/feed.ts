@@ -110,7 +110,7 @@ export function sortRows<T extends { row: FeedRow; v: View }>(rows: T[]): T[] {
   const by = {
     score: (a: T, b: T) => b.v.score - a.v.score,
     newest: (a: T, b: T) => Date.parse(b.row.first_seen_at) - Date.parse(a.row.first_seen_at),
-    rent: (a: T, b: T) => (a.row.net_effective_rent ?? a.row.price ?? 1e9) - (b.row.net_effective_rent ?? b.row.price ?? 1e9),
+    rent: (a: T, b: T) => (a.row.price ?? a.row.net_effective_rent ?? 1e9) - (b.row.price ?? b.row.net_effective_rent ?? 1e9),
   } as const;
   return rows.slice().sort(by[S.sort]);
 }
@@ -137,7 +137,7 @@ export function renderFeed() {
   // one dropdown for order and whose scores: "score:me" = sorted by score, scored for you only
   const sortOptions: [string, string][] = [
     ["score:both", "Best for both of us"], ["score:me", "Best for you"], ["score:partner", `Best for ${partnerName()}`],
-    ["newest:both", "Newest"], ["rent:both", "Lowest net rent"],
+    ["newest:both", "Newest"], ["rent:both", "Lowest rent"],
   ];
   const current = `${S.sort}:${S.lens}`;
   const empties: Record<Filter, string> = {
