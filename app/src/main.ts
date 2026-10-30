@@ -10,7 +10,7 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
-  type Filter, type Lens, type Liked, type Tab, draftChanges, findRow, likedIds, setLevel,
+  type Filter, type Lens, type Liked, type Tab, draftChanges, findRow, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
 import type { Stage, Verdict } from "./types.ts";
@@ -26,6 +26,7 @@ import { focusOnMap, mountMap, showList, showSubway } from "./views/map.ts";
 import { renderSettings, renderSignIn } from "./views/other.ts";
 import { renderPipeline } from "./views/pipeline.ts";
 import { shouldShortlist } from "./stages.ts";
+import { clearSnapshots, readSnapshot, writeSnapshot } from "./snapshot.ts";
 
 // ---------- backend ----------
 const env = import.meta.env;
@@ -339,34 +340,56 @@ function showError(e: unknown, retry?: () => void) {
 
 // ---------- data ----------
 async function load() {
-  S.loading = true;
-  render();
+  // the listings from last time, on screen at once; the fresh ones replace them when they arrive
+  const me = S.me!.id, cached = wantDemo ? null : await readSnapshot(me);
+  if (cached) {
+    const { at: _at, ...data } = cached;
+    Object.assign(S, data);
+    S.loading = false;
+    afterData();
+    render();
+    openFromLink();
+  } else {
+    S.loading = true;
+    render();
+  }
   try {
     const [profiles, feed, ratings, stamps, criteria, places] = await Promise.all([
       api.profiles(), api.feed(), api.ratings(), api.stamps(), api.criteria(), api.places().catch(() => []),
     ]);
-    Object.assign(S, { profiles, feed, ratings, stamps, criteria, places });
     // listings you liked that have since been rented (fails soft: they just don't show)
-    S.gone = await api.offMarket(likedIds()).catch(() => []);
-    resetDraft(false);
-    const restored = restoreDraft();
-    if (restored === "restored") {
-      toast(`Unsaved criteria edits from earlier: ${draftChanges() || "small changes"}. Save them in Criteria, or discard them.`, {
-        ms: 12000, action: { label: "Discard", run: () => { resetDraft(); render(); toast("Discarded"); } },
-      });
-    }
-    if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
+    const gone = await api.offMarket([...new Set([...stamps.map((x) => x.listing_id),
+      ...ratings.filter((r) => r.verdict === "yes").map((r) => r.listing_id)])]).catch(() => S.gone);
+    Object.assign(S, { profiles, feed, ratings, stamps, criteria, places, gone });
+    if (!wantDemo) void writeSnapshot(me, { at: Date.now(), profiles, feed, gone, ratings, stamps, criteria, places });
     S.error = null;
+    if (cached) {
+      // criteria may have changed elsewhere; take the fresh ones unless you're mid-edit
+      if (!draftChanges()) resetDraft(false);
+    } else afterData();
   } catch (e) {
-    S.error = e instanceof Error ? e.message : String(e);
+    // with the listings from last time on screen, a failed refresh is only worth a quiet note
+    if (cached) showError(e); else S.error = e instanceof Error ? e.message : String(e);
   }
   S.loading = false;
   render();
-  openFromLink();
+  if (!cached) openFromLink();
   alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); },
     (e) => { S.alerts = "on"; S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); render(); });
   save("lastVisit", Date.now()); // next visit's "new" badge counts from now
   setTimeout(maybeInstallTip, 1500); // after Chrome has had a moment to offer installing
+}
+
+/** Once there's data on screen the first time: your unsaved criteria edits, and a listing link you opened. */
+function afterData() {
+  resetDraft(false);
+  const restored = restoreDraft();
+  if (restored === "restored") {
+    toast(`Unsaved criteria edits from earlier: ${draftChanges() || "small changes"}. Save them in Criteria, or discard them.`, {
+      ms: 12000, action: { label: "Discard", run: () => { resetDraft(); render(); toast("Discarded"); } },
+    });
+  }
+  if (restored === "stale") toast("Your criteria were saved somewhere else since your last edits here, so those unsaved edits were dropped.");
 }
 
 async function boot() {
@@ -736,7 +759,7 @@ document.addEventListener("click", (e) => {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
         return;
       }
-      case "signout": api.signOut().then(() => { S.me = null; render(); }); return;
+      case "signout": void clearSnapshots(); api.signOut().then(() => { S.me = null; render(); }); return;
       case "resend": S.sentLinkTo = null; break;
       case "dismiss": S.error = null; break;
       default: return;
