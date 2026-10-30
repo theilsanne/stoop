@@ -36,6 +36,8 @@ export interface Listing {
 
 /** A row of the rentals.feed view: listing + combined score + stage + both verdicts. */
 export interface FeedRow extends Listing {
+  /** "active", or "off_market" once StreetEasy says it's rented or gone. */
+  status?: "active" | "off_market";
   score: number | null;
   passes: boolean | null;
   near_miss: boolean | null;

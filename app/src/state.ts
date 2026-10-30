@@ -9,7 +9,7 @@ import { columnOf, waitingFor, type Column } from "./stages.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
-export type Filter = "passing" | "near" | "other" | "stamped";
+export type Filter = "passing" | "near" | "other" | "stamped" | "gone";
 export type Sort = "score" | "newest" | "rent";
 export type Liked = "all" | "me" | "partner" | "both"; // map: whose thumbs-up a listing needs
 
@@ -18,6 +18,8 @@ export interface State {
   me: Me | null;
   profiles: Profile[];
   feed: FeedRow[];
+  /** Listings you stamped or said Yes to that have gone off the market (shown under "Off market"). */
+  gone: FeedRow[];
   ratings: Rating[];
   stamps: Stamp[];         // "I really like this one", both people's
   criteria: Criterion[];   // both people's saved lists
@@ -55,7 +57,7 @@ function savedTab(): Tab {
 
 export function initState(api: Api) {
   Object.assign(S, {
-    api, me: null, profiles: [], feed: [], ratings: [], stamps: [], criteria: [], places: [], draft: [],
+    api, me: null, profiles: [], feed: [], gone: [], ratings: [], stamps: [], criteria: [], places: [], draft: [],
     tab: savedTab(), lens: "both",
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"),
     mapLiked: store<Liked>("mapLiked", "all"), whyOpen: new Set(), shown: 40,
@@ -278,3 +280,12 @@ export function setLevel(target: { key?: string; id?: string }, level: Level) {
   if (level === "skip" && !myCriteria().some((x) => x.id === keep.id)) { S.draft = S.draft.filter((x) => x !== keep); return; }
   S.draft[S.draft.indexOf(keep)] = withLevel(keep, level, def?.unit === "money" ? 0.05 : null);
 }
+
+/** A listing by id, whether it's still for rent or gone off the market. */
+export const findRow = (id: string | null) => (id ? S.feed.find((r) => r.id === id) ?? S.gone.find((r) => r.id === id) : undefined);
+
+/** Listings either of you stamped or said Yes to. */
+export const likedIds = () => [...new Set([
+  ...S.stamps.map((s) => s.listing_id),
+  ...S.ratings.filter((r) => r.verdict === "yes").map((r) => r.listing_id),
+])];

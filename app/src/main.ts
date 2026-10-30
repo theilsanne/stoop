@@ -10,7 +10,7 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
-  type Filter, type Lens, type Liked, type Tab, draftChanges, setLevel,
+  type Filter, type Lens, type Liked, type Tab, draftChanges, findRow, likedIds, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
 import type { Stage, Verdict } from "./types.ts";
@@ -195,7 +195,7 @@ document.addEventListener("pointerdown", () => { usingKeyboard = false; }, true)
 // ---------- full-screen photo viewer ----------
 let viewerReturn: HTMLElement | null = null;
 function openViewer(id: string, start: number) {
-  const row = S.feed.find((r) => r.id === id);
+  const row = findRow(id);
   if (!row?.photos?.length) return;
   viewerReturn = document.activeElement as HTMLElement | null;
   const host = document.createElement("div");
@@ -346,6 +346,8 @@ async function load() {
       api.profiles(), api.feed(), api.ratings(), api.stamps(), api.criteria(), api.places().catch(() => []),
     ]);
     Object.assign(S, { profiles, feed, ratings, stamps, criteria, places });
+    // listings you liked that have since been rented (fails soft: they just don't show)
+    S.gone = await api.offMarket(likedIds()).catch(() => []);
     resetDraft(false);
     const restored = restoreDraft();
     if (restored === "restored") {
@@ -481,7 +483,7 @@ function noteChanged(id: string, text: string) {
 }
 
 async function setStage(id: string, stage: Stage) {
-  const row = S.feed.find((r) => r.id === id);
+  const row = findRow(id);
   const before = row?.stage;
   if (row) row.stage = stage;
   render();
@@ -553,7 +555,7 @@ function addWriteIn() {
 /** Tick or untick one of my write-ins on a listing (null: go back to what the listing says), then re-score. */
 let markTimer: number | undefined;
 function markWriteIn(criterionId: string, met: boolean | null) {
-  const row = S.feed.find((r) => r.id === S.openId);
+  const row = findRow(S.openId);
   if (!row) return;
   const marks = { ...(row.marks ?? {}) };
   if (met == null) delete marks[criterionId]; else marks[criterionId] = met;
@@ -584,7 +586,7 @@ function openFromLink() {
   if (!id) return;
   params.delete("open");
   window.history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params : "") + location.hash);
-  if (S.feed.some((r) => r.id === id)) { S.tab = "feed"; openSheet(id); }
+  if (findRow(id)) { S.tab = "feed"; openSheet(id); }
   else toast("That listing isn't on the market any more.");
 }
 

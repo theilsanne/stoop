@@ -65,6 +65,9 @@ const DESC: Record<string, string> = {
 };
 
 const T = true, F = false;
+/** The sample listing that has gone off the market. */
+const GONE = "d4";
+
 const LISTINGS = [
   L("d1", "812 Sterling Pl #3R", "Crown Heights", 3450, 1, 12, 2, 1, "2026-12-01", [F, T, T, F, F], 3, [3550, 3450]),
   L("d2", "1047 Bergen St #2", "Crown Heights", 3895, 0, 12, 2, 1, "2027-01-01", [T, F, T, T, F], 20),
@@ -159,7 +162,11 @@ export class DemoApi implements Api {
   async setAvatar(image: Blob) { this.photos[YOU] = URL.createObjectURL(image); }
   async removeAvatar() { delete this.photos[YOU]; }
 
-  async feed(): Promise<FeedRow[]> {
+  async feed(): Promise<FeedRow[]> { return (await this.everything()).filter((r) => r.status === "active"); }
+  async offMarket(ids: string[]) { return (await this.everything()).filter((r) => r.status === "off_market" && ids.includes(r.id)); }
+
+  /** Every listing, still for rent or not. One sample listing you both liked has been rented. */
+  private async everything(): Promise<FeedRow[]> {
     const byOwner = groupByOwner(this.criteriaRows.filter((c) => c.active));
     return LISTINGS.map((l) => {
       const [v, c, n] = BLDG[l.id] ?? [null, null, null];
@@ -177,7 +184,8 @@ export class DemoApi implements Api {
         hpd_open_violations: v ?? null, hpd_class_c_open: c ?? null, complaints_311_12mo: n ?? null,
         building_checked_at: v == null ? null : new Date().toISOString(),
         commutes: Object.keys(commutes).length ? commutes : null,
-        description, marks: Object.keys(marks).length ? marks : null };
+        description, marks: Object.keys(marks).length ? marks : null,
+        status: l.id === GONE ? "off_market" as const : "active" as const };
     });
   }
 

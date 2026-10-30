@@ -1,5 +1,5 @@
 import { mentions } from "../../../supabase/functions/_shared/scoring.ts";
-import { S, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf, myCriteria } from "../state.ts";
+import { S, findRow, myId, partnerId, partnerName, personScore, placeName, ratingOf, verdictOf, viewOf, myCriteria } from "../state.ts";
 import { STAGES, type FeedRow, type PricePoint } from "../types.ts";
 import { ago, beds, esc, fmtDate, money, routeHTML, googleMapsUrl } from "../util.ts";
 import { verdictButtons, verdictText } from "./feed.ts";
@@ -57,7 +57,7 @@ function writeIns(row: FeedRow) {
 }
 
 export function renderSheet() {
-  const row = S.feed.find((r) => r.id === S.openId);
+  const row = findRow(S.openId);
   if (!row) return "";
   const v = viewOf(row, "both");
   const who = S.bdWho;

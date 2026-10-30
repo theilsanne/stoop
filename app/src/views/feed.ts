@@ -25,6 +25,7 @@ const tier = (n: number) => (n >= 70 ? "hi" : n >= 50 ? "mid" : "");
 /** The labels on a listing's photo. One badge style; data-tone only changes the color. */
 function badges(row: FeedRow) {
   const b: string[] = [];
+  if (row.status === "off_market") b.push(`<span class="badge" data-tone="bad" title="StreetEasy says it's rented or no longer available">Off market</span>`);
   if (isNewSinceVisit(row)) b.push('<span class="badge" data-tone="accent">New</span>');
   if (row.no_fee) b.push('<span class="badge">No fee</span>');
   if (row.free_months) b.push(`<span class="badge">${row.free_months} mo free</span>`);
@@ -122,6 +123,8 @@ export function groups() {
     other: all.filter((x) => !x.v.passes && !x.v.near),
     // either of you stamped it; a stamp never changes which group a listing is in
     stamped: all.filter((x) => S.stamps.some((s) => s.listing_id === x.row.id)),
+    // ones you liked that have been rented since: kept here so they don't just disappear
+    gone: S.gone.map((row) => ({ row, v: viewOf(row) })),
   };
 }
 
@@ -142,6 +145,7 @@ export function renderFeed() {
     near: "No near misses. Give a number dealbreaker a near-miss margin to see listings that miss it by a little.",
     other: "Nothing is filtered out.",
     stamped: "Nothing stamped yet. Drag your stamp, bottom right, onto a listing you really like.",
+    gone: "None of the listings you stamped or said Yes to have gone off the market.",
   };
 
   if (!S.feed.length) {
@@ -149,7 +153,8 @@ export function renderFeed() {
   }
 
   return `<div class="toolbar">
-      <div class="seg" role="group" aria-label="Filter">${([["stamped", "Stamped"], ["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"]] as const).map(([k, t]) =>
+      <div class="seg" role="group" aria-label="Filter">${([["stamped", "Stamped"], ["passing", "Passing"], ["near", "Near misses"], ["other", "Filtered out"],
+        ...(g.gone.length || S.filter === "gone" ? [["gone", "Off market"]] as const : [])] as const).map(([k, t]) =>
         `<button data-action="filter" data-v="${k}" aria-pressed="${S.filter === k}">${t}<span class="n">${g[k].length}</span>${k === "stamped" ? waitingDot() : ""}</button>`).join("")}</div>
       <div class="toolbar-r">
         <select class="sm" id="sort" data-change="sort" aria-label="${S.feedView === "map" ? "Show" : "Sort"}" title="${S.feedView === "map" ? "Show" : "Sort"}">${sortOptions.map(([k, t]) =>

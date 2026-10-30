@@ -22,6 +22,8 @@ export interface Api {
   removeAvatar(): Promise<void>;
 
   feed(): Promise<FeedRow[]>;
+  /** Of these listings, the ones that have gone off the market. */
+  offMarket(ids: string[]): Promise<FeedRow[]>;
   ratings(): Promise<Rating[]>;
   setRating(listingId: string, verdict: Verdict | null, note: string | null): Promise<void>;
   stamps(): Promise<Stamp[]>;
@@ -79,7 +81,7 @@ const FEED_COLUMNS = [
   "listed_at", "first_seen_at", "last_seen_at",
   "score", "passes", "near_miss", "failed", "per_person", "stage", "verdicts",
   "bbl", "hpd_open_violations", "hpd_class_c_open", "complaints_311_12mo", "building_checked_at", "commutes",
-  "description", "marks",
+  "description", "marks", "status",
 ].join(",");
 
 const CRITERION_COLUMNS =
@@ -198,11 +200,22 @@ export class SupabaseApi implements Api {
   async feed() {
     const rows: FeedRow[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await this.sb.from("feed").select(FEED_COLUMNS)
+      const { data, error } = await this.sb.from("feed").select(FEED_COLUMNS).eq("status", "active")
         .order("first_seen_at", { ascending: false }).range(from, from + 999);
       fail("Loading listings", error);
       rows.push(...(data as unknown as FeedRow[]));
       if (data.length < 1000) break;
+    }
+    return rows;
+  }
+
+  async offMarket(ids: string[]) {
+    const rows: FeedRow[] = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data, error } = await this.sb.from("feed").select(FEED_COLUMNS).eq("status", "off_market")
+        .in("id", ids.slice(i, i + 100)).order("last_seen_at", { ascending: false });
+      fail("Loading off-market listings", error);
+      rows.push(...(data as unknown as FeedRow[]));
     }
     return rows;
   }
