@@ -32,6 +32,7 @@ Stoop's app is vanilla TypeScript and Vite, with no framework and no CSS-in-JS. 
 - A view is a pure function of `S` plus its arguments. Changing a screen means changing state and re-rendering, not patching the DOM in place.
 - Keep scroll position and focus through a redraw, as the listing sheet and the tabs already do. A redraw that jumps the user to the top is a bug.
 - Every control needs a visible state for hover, focus, pressed and disabled. Use real `<button>`s and `<a>`s. Give icon-only controls an `aria-label`.
+- **Controls are one line and never wrap.** `button`, `select` and `.btn` are `white-space:nowrap` app-wide. When a row of controls runs out of room, the row wraps (`.toolbar`) or scrolls sideways (`.seg`); a label never breaks inside its pill. Grids use `minmax(min(<px>,100%),1fr)` so a column can't be wider than a phone.
 - Loading and empty states are part of a screen's design, not an afterthought. The app already shows "Loading…" and an empty-state line; follow that.
 
 ## Motion
@@ -57,3 +58,4 @@ Stoop's app is vanilla TypeScript and Vite, with no framework and no CSS-in-JS. 
 1. `npm test` passes.
 2. `cd app && npm run build` passes.
 3. The change's own steps work in `npm run dev` (or are stated as unchecked).
+4. For a UI change, `node scripts/audit-overflow.cjs` prints `clean`: nothing wraps or spills out of its box at phone and tablet widths.
