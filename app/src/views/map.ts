@@ -93,7 +93,7 @@ function listItem({ row, v }: ReturnType<typeof located>[number]) {
   return `<li><button class="mi" data-action="mapfocus" data-id="${row.id}" aria-current="${selected === row.id}">
       <span class="mi-ph">${photo ? `<img src="${esc(sized(photo, "medium"))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">` : ""}</span>
       <span class="mi-b">
-        <span class="mi-rent"><i style="background:${tierColor(v.score)}"></i><b>${money(row.net_effective_rent ?? row.price)}</b></span>
+        <span class="mi-rent"><i style="background:${tierColor(v.score)}"></i><b>${money(row.price ?? row.net_effective_rent)}</b></span>
         <span class="mi-s">${beds(row.beds)}${v.scored ? ` · score ${v.score}` : ""}</span>
         <span class="mi-a">${esc(row.address)}${row.unit ? " " + esc(row.unit) : ""}</span>
         ${likes(row.id)}

@@ -49,7 +49,7 @@ function card(r: FeedRow, col: Column) {
     <span class="mini-ph">${photo ? `<img src="${esc(sized(photo, "medium"))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">` : ""}
       ${v.scored ? `<span class="score ${tier(v.score)}" title="Score ${v.score}">${v.score}</span>` : ""}${stampSlots(r.id)}</span>
     <div class="mini-body">
-      <div class="mini-rent"><b>${money(r.net_effective_rent ?? r.price)}</b><span>${beds(r.beds)} · ${r.baths ?? "–"} ba</span></div>
+      <div class="mini-rent"><b>${money(r.price ?? r.net_effective_rent)}</b><span>${beds(r.beds)} · ${r.baths ?? "–"} ba</span></div>
       <div class="t">${esc(r.address)}${r.unit ? ` <span class="unit">${esc(r.unit)}</span>` : ""}</div>
       <div class="mini-meta">${esc(r.neighborhood)}</div>
       ${wait ? `<div class="wait ${wait}">${wait === "me" ? '<span class="dot notify" aria-hidden="true"></span>Your stamp is next' : `Waiting for ${esc(partnerFirst)}`}</div>` : ""}
