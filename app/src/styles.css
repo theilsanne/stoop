@@ -109,14 +109,6 @@ select.sm:hover{border-color:var(--ink-2)}
 .stage-strip > button{display:inline-flex;align-items:center;gap:6px;flex:none;white-space:nowrap}
 .stage-strip .n{margin-left:1px}
 .stage-strip .dot.notify{margin:0 0 0 1px;box-shadow:none}
-.pipe-arrows{display:flex;flex:none;gap:6px}
-.arrow{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--ink-2);cursor:pointer;
-  transition:color .15s,border-color .15s,opacity .15s,transform .12s var(--ease)}
-.arrow:hover:not(:disabled){border-color:color-mix(in srgb,var(--line) 50%,var(--ink-2));color:var(--ink)}
-.arrow:active:not(:disabled){transform:scale(.94)}
-.arrow:disabled{opacity:.35;cursor:default}
-.arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (max-width:700px){.pipe-arrows{display:none}}
 /* the board scrolls sideways, and runs off the edge of the screen: it's as wide as the window, and its first column lines up with the page
    (--gutter is the page's side margin: #app is 1080px wide and centred, with 16px of padding inside the body's 8px margin) */
 .board-wrap{position:relative;flex:1 1 auto;min-height:260px}

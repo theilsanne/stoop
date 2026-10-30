@@ -217,14 +217,11 @@ function closeViewer() {
 
 // photo strips scroll sideways; keep their counters and arrows in step (scroll doesn't bubble, so capture)
 /**
- * The pipeline board scrolls sideways. Keep what follows it in step: the strip above highlights the
- * first column in view (sliding the highlight, and scrolling the strip itself on a phone) and the arrows
- * dim at either end. Plain DOM state, no redraw.
+ * The pipeline board scrolls sideways. Keep what follows it in step: the strip above highlights
+ * where along the board you are (sliding the highlight, and scrolling the strip itself on a phone). Plain DOM state, no redraw.
  */
 function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElement>(".board")) {
   if (!board) return;
-  const atStart = board.scrollLeft < 4, atEnd = board.scrollLeft + board.clientWidth >= board.scrollWidth - 4;
-  for (const a of document.querySelectorAll<HTMLButtonElement>(".pipe-arrows .arrow")) a.disabled = a.dataset.v === "prev" ? atStart : atEnd;
   const cols = [...board.querySelectorAll<HTMLElement>(".col")];
   // the first column that's mostly in view, so a half-hidden one doesn't count. But a column you tapped in the
   // strip stays the highlighted one while it's on screen, even if the board ran out of room to put it at the left
@@ -232,7 +229,11 @@ function syncBoard(board: HTMLElement | null = document.querySelector<HTMLElemen
     && c.offsetLeft - board.scrollLeft <= board.clientWidth - c.offsetWidth * 0.55;
   const tapped = jump ? cols.find((c) => c.dataset.col === jump!.col) : undefined;
   if (jump && !(performance.now() < jump.until || (tapped && mostlyIn(tapped)))) jump = null;
-  const lead = (jump && tapped) || cols.find((c) => c.offsetLeft + c.offsetWidth - board.scrollLeft >= c.offsetWidth * 0.55) || cols[0];
+  // otherwise it follows how far along the board you are: the start is the first step, the very end the last,
+  // so the last steps light up too even though they can never reach the left edge
+  const room = board.scrollWidth - board.clientWidth;
+  const along = room > 4 ? cols[Math.round((board.scrollLeft / room) * (cols.length - 1))] : cols[0];
+  const lead = (jump && tapped) || along || cols[0];
   const nav = document.querySelector<HTMLElement>(".pipe-nav"), strip = nav?.querySelector<HTMLElement>(".stage-strip");
   if (!nav || !strip || !lead) return;
   const on = strip.querySelector<HTMLElement>('button[aria-pressed="true"]');
@@ -679,7 +680,6 @@ document.addEventListener("click", (e) => {
       case "rate": rate(id, v as Verdict); return;
       case "stamphint": toast("Drag it onto a listing to stamp it"); return;
       case "jump": scrollBoard({ col: v }); return;
-      case "boardstep": scrollBoard({ step: v === "next" ? 1 : -1 }); return;
       case "takeback": void takeBack(id); return;
       case "pickavatar": $("avatar-file").click(); return;
       case "removeavatar": changeAvatar(() => api.removeAvatar(), "Photo removed"); return;

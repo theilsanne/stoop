@@ -88,10 +88,6 @@ export function renderPipeline() {
     </header>
     <div class="pipe-nav">
       <div class="seg stage-strip" role="group" aria-label="Pipeline steps">${strip}</div>
-      <div class="pipe-arrows">
-        <button class="arrow" data-action="boardstep" data-v="prev" aria-label="Previous step">${icon("caret-left", { size: 14 })}</button>
-        <button class="arrow" data-action="boardstep" data-v="next" aria-label="Next step">${icon("caret-right", { size: 14 })}</button>
-      </div>
     </div>
     <div class="board-wrap"><div class="board" role="region" aria-label="Pipeline board" tabindex="0">${board}</div></div>`;
 }
