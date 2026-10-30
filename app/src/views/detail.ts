@@ -87,8 +87,8 @@ export function renderSheet() {
     ${sheetPhotos(row.id, row.photos)}
     ${sheetStamp(row.id)}
     <div class="box"><div class="kv">
-      <div><span>Net effective</span><b>${money(row.net_effective_rent ?? row.price)}</b></div>
       <div><span>Asking</span><b>${money(row.price)}</b></div>
+      <div><span>Net effective</span><b>${money(row.net_effective_rent ?? row.price)}</b></div>
       <div><span>Concession</span><b>${row.free_months ? `${row.free_months} mo free${row.lease_term_months ? ` / ${row.lease_term_months} mo` : ""}` : "None"}</b></div>
       <div><span>Beds / baths</span><b>${beds(row.beds)} / ${row.baths ?? "–"}</b></div>
       <div><span>Size</span><b>${row.sqft ? row.sqft + " ft²" : "–"}</b></div>

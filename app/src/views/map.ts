@@ -130,8 +130,8 @@ export function renderMapShell() {
 /** The pin's popup: a photo you can swipe, the price over it, the facts, and the way into the full listing. */
 function popup(row: FeedRow, v: View, width: number) {
   const photos = row.photos?.length ?? 0;
-  const rent = money(row.net_effective_rent ?? row.price);
-  const asking = row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `net · asking ${money(row.price)}` : "";
+  const rent = money(row.price ?? row.net_effective_rent);
+  const asking = row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `${money(row.net_effective_rent)} net effective` : "";
   const maps = googleMapsUrl(row);
   return `<div class="pop" style="width:${width}px">
     <div class="ph pop-ph${photos ? " has-photo" : ""}">${cardPhotos(row.id, row.photos)}

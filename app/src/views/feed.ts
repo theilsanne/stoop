@@ -91,8 +91,8 @@ export function card(row: FeedRow, v: View) {
       ${cardStamp(row.id)}
     </div>
     <div class="cb">
-      <div class="rent"><b>${money(row.net_effective_rent ?? row.price)}</b>${
-        row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `<span>net · asking ${money(row.price)}</span>` : ""}</div>
+      <div class="rent"><b>${money(row.price ?? row.net_effective_rent)}</b>${
+        row.net_effective_rent && row.price && row.net_effective_rent < row.price ? `<span>${money(row.net_effective_rent)} net effective</span>` : ""}</div>
       <div class="addr">${esc(row.address)}${row.unit ? ` <span class="unit">${esc(row.unit)}</span>` : ""}</div>
       <div class="hood">${esc(row.neighborhood)}</div>
       <div class="specs">${beds(row.beds)} · ${row.baths ?? "–"} ba${row.sqft ? ` · ${row.sqft} ft²` : ""} · Avail ${fmtDate(row.available_date)} · ${ago(row.listed_at ?? row.first_seen_at)}</div>
