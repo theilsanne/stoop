@@ -9,6 +9,9 @@ import { columnOf, waitingFor, type Column } from "./stages.ts";
 
 export type Tab = "feed" | "pipeline" | "criteria" | "settings";
 export type Lens = "both" | "me" | "partner";
+/** The parts of a first load, in the order the loader shows them. */
+export type LoadStep = "signin" | "listings" | "ratings" | "criteria";
+
 export type Filter = "passing" | "near" | "other" | "stamped" | "gone";
 export type Sort = "score" | "newest" | "rent";
 export type Liked = "all" | "me" | "partner" | "both"; // map: whose thumbs-up a listing needs
@@ -37,6 +40,8 @@ export interface State {
   bdWho: "me" | "partner";
   lastVisit: number;       // for "new since your last visit"
   loading: boolean;
+  /** Which parts of a first load have arrived (the loader fills a step for each). */
+  progress: LoadStep[];
   saving: boolean;         // saving criteria or a place
   busy: Set<string>;       // long-running Settings actions in progress, by name
   error: string | null;
@@ -62,7 +67,7 @@ export function initState(api: Api) {
     filter: "passing", sort: store<Sort>("sort", "score"), feedView: store<"list" | "map">("feedView", "list"),
     mapLiked: store<Liked>("mapLiked", "all"), whyOpen: new Set(), shown: 40,
     openId: null, bdWho: "me", lastVisit: store<number>("lastVisit", 0),
-    loading: true, saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
+    loading: true, progress: [], saving: false, busy: new Set(), error: null, sentLinkTo: null, alerts: "checking",
     critFilter: store<"all" | "picks" | "differ">("critFilter", "all"),
     historyOpen: store<boolean>("historyOpen", false),
     infoOpen: new Set(),

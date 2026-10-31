@@ -10,10 +10,10 @@ import { DemoApi } from "./demo.ts";
 import {
   S, draftDirty, initState, myCriteria, myId, persistDraft, ratingOf, resetDraft,
   restoreDraft, columnFor, stampedBy, stampsOf, verdictOf,
-  type Filter, type Lens, type Liked, type Tab, draftChanges, findRow, setLevel,
+  type Filter, type Lens, type LoadStep, type Liked, type Tab, draftChanges, findRow, setLevel,
 } from "./state.ts";
 import { squareAvatar } from "./avatar.ts";
-import type { Stage, Verdict } from "./types.ts";
+import type { Criterion, FeedRow, Place, Profile, Rating, Stage, Stamp, Verdict } from "./types.ts";
 import { esc, save, store } from "./util.ts";
 import type { Level } from "./criteria-edit.ts";
 import { changeLog, refreshBars, renderCriteria, resetLive } from "./views/criteria.ts";
@@ -27,6 +27,7 @@ import { renderSettings, renderSignIn } from "./views/other.ts";
 import { renderPipeline } from "./views/pipeline.ts";
 import { shouldShortlist } from "./stages.ts";
 import { clearSnapshots, readSnapshot, writeSnapshot } from "./snapshot.ts";
+import { renderLoader } from "./views/loader.ts";
 
 // ---------- backend ----------
 const env = import.meta.env;
@@ -107,7 +108,7 @@ export function render() {
   persistDraft();
   const root = $("app");
   if (!S.me) {
-    root.innerHTML = S.loading ? '<div class="loading">Loading…</div>' : renderSignIn();
+    root.innerHTML = S.loading ? renderLoader() : renderSignIn();
     return;
   }
   const y = window.scrollY;
@@ -128,11 +129,11 @@ export function render() {
       <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
     </header>
     <nav class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, t]) =>
-      `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}<span class="n">${tabCount(k)}</span>${
+      `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}${S.loading ? "" : `<span class="n">${tabCount(k)}</span>`}${
         k === "criteria" && !S.loading && draftDirty() ? '<span class="dot" title="Unsaved changes" aria-label="unsaved changes"></span>' : ""}${
         k === "pipeline" && !S.loading ? waitingDot() : ""}</button>`).join("")}</nav>
     ${S.error ? `<div class="banner">${esc(S.error)} <button class="x" data-action="dismiss">Dismiss</button></div>` : ""}
-    <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? '<div class="loading">Loading listings…</div>' : {
+    <main id="panel" ${TABS.some(([x]) => x === S.tab) ? `role="tabpanel" aria-labelledby="tab-${S.tab}"` : 'aria-label="Settings"'}>${S.loading ? renderLoader() : {
       feed: renderFeed, pipeline: renderPipeline, criteria: renderCriteria, settings: renderSettings,
     }[S.tab]()}</main>`;
   placeIndicators(root, inds);
@@ -351,29 +352,50 @@ async function load() {
     openFromLink();
   } else {
     S.loading = true;
+    S.progress = ["signin"];
     render();
   }
+  // each part fills a step of the loader as it arrives (only while the loader is up)
+  const arrived = <T>(step: LoadStep) => (v: T) => {
+    if (S.loading && !S.progress.includes(step)) { S.progress = [...S.progress, step]; render(); }
+    return v;
+  };
+  // listings in two parts, fetched side by side: the ones you'll look at first (passing, near misses,
+  // anything in the pipeline), then the rest, which is mostly Filtered out
+  const restP = api.feed("rest");
+  restP.catch(() => {}); // handled below; this just stops an early failure being reported as unhandled
   try {
-    const [profiles, feed, ratings, stamps, criteria, places] = await Promise.all([
-      api.profiles(), api.feed(), api.ratings(), api.stamps(), api.criteria(), api.places().catch(() => []),
+    const [first, [ratings, stamps], [profiles, criteria, places]] = await Promise.all([
+      api.feed("first").then(arrived<FeedRow[]>("listings")),
+      Promise.all([api.ratings(), api.stamps()]).then(arrived<[Rating[], Stamp[]]>("ratings")),
+      Promise.all([api.profiles(), api.criteria(), api.places().catch(() => [])]).then(arrived<[Profile[], Criterion[], Place[]]>("criteria")),
     ]);
+    if (!cached) {
+      // enough to use the app: show it now, and the rest of the listings join when they arrive
+      Object.assign(S, { profiles, feed: first, ratings, stamps, criteria, places });
+      S.loading = false;
+      S.error = null;
+      afterData();
+      render();
+      openFromLink();
+    }
+    const rest = await restP;
     // listings you liked that have since been rented (fails soft: they just don't show)
     const gone = await api.offMarket([...new Set([...stamps.map((x) => x.listing_id),
       ...ratings.filter((r) => r.verdict === "yes").map((r) => r.listing_id)])]).catch(() => S.gone);
+    const seen = new Set(first.map((r) => r.id));
+    const feed = [...first, ...rest.filter((r) => !seen.has(r.id))];
     Object.assign(S, { profiles, feed, ratings, stamps, criteria, places, gone });
     if (!wantDemo) void writeSnapshot(me, { at: Date.now(), profiles, feed, gone, ratings, stamps, criteria, places });
     S.error = null;
-    if (cached) {
-      // criteria may have changed elsewhere; take the fresh ones unless you're mid-edit
-      if (!draftChanges()) resetDraft(false);
-    } else afterData();
+    // criteria may have changed elsewhere; take the fresh ones unless you're mid-edit
+    if (cached && !draftChanges()) resetDraft(false);
   } catch (e) {
     // with the listings from last time on screen, a failed refresh is only worth a quiet note
-    if (cached) showError(e); else S.error = e instanceof Error ? e.message : String(e);
+    if (!S.loading) showError(e); else S.error = e instanceof Error ? e.message : String(e);
   }
   S.loading = false;
   render();
-  if (!cached) openFromLink();
   alertState(api).then((a) => { S.alerts = a; if (S.tab === "settings") render(); },
     (e) => { S.alerts = "on"; S.error = "Alerts: " + (e instanceof Error ? e.message : String(e)); render(); });
   save("lastVisit", Date.now()); // next visit's "new" badge counts from now

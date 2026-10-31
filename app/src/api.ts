@@ -21,7 +21,9 @@ export interface Api {
   setAvatar(image: Blob): Promise<void>;
   removeAvatar(): Promise<void>;
 
-  feed(): Promise<FeedRow[]>;
+  /** Listings still for rent. "first": the ones you'll look at first (pass, nearly pass, or in the pipeline);
+   *  "rest": all the others; no part: everything. */
+  feed(part?: "first" | "rest"): Promise<FeedRow[]>;
   /** Of these listings, the ones that have gone off the market. */
   offMarket(ids: string[]): Promise<FeedRow[]>;
   ratings(): Promise<Rating[]>;
@@ -197,11 +199,14 @@ export class SupabaseApi implements Api {
     if (old) await this.sb.storage.from("avatars").remove([old]);
   }
 
-  async feed() {
+  async feed(part?: "first" | "rest") {
     const rows: FeedRow[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await this.sb.from("feed").select(FEED_COLUMNS).eq("status", "active")
-        .order("first_seen_at", { ascending: false }).range(from, from + 999);
+      let q = this.sb.from("feed").select(FEED_COLUMNS).eq("status", "active");
+      // "is" so a listing with no score yet (null) counts as neither passing nor near
+      if (part === "first") q = q.or("passes.is.true,near_miss.is.true,stage.neq.new");
+      if (part === "rest") q = q.not("passes", "is", true).not("near_miss", "is", true).eq("stage", "new");
+      const { data, error } = await q.order("first_seen_at", { ascending: false }).range(from, from + 999);
       fail("Loading listings", error);
       rows.push(...(data as unknown as FeedRow[]));
       if (data.length < 1000) break;

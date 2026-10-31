@@ -162,7 +162,12 @@ export class DemoApi implements Api {
   async setAvatar(image: Blob) { this.photos[YOU] = URL.createObjectURL(image); }
   async removeAvatar() { delete this.photos[YOU]; }
 
-  async feed(): Promise<FeedRow[]> { return (await this.everything()).filter((r) => r.status === "active"); }
+  async feed(part?: "first" | "rest"): Promise<FeedRow[]> {
+    const first = (r: FeedRow) => !!r.passes || !!r.near_miss || r.stage !== "new";
+    // a moment's wait, so the loader is seen doing its job in ?demo
+    await new Promise((ok) => setTimeout(ok, part === "first" ? 600 : part === "rest" ? 1600 : 0));
+    return (await this.everything()).filter((r) => r.status === "active" && (!part || (part === "first") === first(r)));
+  }
   async offMarket(ids: string[]) { return (await this.everything()).filter((r) => r.status === "off_market" && ids.includes(r.id)); }
 
   /** Every listing, still for rent or not. One sample listing you both liked has been rented. */

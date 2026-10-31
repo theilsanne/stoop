@@ -674,7 +674,7 @@ button.face:hover{transform:translateY(-3px) scale(1.08);z-index:1}
 @keyframes wash{from{opacity:1}to{opacity:0}}
 /* three little stairs by each name: none for Skip, up to all three for a Dealbreaker. Your picks read as a staircase down the page. */
 .steps{display:flex;align-items:flex-end;gap:2px;height:16px;align-self:start;margin-top:3px}
-.steps i{display:block;width:5px;border-radius:1.5px 1.5px 0 0;background:var(--line);transform-origin:bottom}
+.steps i{display:block;width:5px;border-radius:1.5px 1.5px 0 0;background:var(--line);transform-origin:left}
 .steps i:nth-child(1){height:6px}
 .steps i:nth-child(2){height:11px}
 .steps i:nth-child(3){height:16px}
@@ -849,3 +849,15 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
 .box a.btn.ext{color:var(--ink)}
 .box a.btn.primary.ext{color:var(--accent-ink)}
 @media (prefers-reduced-motion:reduce){.pin-dot{transition:none}}
+
+/* First-open loader: the stairs fill a step at a time (views/loader.ts) */
+.loader{display:flex;flex-direction:column;align-items:center;gap:14px;padding:72px 16px;color:var(--ink-2);text-align:center}
+.loader p{margin:0;font-weight:600;color:var(--ink)}
+.loader p .small{font-weight:400;color:var(--ink-2)}
+.lstep{fill:none;stroke:var(--line);stroke-width:1.5;transform-box:fill-box;transform-origin:left}
+.lstep.now{stroke:var(--accent);animation:lstep-wait 1.1s ease-in-out infinite}
+.lstep.done{fill:var(--accent);stroke:var(--accent)}
+.lstep.just{animation:lstep-rise .45s cubic-bezier(.2,0,0,1.3)}
+@keyframes lstep-wait{50%{opacity:.35}}
+@keyframes lstep-rise{from{transform:scaleX(.15);opacity:.4}to{transform:scaleX(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.lstep.now,.lstep.just{animation:none}}
