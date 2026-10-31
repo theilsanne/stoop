@@ -23,6 +23,9 @@
 body{overflow-x:clip;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
+/* Controls are one line. A button or dropdown label never wraps, so a fixed-height pill can't burst;
+   a row of controls that runs out of room wraps or scrolls as a row (see .toolbar, .seg) instead. */
+button,select,.btn{white-space:nowrap}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:0 96px}
 
@@ -56,7 +59,7 @@ select.sm{background:var(--surface);border:1px solid var(--line);border-radius:9
   background-image:var(--chev);background-position:right 11px center;background-size:11px 7px;background-repeat:no-repeat}
 select.sm:hover{border-color:var(--ink-2)}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
 .ph{position:relative;height:108px;background:
@@ -228,7 +231,7 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .log .by{font-weight:600}
 
 /* alerts */
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:18px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .panel h2{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:20px;text-transform:uppercase;margin:0}
 .panel p{margin:0;color:var(--ink-2);font-size:14px}
@@ -249,7 +252,7 @@ select.sm.stage:not([data-stage="new"]){background-color:var(--accent-soft, var(
 .close{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-weight:600}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
 .box h3{margin:0;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px}
 .kv div{display:flex;flex-direction:column}
 .kv span{font-size:12px;color:var(--ink-2)}
 .kv b{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums}
