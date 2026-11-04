@@ -9,6 +9,8 @@ import x from "@phosphor-icons/core/assets/bold/x-bold.svg?raw";
 import trash from "@phosphor-icons/core/assets/regular/trash.svg?raw";
 import info from "@phosphor-icons/core/assets/regular/info.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
+import sun from "@phosphor-icons/core/assets/regular/sun.svg?raw";
+import moon from "@phosphor-icons/core/assets/regular/moon.svg?raw";
 import thumbsUp from "@phosphor-icons/core/assets/regular/thumbs-up.svg?raw";
 import stamp from "@phosphor-icons/core/assets/regular/stamp.svg?raw";
 import star from "@phosphor-icons/core/assets/regular/star.svg?raw";
@@ -24,7 +26,7 @@ import questionFill from "@phosphor-icons/core/assets/fill/question-fill.svg?raw
 import thumbsDownFill from "@phosphor-icons/core/assets/fill/thumbs-down-fill.svg?raw";
 
 const REGULAR = {
-  stairs, "caret-left": caretLeft, "caret-right": caretRight, x, trash, info, gear, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown,
+  stairs, "caret-left": caretLeft, "caret-right": caretRight, x, trash, info, gear, sun, moon, "thumbs-up": thumbsUp, question, "thumbs-down": thumbsDown,
   stamp, star, "calendar-dots": calendarDots, binoculars, "paper-plane": paperPlane, key, archive,
 };
 const FILL: Partial<Record<IconName, string>> = { "thumbs-up": thumbsUpFill, question: questionFill, "thumbs-down": thumbsDownFill };

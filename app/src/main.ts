@@ -29,6 +29,27 @@ import { shouldShortlist } from "./stages.ts";
 import { clearSnapshots, readSnapshot, writeSnapshot } from "./snapshot.ts";
 import { renderLoader } from "./views/loader.ts";
 
+// ---------- theme ----------
+// Light or dark. Until you pick one, it follows the phone's setting; picking the phone's own theme
+// again goes back to following it. The colors are CSS (:root[data-theme] in styles.css).
+type Theme = "light" | "dark";
+const systemTheme = (): Theme => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+const themeNow = (): Theme => (document.documentElement.dataset.theme as Theme | undefined) ?? systemTheme();
+function applyTheme(t: Theme | null) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeNow() === "dark" ? "#0f1512" : "#007a45");
+}
+applyTheme(store<Theme | null>("theme", null));
+// the phone's setting changing matters while you're following it
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!store<Theme | null>("theme", null)) { applyTheme(null); render(); } });
+function toggleTheme() {
+  const next: Theme = themeNow() === "dark" ? "light" : "dark";
+  const pick = next === systemTheme() ? null : next;
+  save("theme", pick);
+  applyTheme(pick);
+  render();
+}
+
 // ---------- backend ----------
 const env = import.meta.env;
 const wantDemo = env.VITE_DEMO === "1" || new URLSearchParams(location.search).has("demo");
@@ -126,7 +147,10 @@ export function render() {
   const colTops = new Map([...document.querySelectorAll<HTMLElement>(".col")].map((c) => [c.dataset.col, c.querySelector<HTMLElement>(".col-body")?.scrollTop ?? 0]));
   root.innerHTML = `<header class="top">
       <div class="brand"><h1>${icon("stairs", { size: 26, cls: "logo" })}Stoop</h1>${api.demo ? '<span class="tag">Demo · sample listings</span>' : ""}</div>
-      <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
+      <div class="top-actions">
+        <button class="who" data-action="theme" aria-label="${themeNow() === "dark" ? "Switch to light theme" : "Switch to dark theme"}" title="${themeNow() === "dark" ? "Light theme" : "Dark theme"}">${icon(themeNow() === "dark" ? "sun" : "moon", { size: 20 })}</button>
+        <button class="who" data-action="tab" data-v="settings" aria-label="Settings" title="Settings" aria-pressed="${S.tab === "settings"}">${icon("gear", { size: 20 })}</button>
+      </div>
     </header>
     <nav class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, t]) =>
       `<button role="tab" id="tab-${k}" aria-selected="${S.tab === k}" aria-controls="panel" tabindex="${S.tab === k || (k === "feed" && !TABS.some(([x]) => x === S.tab)) ? 0 : -1}" data-action="tab" data-v="${k}">${t}${S.loading ? "" : `<span class="n">${tabCount(k)}</span>`}${
@@ -781,6 +805,7 @@ document.addEventListener("click", (e) => {
         api.removePlace(id).then(async () => { S.places = await api.places(); S.feed = await api.feed(); toast("Place removed"); render(); }, showError);
         return;
       }
+      case "theme": toggleTheme(); return;
       case "signout": void clearSnapshots(); api.signOut().then(() => { S.me = null; render(); }); return;
       case "resend": S.sentLinkTo = null; break;
       case "dismiss": S.error = null; break;
