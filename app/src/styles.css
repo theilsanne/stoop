@@ -859,3 +859,11 @@ button.who[aria-pressed="true"] .ic{color:var(--accent)}
 @keyframes lstep-wait{50%{opacity:.35}}
 @keyframes lstep-rise{from{transform:scaleX(.15);opacity:.4}to{transform:scaleX(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.lstep.now,.lstep.just{animation:none}}
+
+/* TEMPORARY accent picker (accent.ts): one picked colour drives the accent in both themes */
+.accent-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.accent-input{width:52px;height:40px;padding:0;border:1px solid var(--line);border-radius:var(--r-input);background:none;cursor:pointer}
+.accent-hex{font-family:var(--mono);font-size:14px}
+:root[data-accent]{--accent:var(--accent-pick);--accent-ink:var(--accent-pick-ink);--accent-soft:color-mix(in srgb,var(--accent-pick) 14%,#fff)}
+@media (prefers-color-scheme:dark){:root[data-accent]:not([data-theme="light"]){--accent:var(--accent-pick-dark);--accent-ink:var(--accent-pick-dark-ink);--accent-soft:color-mix(in srgb,var(--accent-pick-dark) 20%,#0f1512)}}
+:root[data-accent][data-theme="dark"]{--accent:var(--accent-pick-dark);--accent-ink:var(--accent-pick-dark-ink);--accent-soft:color-mix(in srgb,var(--accent-pick-dark) 20%,#0f1512)}

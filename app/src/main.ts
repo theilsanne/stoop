@@ -28,6 +28,7 @@ import { renderPipeline } from "./views/pipeline.ts";
 import { shouldShortlist } from "./stages.ts";
 import { clearSnapshots, readSnapshot, writeSnapshot } from "./snapshot.ts";
 import { renderLoader } from "./views/loader.ts";
+import { applyAccent, saveAccent } from "./accent.ts";
 
 // ---------- theme ----------
 // Light or dark. Until you pick one, it follows the phone's setting; picking the phone's own theme
@@ -45,6 +46,7 @@ function applyTheme(t: Theme | null) {
   }
 }
 applyTheme(store<Theme | null>("theme", null));
+applyAccent(store<string | null>("accent", null));
 // the phone's setting changing matters while you're following it
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!store<Theme | null>("theme", null)) { applyTheme(null); render(); } });
 function toggleTheme() {
@@ -811,6 +813,7 @@ document.addEventListener("click", (e) => {
         return;
       }
       case "theme": toggleTheme(); return;
+      case "accent-reset": saveAccent(null); render(); return;
       case "signout": void clearSnapshots(); api.signOut().then(() => { S.me = null; render(); }); return;
       case "resend": S.sentLinkTo = null; break;
       case "dismiss": S.error = null; break;
@@ -875,12 +878,15 @@ document.addEventListener("change", (e) => {
     const n = Number(t.value);
     api.setAlertThreshold(n).then(async () => { S.profiles = await api.profiles(); toast(`You'll be alerted at ${n} and up`); render(); }, showError);
   }
+  if (t.dataset.change === "accent") { saveAccent(t.value); render(); return; }
   if (t.dataset.change === "subway") { showSubway.on = (t as unknown as HTMLInputElement).checked; save("subway", showSubway.on); render(); }
 });
 
 document.addEventListener("input", (e) => {
   const t = e.target as HTMLInputElement;
   if (t.dataset.note) { noteChanged(t.dataset.note, t.value); return; }
+  // the accent picker previews live while you drag; it's saved when you let go (the change event)
+  if (t.dataset.change === "accent") { applyAccent(t.value); const c = document.querySelector(".accent-hex"); if (c) c.textContent = t.value; return; }
   const f = t.dataset.edit;
   if (!f || !t.dataset.id) return;
   const c = draftById(t.dataset.id);

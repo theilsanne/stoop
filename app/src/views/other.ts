@@ -1,4 +1,5 @@
 import { S, myId, partner, partnerName, placeName } from "../state.ts";
+import { accentPanel } from "../accent.ts";
 import { icon } from "../icons.ts";
 import { esc } from "../util.ts";
 import { avatar } from "./avatar.ts";
@@ -51,6 +52,7 @@ export function renderSettings() {
       })() : ""}
     </section>
     ${alertsPanel(me?.notify_threshold ?? 70)}
+    ${accentPanel()}
     <section class="panel"><h2>Building records</h2>
       <p>HPD violations and 311 complaints from NYC Open Data. New listings are looked up as they arrive. ${(() => {
         const checked = S.feed.filter((r) => r.building_checked_at).length, total = S.feed.length;
