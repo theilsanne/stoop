@@ -35,9 +35,14 @@ import { renderLoader } from "./views/loader.ts";
 type Theme = "light" | "dark";
 const systemTheme = (): Theme => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 const themeNow = (): Theme => (document.documentElement.dataset.theme as Theme | undefined) ?? systemTheme();
+const BAR: Record<Theme, string> = { light: "#f2f5f3", dark: "#0f1512" }; // --bg in each theme
 function applyTheme(t: Theme | null) {
   if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeNow() === "dark" ? "#0f1512" : "#007a45");
+  // the status and navigation bars match the page background: a theme you picked wins over the phone's
+  for (const m of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    const own = m.media.includes("dark") ? "dark" : "light";
+    m.content = BAR[t ?? own];
+  }
 }
 applyTheme(store<Theme | null>("theme", null));
 // the phone's setting changing matters while you're following it
