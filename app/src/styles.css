@@ -231,7 +231,10 @@ button.who[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 .log .by{font-weight:600}
 
 /* alerts */
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:18px}
+/* Settings cards as masonry: columns of at least 320px, each card dropping into the shortest gap
+   rather than leaving a row of holes beside a tall neighbour. One column on a phone. */
+.two{columns:2 320px;column-gap:18px}
+.two > *{break-inside:avoid;margin:0 0 18px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .panel h2{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:20px;text-transform:uppercase;margin:0}
 .panel p{margin:0;color:var(--ink-2);font-size:14px}
@@ -578,7 +581,6 @@ img.av{object-fit:cover;background:var(--surface-2)}
 .ctl label{color:var(--ink-2)}
 
 /* ---- Settings: people, places ---- */
-.two{align-items:start}
 .panel{container-type:inline-size}
 .people{padding:0}
 .people-grid{display:grid;grid-template-columns:1fr 1fr}
